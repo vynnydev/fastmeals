@@ -1,0 +1,105 @@
+### ============================================
+### FastMeals Auth Service — REST Client
+### Extension: REST Client (humao.rest-client)
+### ============================================
+
+@baseUrl = http://localhost:3001
+@contentType = application/json
+
+### ──────────────────────────────────
+### Health Check
+### ──────────────────────────────────
+
+GET {{baseUrl}}/health
+
+### ──────────────────────────────────
+### Login — Admin
+### ──────────────────────────────────
+
+# @name loginAdmin
+POST {{baseUrl}}/api/auth/login
+Content-Type: {{contentType}}
+
+{
+  "email": "admin@fastmeals.com",
+  "password": "Admin@123"
+}
+
+### ──────────────────────────────────
+### Login — Viewer
+### ──────────────────────────────────
+
+# @name loginViewer
+POST {{baseUrl}}/api/auth/login
+Content-Type: {{contentType}}
+
+{
+  "email": "viewer@fastmeals.com",
+  "password": "Viewer@123"
+}
+
+### ──────────────────────────────────
+### Login — Credenciais Inválidas (deve retornar 401)
+### ──────────────────────────────────
+
+POST {{baseUrl}}/api/auth/login
+Content-Type: {{contentType}}
+
+{
+  "email": "admin@fastmeals.com",
+  "password": "senhaerrada"
+}
+
+### ──────────────────────────────────
+### Login — Email Inválido (deve retornar 400)
+### ──────────────────────────────────
+
+POST {{baseUrl}}/api/auth/login
+Content-Type: {{contentType}}
+
+{
+  "email": "not-an-email",
+  "password": "Admin@123"
+}
+
+### ──────────────────────────────────
+### Login — Campos Faltando (deve retornar 400)
+### ──────────────────────────────────
+
+POST {{baseUrl}}/api/auth/login
+Content-Type: {{contentType}}
+
+{
+  "email": "admin@fastmeals.com"
+}
+
+### ──────────────────────────────────
+### Refresh Token (usar o refreshToken do login acima)
+### ──────────────────────────────────
+
+POST {{baseUrl}}/api/auth/refresh
+Content-Type: {{contentType}}
+
+{
+  "refreshToken": "{{loginAdmin.response.body.refreshToken}}"
+}
+
+### ──────────────────────────────────
+### Refresh Token — Token Inválido (deve retornar 401)
+### ──────────────────────────────────
+
+POST {{baseUrl}}/api/auth/refresh
+Content-Type: {{contentType}}
+
+{
+  "refreshToken": "invalid-token-here"
+}
+
+### ──────────────────────────────────
+### Refresh Token — Campo Faltando (deve retornar 400)
+### ──────────────────────────────────
+
+POST {{baseUrl}}/api/auth/refresh
+Content-Type: {{contentType}}
+
+{}

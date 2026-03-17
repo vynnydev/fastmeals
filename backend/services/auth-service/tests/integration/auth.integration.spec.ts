@@ -146,14 +146,24 @@ describe('Auth Integration Tests', () => {
 
   describe('POST /api/auth/refresh', () => {
     it('should return 200 with new token pair on valid refresh token', async () => {
-      vi.mocked(mockPasswordHasher.compare).mockResolvedValue(true);
-
+      // Reset ALL mocks to ensure completely clean state
+      vi.mocked(mockJwtService.verifyRefreshToken).mockReturnValue({
+        userId: 'user-uuid-123',
+        email: 'admin@fastmeals.com',
+        role: 'admin',
+      });
+      vi.mocked(mockJwtService.generateAccessToken).mockReturnValue('new-access-token');
+      vi.mocked(mockJwtService.generateRefreshToken).mockReturnValue('new-refresh-token');
+      vi.mocked(mockTokenStore.getRefreshToken).mockResolvedValue('mock-refresh-token');
+      vi.mocked(mockTokenStore.storeRefreshToken).mockResolvedValue(undefined);
+      vi.mocked(mockUserRepository.findById).mockResolvedValue(mockUser);
+    
       const response = await request(app)
         .post('/api/auth/refresh')
         .send({
           refreshToken: 'mock-refresh-token',
         });
-
+    
       expect(response.status).toBe(200);
       expect(response.body).toHaveProperty('accessToken');
       expect(response.body).toHaveProperty('refreshToken');
