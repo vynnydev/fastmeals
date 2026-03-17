@@ -1,0 +1,55 @@
+import { Request, Response, NextFunction } from 'express';
+import { AppError } from '../errors/app-error';
+
+interface RateLimitEntry {
+  count: number;
+  resetTime: number;
+}
+
+const store = new Map<string, RateLimitEntry>();
+
+// Limpa entries expiradas a cada 60 segundos
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, entry] of store.entries()) {
+    if (now > entry.resetTime) {
+      store.delete(key);
+    }
+  }
+}, 60000);
+
+export function rateLimiter(windowMs: number, maxRequests: number) {
+  return (req: Request, res: Response, next: NextFunction): void => {
+    const clientIp = req.ip || req.socket.remoteAddress || 'unknown';
+    const now = Date.now();
+
+    const entry = store.get(clientIp);
+
+    if (!entry || now > entry.resetTime) {
+      store.set(clientIp, {
+        count: 1,
+        resetTime: now + windowMs,
+      });
+
+      res.setHeader('X-RateLimit-Limit', maxRequests);
+      res.setHeader('X-RateLimit-Remaining', maxRequests - 1);
+      res.setHeader('X-RateLimit-Reset', new Date(now + windowMs).toISOString());
+
+      next();
+      return;
+    }
+
+    entry.count += 1;
+
+    const remaining = Math.max(0, maxRequests - entry.count);
+    res.setHeader('X-RateLimit-Limit', maxRequests);
+    res.setHeader('X-RateLimit-Remaining', remaining);
+    res.setHeader('X-RateLimit-Reset', new Date(entry.resetTime).toISOString());
+
+    if (entry.count > maxRequests) {
+      throw AppError.tooManyRequests();
+    }
+
+    next();
+  };
+}
