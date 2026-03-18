@@ -1,0 +1,75 @@
+### ============================================
+### FastMeals Delivery Service — REST Client
+### ============================================
+
+@baseUrl = http://localhost:3004
+@contentType = application/json
+@adminToken = COLE_O_TOKEN_DO_LOGIN_ADMIN_AQUI
+
+### Health Check
+GET {{baseUrl}}/health
+
+### ──────────────────────────────────
+### List All Delivery Persons
+### ──────────────────────────────────
+
+GET {{baseUrl}}/api/delivery-persons
+Authorization: Bearer {{adminToken}}
+
+### List Active Only
+GET {{baseUrl}}/api/delivery-persons?isActive=true
+Authorization: Bearer {{adminToken}}
+
+### List Available (active + not delivering)
+GET {{baseUrl}}/api/delivery-persons?available=true
+Authorization: Bearer {{adminToken}}
+
+### ──────────────────────────────────
+### Get by ID
+### ──────────────────────────────────
+
+GET {{baseUrl}}/api/delivery-persons/COLE_UUID_AQUI
+Authorization: Bearer {{adminToken}}
+
+### ──────────────────────────────────
+### Create Delivery Person
+### ──────────────────────────────────
+
+POST {{baseUrl}}/api/delivery-persons
+Content-Type: {{contentType}}
+Authorization: Bearer {{adminToken}}
+
+{
+  "name": "Novo Entregador",
+  "phone": "(11) 97777-8888",
+  "vehicleType": "motorcycle",
+  "currentLatitude": -23.5500,
+  "currentLongitude": -46.6400
+}
+
+### ──────────────────────────────────
+### Update Delivery Person
+### ──────────────────────────────────
+
+PUT {{baseUrl}}/api/delivery-persons/COLE_UUID_AQUI
+Content-Type: {{contentType}}
+Authorization: Bearer {{adminToken}}
+
+{
+  "isActive": false,
+  "currentLatitude": -23.5600,
+  "currentLongitude": -46.6500
+}
+
+### ──────────────────────────────────
+### Delete Delivery Person
+### ──────────────────────────────────
+
+DELETE {{baseUrl}}/api/delivery-persons/COLE_UUID_AQUI
+Authorization: Bearer {{adminToken}}
+
+### ──────────────────────────────────
+### Without token (401)
+### ──────────────────────────────────
+
+GET {{baseUrl}}/api/delivery-persons

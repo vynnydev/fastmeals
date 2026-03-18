@@ -1,0 +1,29 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum VehicleType {
+  bicycle
+  motorcycle
+  car
+}
+
+model DeliveryPerson {
+  id               String      @id @default(uuid()) @db.Uuid
+  name             String      @db.VarChar(100)
+  phone            String      @db.VarChar(20)
+  vehicleType      VehicleType @map("vehicle_type")
+  isActive         Boolean     @default(true) @map("is_active")
+  currentLatitude  Decimal?    @map("current_latitude") @db.Decimal(10, 8)
+  currentLongitude Decimal?    @map("current_longitude") @db.Decimal(11, 8)
+  createdAt        DateTime    @default(now()) @map("created_at") @db.Timestamptz
+
+  @@index([isActive])
+  @@map("delivery_persons")
+}
