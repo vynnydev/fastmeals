@@ -1,0 +1,113 @@
+### ============================================
+### FastMeals Products Service — REST Client
+### Extension: REST Client (humao.rest-client)
+### ============================================
+
+@baseUrl = http://localhost:3002
+@contentType = application/json
+@adminToken = COLE_O_TOKEN_DO_LOGIN_ADMIN_AQUI
+
+### ──────────────────────────────────
+### Health Check
+### ──────────────────────────────────
+
+GET {{baseUrl}}/health
+
+### ──────────────────────────────────
+### List Products (com paginação)
+### ──────────────────────────────────
+
+GET {{baseUrl}}/api/products?page=1&limit=10&sortBy=createdAt&sortOrder=desc
+Authorization: Bearer {{adminToken}}
+
+### ──────────────────────────────────
+### List Products — Filtro por categoria
+### ──────────────────────────────────
+
+GET {{baseUrl}}/api/products?category=meal
+Authorization: Bearer {{adminToken}}
+
+### ──────────────────────────────────
+### List Products — Busca por nome
+### ──────────────────────────────────
+
+GET {{baseUrl}}/api/products?search=burger
+Authorization: Bearer {{adminToken}}
+
+### ──────────────────────────────────
+### List Products — Filtro por disponibilidade
+### ──────────────────────────────────
+
+GET {{baseUrl}}/api/products?isAvailable=true
+Authorization: Bearer {{adminToken}}
+
+### ──────────────────────────────────
+### List Products — Ordenar por preço
+### ──────────────────────────────────
+
+GET {{baseUrl}}/api/products?sortBy=price&sortOrder=asc
+Authorization: Bearer {{adminToken}}
+
+### ──────────────────────────────────
+### Get Product by ID
+### ──────────────────────────────────
+
+GET {{baseUrl}}/api/products/COLE_O_UUID_DO_PRODUTO_AQUI
+Authorization: Bearer {{adminToken}}
+
+### ──────────────────────────────────
+### Create Product (admin only)
+### ──────────────────────────────────
+
+POST {{baseUrl}}/api/products
+Content-Type: {{contentType}}
+Authorization: Bearer {{adminToken}}
+
+{
+  "name": "Coxinha de Frango",
+  "description": "Coxinha crocante recheada com frango desfiado e catupiry cremoso",
+  "price": 8.50,
+  "category": "side",
+  "imageUrl": "https://images.unsplash.com/photo-example?w=400",
+  "preparationTime": 5
+}
+
+### ──────────────────────────────────
+### Update Product (admin only)
+### ──────────────────────────────────
+
+PUT {{baseUrl}}/api/products/COLE_O_UUID_DO_PRODUTO_AQUI
+Content-Type: {{contentType}}
+Authorization: Bearer {{adminToken}}
+
+{
+  "price": 9.90,
+  "isAvailable": false
+}
+
+### ──────────────────────────────────
+### Delete Product (admin only)
+### ──────────────────────────────────
+
+DELETE {{baseUrl}}/api/products/COLE_O_UUID_DO_PRODUTO_AQUI
+Authorization: Bearer {{adminToken}}
+
+### ──────────────────────────────────
+### Create Product — Validação (deve retornar 400)
+### ──────────────────────────────────
+
+POST {{baseUrl}}/api/products
+Content-Type: {{contentType}}
+Authorization: Bearer {{adminToken}}
+
+{
+  "name": "AB",
+  "price": -10,
+  "category": "invalid"
+}
+
+### ──────────────────────────────────
+### Access without token (deve retornar 401)
+### ──────────────────────────────────
+
+GET {{baseUrl}}/api/products

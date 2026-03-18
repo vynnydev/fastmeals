@@ -1,0 +1,35 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum ProductCategory {
+  meal
+  drink
+  dessert
+  side
+}
+
+model Product {
+  id              String          @id @default(uuid()) @db.Uuid
+  name            String          @db.VarChar(120)
+  description     String          @db.VarChar(500)
+  price           Decimal         @db.Decimal(10, 2)
+  category        ProductCategory
+  imageUrl        String?         @map("image_url") @db.VarChar(500)
+  isAvailable     Boolean         @default(true) @map("is_available")
+  preparationTime Int             @map("preparation_time") @db.Integer
+  createdAt       DateTime        @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt       DateTime        @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@index([category])
+  @@index([isAvailable])
+  @@index([name])
+  @@index([createdAt(sort: Desc)])
+  @@map("products")
+}
