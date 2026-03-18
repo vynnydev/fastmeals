@@ -1,0 +1,66 @@
+# ============================================
+# Orders Service — Docker Compose (desenvolvimento isolado)
+# ============================================
+
+services:
+  orders-db:
+    image: postgres:16-alpine
+    container_name: fastmeals-orders-db
+    environment:
+      POSTGRES_DB: orders_db
+      POSTGRES_USER: orders_user
+      POSTGRES_PASSWORD: orders_pass
+    ports:
+      - "5435:5432"
+    volumes:
+      - orders_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U orders_user -d orders_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: fastmeals-rabbitmq
+    ports:
+      - "5672:5672"    # AMQP protocol
+      - "15672:15672"  # Management UI
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "check_port_connectivity"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  orders-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: fastmeals-orders-service
+    ports:
+      - "3003:3003"
+    environment:
+      NODE_ENV: development
+      PORT: 3003
+      DATABASE_URL: postgresql://orders_user:orders_pass@orders-db:5432/orders_db
+      JWT_ACCESS_SECRET: dev-access-secret-fastmeals-2026
+      RATE_LIMIT_WINDOW_MS: 60000
+      RATE_LIMIT_MAX_REQUESTS: 100
+      CORS_ORIGIN: http://localhost:3000
+      PRODUCTS_SERVICE_URL: http://host.docker.internal:3002
+      DELIVERY_SERVICE_URL: http://host.docker.internal:3004
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
+    depends_on:
+      orders-db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+volumes:
+  orders_db_data:
+  rabbitmq_data:

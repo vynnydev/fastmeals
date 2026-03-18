@@ -1,0 +1,130 @@
+### ============================================
+### FastMeals Orders Service — REST Client
+### ============================================
+
+@baseUrl = http://localhost:3003
+@contentType = application/json
+@adminToken = COLE_O_TOKEN_DO_LOGIN_ADMIN_AQUI
+
+### Health Check
+GET {{baseUrl}}/health
+
+### ──────────────────────────────────
+### List Orders
+### ──────────────────────────────────
+
+GET {{baseUrl}}/api/orders?page=1&limit=10
+Authorization: Bearer {{adminToken}}
+
+### List Orders — Filtro por status
+GET {{baseUrl}}/api/orders?status=pending
+Authorization: Bearer {{adminToken}}
+
+### List Orders — Filtro por status ready
+GET {{baseUrl}}/api/orders?status=ready
+Authorization: Bearer {{adminToken}}
+
+### ──────────────────────────────────
+### Get Order by ID
+### ──────────────────────────────────
+
+GET {{baseUrl}}/api/orders/COLE_UUID_DO_PEDIDO
+Authorization: Bearer {{adminToken}}
+
+### ──────────────────────────────────
+### Create Order
+### ──────────────────────────────────
+
+POST {{baseUrl}}/api/orders
+Content-Type: {{contentType}}
+Authorization: Bearer {{adminToken}}
+
+{
+  "customerName": "João Silva",
+  "customerPhone": "(11) 99999-1234",
+  "deliveryAddress": "Rua das Flores, 123, Vila Mariana, São Paulo - SP",
+  "latitude": -23.5891,
+  "longitude": -46.6378,
+  "items": [
+    { "productId": "COLE_UUID_PRODUTO_1", "quantity": 2 },
+    { "productId": "COLE_UUID_PRODUTO_2", "quantity": 1 }
+  ]
+}
+
+### ──────────────────────────────────
+### Update Order Status — pending → preparing
+### ──────────────────────────────────
+
+PATCH {{baseUrl}}/api/orders/COLE_UUID_DO_PEDIDO/status
+Content-Type: {{contentType}}
+Authorization: Bearer {{adminToken}}
+
+{
+  "status": "preparing"
+}
+
+### ──────────────────────────────────
+### Update Order Status — preparing → ready
+### ──────────────────────────────────
+
+PATCH {{baseUrl}}/api/orders/COLE_UUID_DO_PEDIDO/status
+Content-Type: {{contentType}}
+Authorization: Bearer {{adminToken}}
+
+{
+  "status": "ready"
+}
+
+### ──────────────────────────────────
+### Assign Delivery Person
+### ──────────────────────────────────
+
+PATCH {{baseUrl}}/api/orders/COLE_UUID_DO_PEDIDO/assign
+Content-Type: {{contentType}}
+Authorization: Bearer {{adminToken}}
+
+{
+  "deliveryPersonId": "COLE_UUID_DO_ENTREGADOR"
+}
+
+### ──────────────────────────────────
+### Update Order Status — ready → delivering
+### ──────────────────────────────────
+
+PATCH {{baseUrl}}/api/orders/COLE_UUID_DO_PEDIDO/status
+Content-Type: {{contentType}}
+Authorization: Bearer {{adminToken}}
+
+{
+  "status": "delivering"
+}
+
+### ──────────────────────────────────
+### Update Order Status — Invalid Transition (deve retornar 422)
+### ──────────────────────────────────
+
+PATCH {{baseUrl}}/api/orders/COLE_UUID_DO_PEDIDO/status
+Content-Type: {{contentType}}
+Authorization: Bearer {{adminToken}}
+
+{
+  "status": "pending"
+}
+
+### ──────────────────────────────────
+### Cancel Order
+### ──────────────────────────────────
+
+PATCH {{baseUrl}}/api/orders/COLE_UUID_DO_PEDIDO/status
+Content-Type: {{contentType}}
+Authorization: Bearer {{adminToken}}
+
+{
+  "status": "cancelled"
+}
+
+### ──────────────────────────────────
+### Access without token (deve retornar 401)
+### ──────────────────────────────────
+
+GET {{baseUrl}}/api/orders
