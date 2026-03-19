@@ -1,10 +1,11 @@
-import amqp, { Connection, Channel } from 'amqplib';
+import amqp from 'amqplib';
+import type { Connection, Channel } from 'amqplib';
 import { EXCHANGE_NAME, EXCHANGE_TYPE } from './events';
 
-let connection: Connection | null = null;
+let connection: any = null;
 let channel: Channel | null = null;
 
-export async function connectRabbitMQ(url: string): Promise<Channel> {
+export async function connectRabbitMQ(url: string): Promise<Channel | null> {
   if (channel) {
     return channel;
   }
@@ -13,20 +14,20 @@ export async function connectRabbitMQ(url: string): Promise<Channel> {
     connection = await amqp.connect(url);
     channel = await connection.createChannel();
 
-    await channel.assertExchange(EXCHANGE_NAME, EXCHANGE_TYPE, {
+    await channel!.assertExchange(EXCHANGE_NAME, EXCHANGE_TYPE, {
       durable: true,
     });
 
     console.log('✅ RabbitMQ connected');
     console.log(`   Exchange: ${EXCHANGE_NAME} (${EXCHANGE_TYPE})`);
 
-    connection.on('error', (error) => {
+    connection!.on('error', (error: Error) => {
       console.error('RabbitMQ connection error:', error.message);
       channel = null;
       connection = null;
     });
-
-    connection.on('close', () => {
+    
+    connection!.on('close', () => {
       console.log('RabbitMQ connection closed');
       channel = null;
       connection = null;
@@ -37,6 +38,10 @@ export async function connectRabbitMQ(url: string): Promise<Channel> {
     console.error('❌ Failed to connect to RabbitMQ:', error);
     throw error;
   }
+}
+
+export function getChannel(): Channel | null {
+  return channel;
 }
 
 export async function disconnectRabbitMQ(): Promise<void> {

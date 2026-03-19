@@ -4,7 +4,7 @@
       "module": "commonjs",
       "lib": ["ES2022"],
       "outDir": "./dist",
-      "rootDir": "./src",
+      "rootDir": ".",
       "strict": true,
       "esModuleInterop": true,
       "skipLibCheck": true,
@@ -22,6 +22,6 @@
         "@lambda/*": ["src/lambda/*"]
       }
     },
-    "include": ["src/**/*"],
+    "include": ["src/**/*", "generated/**/*"],
     "exclude": ["node_modules", "dist", "tests"]
   }

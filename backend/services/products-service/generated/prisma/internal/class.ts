@@ -23,7 +23,7 @@ const config: runtime.GetPrismaClientConfig = {
       "value": "prisma-client"
     },
     "output": {
-      "value": "/Users/vynnydev/Desktop/work-projects/repositories/fastmeals/backend/services/products-service/generated/prisma",
+      "value": "/Users/vynnydev/Desktop/fresh/fastmeals/backend/services/products-service/generated/prisma",
       "fromEnvVar": null
     },
     "config": {
@@ -37,7 +37,7 @@ const config: runtime.GetPrismaClientConfig = {
       }
     ],
     "previewFeatures": [],
-    "sourceFilePath": "/Users/vynnydev/Desktop/work-projects/repositories/fastmeals/backend/services/products-service/prisma/schema.prisma",
+    "sourceFilePath": "/Users/vynnydev/Desktop/fresh/fastmeals/backend/services/products-service/prisma/schema.prisma",
     "isCustomOutput": true
   },
   "relativePath": "../../prisma",
@@ -47,7 +47,7 @@ const config: runtime.GetPrismaClientConfig = {
     "db"
   ],
   "activeProvider": "postgresql",
-  "postinstall": false,
+  "postinstall": true,
   "inlineDatasources": {
     "db": {
       "url": {
