@@ -1,0 +1,99 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Reports service has read access to orders + order_items + products
+// This is the CQRS read model — replicated data for reporting
+
+enum OrderStatus {
+  pending
+  preparing
+  ready
+  delivering
+  delivered
+  cancelled
+}
+
+enum ProductCategory {
+  meal
+  drink
+  dessert
+  side
+}
+
+enum VehicleType {
+  bicycle
+  motorcycle
+  car
+}
+
+model Order {
+  id               String      @id @default(uuid()) @db.Uuid
+  customerName     String      @map("customer_name") @db.VarChar(100)
+  customerPhone    String      @map("customer_phone") @db.VarChar(20)
+  deliveryAddress  String      @map("delivery_address") @db.VarChar(300)
+  latitude         Decimal     @db.Decimal(10, 8)
+  longitude        Decimal     @db.Decimal(11, 8)
+  status           OrderStatus @default(pending)
+  totalAmount      Decimal     @map("total_amount") @db.Decimal(10, 2)
+  deliveryPersonId String?     @map("delivery_person_id") @db.Uuid
+  createdAt        DateTime    @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt        DateTime    @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  items OrderItem[]
+
+  @@index([status])
+  @@index([createdAt(sort: Desc)])
+  @@index([status, createdAt])
+  @@map("orders")
+}
+
+model OrderItem {
+  id        String   @id @default(uuid()) @db.Uuid
+  orderId   String   @map("order_id") @db.Uuid
+  productId String   @map("product_id") @db.Uuid
+  quantity  Int      @db.Integer
+  unitPrice Decimal  @map("unit_price") @db.Decimal(10, 2)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+  @@index([productId])
+  @@map("order_items")
+}
+
+model Product {
+  id              String          @id @default(uuid()) @db.Uuid
+  name            String          @db.VarChar(120)
+  description     String          @db.VarChar(500)
+  price           Decimal         @db.Decimal(10, 2)
+  category        ProductCategory
+  imageUrl        String?         @map("image_url") @db.VarChar(500)
+  isAvailable     Boolean         @default(true) @map("is_available")
+  preparationTime Int             @map("preparation_time") @db.Integer
+  createdAt       DateTime        @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt       DateTime        @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@index([category])
+  @@map("products")
+}
+
+model DeliveryPerson {
+  id               String      @id @default(uuid()) @db.Uuid
+  name             String      @db.VarChar(100)
+  phone            String      @db.VarChar(20)
+  vehicleType      VehicleType @map("vehicle_type")
+  isActive         Boolean     @default(true) @map("is_active")
+  currentLatitude  Decimal?    @map("current_latitude") @db.Decimal(10, 8)
+  currentLongitude Decimal?    @map("current_longitude") @db.Decimal(11, 8)
+  createdAt        DateTime    @default(now()) @map("created_at") @db.Timestamptz
+
+  @@map("delivery_persons")
+}

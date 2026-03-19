@@ -1,0 +1,43 @@
+services:
+  reports-db:
+    image: postgres:16-alpine
+    container_name: fastmeals-reports-db
+    environment:
+      POSTGRES_DB: reports_db
+      POSTGRES_USER: reports_user
+      POSTGRES_PASSWORD: reports_pass
+    ports:
+      - "5437:5432"
+    volumes:
+      - reports_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U reports_user -d reports_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  reports-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: fastmeals-reports-service
+    ports:
+      - "3006:3006"
+    environment:
+      NODE_ENV: development
+      PORT: 3006
+      DATABASE_URL: postgresql://reports_user:reports_pass@reports-db:5432/reports_db
+      JWT_ACCESS_SECRET: dev-access-secret-fastmeals-2026
+      RATE_LIMIT_WINDOW_MS: 60000
+      RATE_LIMIT_MAX_REQUESTS: 100
+      CORS_ORIGIN: http://localhost:3000
+      AWS_REGION: us-east-1
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+      BEDROCK_MODEL_ID: anthropic.claude-haiku-4-5-20251001
+    depends_on:
+      reports-db:
+        condition: service_healthy
+
+volumes:
+  reports_db_data:

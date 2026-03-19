@@ -1,0 +1,58 @@
+### ============================================
+### FastMeals Reports Service — REST Client
+### ============================================
+
+@baseUrl = http://localhost:3006
+@adminToken = COLE_O_TOKEN_DO_LOGIN_ADMIN_AQUI
+
+### Health Check
+GET {{baseUrl}}/health
+
+### ──────────────────────────────────
+### Revenue Report
+### ──────────────────────────────────
+
+GET {{baseUrl}}/api/reports/revenue?startDate=2026-01-01&endDate=2026-12-31
+Authorization: Bearer {{adminToken}}
+
+### ──────────────────────────────────
+### Orders by Status
+### ──────────────────────────────────
+
+GET {{baseUrl}}/api/reports/orders-by-status
+Authorization: Bearer {{adminToken}}
+
+### ──────────────────────────────────
+### Top Products
+### ──────────────────────────────────
+
+GET {{baseUrl}}/api/reports/top-products?limit=10
+Authorization: Bearer {{adminToken}}
+
+### Top Products with date range
+GET {{baseUrl}}/api/reports/top-products?startDate=2026-01-01&endDate=2026-12-31&limit=5
+Authorization: Bearer {{adminToken}}
+
+### ──────────────────────────────────
+### Average Delivery Time
+### ──────────────────────────────────
+
+GET {{baseUrl}}/api/reports/average-delivery-time
+Authorization: Bearer {{adminToken}}
+
+### Average Delivery Time with date range
+GET {{baseUrl}}/api/reports/average-delivery-time?startDate=2026-01-01&endDate=2026-12-31
+Authorization: Bearer {{adminToken}}
+
+### ──────────────────────────────────
+### AI Insights (AWS Bedrock)
+### ──────────────────────────────────
+
+GET {{baseUrl}}/api/reports/ai-insights?startDate=2026-01-01&endDate=2026-12-31
+Authorization: Bearer {{adminToken}}
+
+### ──────────────────────────────────
+### Without token (401)
+### ──────────────────────────────────
+
+GET {{baseUrl}}/api/reports/revenue?startDate=2026-01-01&endDate=2026-12-31
