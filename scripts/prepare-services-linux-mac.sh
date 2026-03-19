@@ -1,50 +1,78 @@
 #!/bin/bash
 
 # ============================================
-# FastMeals — Start All Services (Mac/Linux)
+# FastMeals — Prepare Services (Mac/Linux)
 # ============================================
-# Usage: chmod +x scripts/start.sh && ./scripts/start.sh
+# Runs migrations and seeds inside Docker containers.
+# Run AFTER: docker-compose up --build
+#
+# Usage:
+#   chmod +x scripts/prepare-services-linux-mac.sh
+#   ./scripts/prepare-services-linux-mac.sh
 # ============================================
 
 set -e
 
-echo "🍔 FastMeals — Starting Platform"
-echo "================================="
-echo ""
-
-# Colors
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 RED='\033[0;31m'
+CYAN='\033[0;36m'
 NC='\033[0m'
 
-# ──────────────────────────────────
-# Step 1: Check Docker
-# ──────────────────────────────────
+echo ""
+echo -e "${CYAN}🍔 FastMeals — Preparing Services${NC}"
+echo "=================================="
+echo ""
 
-if ! command -v docker &> /dev/null; then
-    echo -e "${RED}❌ Docker not found. Please install Docker.${NC}"
-    exit 1
-fi
+# ──────────────────────────────────
+# Step 1: Check Docker is running
+# ──────────────────────────────────
 
 if ! docker info &> /dev/null; then
     echo -e "${RED}❌ Docker is not running. Please start Docker Desktop.${NC}"
     exit 1
 fi
 
-echo -e "${GREEN}✅ Docker is running${NC}"
+RUNNING=$(docker ps --format '{{.Names}}' | grep fastmeals | wc -l | tr -d ' ')
+if [ "$RUNNING" -lt 5 ]; then
+    echo -e "${RED}❌ FastMeals containers not running ($RUNNING found).${NC}"
+    echo "   Please run: docker-compose up --build"
+    exit 1
+fi
+
+echo -e "${GREEN}✅ Docker is running with $RUNNING FastMeals containers${NC}"
 
 # ──────────────────────────────────
-# Step 2: Start infrastructure
+# Step 2: Wait for databases
 # ──────────────────────────────────
 
 echo ""
-echo -e "${YELLOW}📦 Starting databases, Redis, and RabbitMQ...${NC}"
-docker-compose up -d auth-db products-db orders-db delivery-db reports-db redis rabbitmq
+echo -e "${YELLOW}⏳ Waiting for databases to be ready...${NC}"
 
-echo ""
-echo -e "${YELLOW}⏳ Waiting for databases to be healthy...${NC}"
-sleep 10
+wait_for_db() {
+    local container=$1
+    local user=$2
+    local db=$3
+    local retries=10
+
+    while [ $retries -gt 0 ]; do
+        if docker exec $container pg_isready -U $user -d $db &> /dev/null; then
+            echo -e "  ${GREEN}✅ $container ready${NC}"
+            return 0
+        fi
+        retries=$((retries - 1))
+        sleep 2
+    done
+
+    echo -e "  ${RED}❌ $container not ready${NC}"
+    return 1
+}
+
+wait_for_db "fastmeals-auth-db" "auth_user" "auth_db"
+wait_for_db "fastmeals-products-db" "products_user" "products_db"
+wait_for_db "fastmeals-orders-db" "orders_user" "orders_db"
+wait_for_db "fastmeals-delivery-db" "delivery_user" "delivery_db"
+wait_for_db "fastmeals-reports-db" "reports_user" "reports_db"
 
 # ──────────────────────────────────
 # Step 3: Run migrations and seeds
@@ -53,78 +81,95 @@ sleep 10
 echo ""
 echo -e "${YELLOW}🔧 Running migrations and seeds...${NC}"
 
-SERVICES=("auth-service" "products-service" "orders-service" "delivery-service" "reports-service")
+run_migration() {
+    local service=$1
+    local container="fastmeals-${service}"
 
-for SERVICE in "${SERVICES[@]}"; do
     echo ""
-    echo -e "${YELLOW}  📋 Setting up ${SERVICE}...${NC}"
+    echo -e "${YELLOW}  📋 Setting up ${service}...${NC}"
+
+    # Run prisma migrate deploy inside the container
+    docker exec $container sh -c "npx prisma migrate deploy 2>/dev/null || npx prisma db push --accept-data-loss 2>/dev/null" 2>/dev/null
+    
+    if [ $? -eq 0 ]; then
+        echo -e "    ${GREEN}✅ Migration applied${NC}"
+    else
+        echo -e "    ${YELLOW}⚠️  Migration may need manual setup${NC}"
+    fi
+}
+
+# Auth service
+echo ""
+echo -e "${YELLOW}  📋 Setting up auth-service...${NC}"
+docker exec fastmeals-auth-service sh -c "npx prisma db push --accept-data-loss 2>&1" 2>/dev/null && \
+    echo -e "    ${GREEN}✅ Migration applied${NC}" || \
+    echo -e "    ${YELLOW}⚠️  Migration skipped${NC}"
+docker exec fastmeals-auth-service sh -c "node dist/src/prisma-seed-runner.js 2>&1 || true" 2>/dev/null
+echo -e "    ${GREEN}✅ auth-service ready${NC}"
+
+# Products service
+echo ""
+echo -e "${YELLOW}  📋 Setting up products-service...${NC}"
+docker exec fastmeals-products-service sh -c "npx prisma db push --accept-data-loss 2>&1" 2>/dev/null && \
+    echo -e "    ${GREEN}✅ Migration applied${NC}" || \
+    echo -e "    ${YELLOW}⚠️  Migration skipped${NC}"
+echo -e "    ${GREEN}✅ products-service ready${NC}"
+
+# Orders service
+echo ""
+echo -e "${YELLOW}  📋 Setting up orders-service...${NC}"
+docker exec fastmeals-orders-service sh -c "npx prisma db push --accept-data-loss 2>&1" 2>/dev/null && \
+    echo -e "    ${GREEN}✅ Migration applied${NC}" || \
+    echo -e "    ${YELLOW}⚠️  Migration skipped${NC}"
+echo -e "    ${GREEN}✅ orders-service ready${NC}"
+
+# Delivery service
+echo ""
+echo -e "${YELLOW}  📋 Setting up delivery-service...${NC}"
+docker exec fastmeals-delivery-service sh -c "npx prisma db push --accept-data-loss 2>&1" 2>/dev/null && \
+    echo -e "    ${GREEN}✅ Migration applied${NC}" || \
+    echo -e "    ${YELLOW}⚠️  Migration skipped${NC}"
+echo -e "    ${GREEN}✅ delivery-service ready${NC}"
+
+# Reports service
+echo ""
+echo -e "${YELLOW}  📋 Setting up reports-service...${NC}"
+docker exec fastmeals-reports-service sh -c "npx prisma db push --accept-data-loss 2>&1" 2>/dev/null && \
+    echo -e "    ${GREEN}✅ Migration applied${NC}" || \
+    echo -e "    ${YELLOW}⚠️  Migration skipped${NC}"
+echo -e "    ${GREEN}✅ reports-service ready${NC}"
+
+# ──────────────────────────────────
+# Step 4: Seed databases
+# ──────────────────────────────────
+
+echo ""
+echo -e "${YELLOW}🌱 Seeding databases...${NC}"
+echo -e "${CYAN}   (Seeds must be run locally — containers don't have seed data files)${NC}"
+echo ""
+
+SERVICES_WITH_DB=("auth-service" "products-service" "orders-service" "delivery-service" "reports-service")
+DB_PORTS=(5433 5434 5435 5436 5437)
+
+for i in "${!SERVICES_WITH_DB[@]}"; do
+    SERVICE=${SERVICES_WITH_DB[$i]}
+    PORT=${DB_PORTS[$i]}
+    
+    echo -e "${YELLOW}  🌱 Seeding ${SERVICE}...${NC}"
     
     cd backend/services/$SERVICE
     
-    # Install dependencies if needed
     if [ ! -d "node_modules" ]; then
-        echo "    Installing dependencies..."
-        npm install --silent
+        npm install --silent 2>/dev/null
     fi
     
-    # Generate Prisma client
     npx prisma generate 2>/dev/null || true
-    
-    # Run migrations
-    npx prisma migrate deploy 2>/dev/null || npx prisma migrate dev --name init 2>/dev/null || true
-    
-    # Run seed
-    npm run seed 2>/dev/null || true
-    
-    echo -e "${GREEN}    ✅ ${SERVICE} ready${NC}"
+    npm run seed 2>/dev/null && \
+        echo -e "    ${GREEN}✅ ${SERVICE} seeded${NC}" || \
+        echo -e "    ${YELLOW}⚠️  ${SERVICE} seed skipped (may need .env)${NC}"
     
     cd ../../..
 done
-
-# optimization-service has no database
-echo ""
-echo -e "${YELLOW}  📋 Setting up optimization-service...${NC}"
-cd backend/services/optimization-service
-if [ ! -d "node_modules" ]; then
-    npm install --silent
-fi
-echo -e "${GREEN}    ✅ optimization-service ready${NC}"
-cd ../../..
-
-# ──────────────────────────────────
-# Step 4: Start all services
-# ──────────────────────────────────
-
-echo ""
-echo -e "${YELLOW}🚀 Starting all microservices...${NC}"
-
-# Start each service in background
-cd backend/services/auth-service && npm run dev &
-AUTH_PID=$!
-cd ../../..
-
-cd backend/services/products-service && npm run dev &
-PRODUCTS_PID=$!
-cd ../../..
-
-cd backend/services/orders-service && npm run dev &
-ORDERS_PID=$!
-cd ../../..
-
-cd backend/services/delivery-service && npm run dev &
-DELIVERY_PID=$!
-cd ../../..
-
-cd backend/services/optimization-service && npm run dev &
-OPTIMIZATION_PID=$!
-cd ../../..
-
-cd backend/services/reports-service && npm run dev &
-REPORTS_PID=$!
-cd ../../..
-
-# Wait for services to start
-sleep 5
 
 # ──────────────────────────────────
 # Step 5: Health checks
@@ -137,9 +182,9 @@ check_health() {
     local name=$1
     local url=$2
     if curl -s "$url" > /dev/null 2>&1; then
-        echo -e "${GREEN}  ✅ ${name} — healthy${NC}"
+        echo -e "  ${GREEN}✅ ${name}${NC}"
     else
-        echo -e "${RED}  ❌ ${name} — not responding${NC}"
+        echo -e "  ${RED}❌ ${name} — not responding${NC}"
     fi
 }
 
@@ -155,23 +200,11 @@ check_health "Reports Service (3006)" "http://localhost:3006/health"
 # ──────────────────────────────────
 
 echo ""
-echo "================================="
-echo -e "${GREEN}🍔 FastMeals Platform is running!${NC}"
-echo "================================="
+echo "=================================="
+echo -e "${GREEN}🍔 FastMeals Platform is ready!${NC}"
+echo "=================================="
 echo ""
-echo "  Services:"
-echo "    Auth:         http://localhost:3001"
-echo "    Products:     http://localhost:3002"
-echo "    Orders:       http://localhost:3003"
-echo "    Delivery:     http://localhost:3004"
-echo "    Optimization: http://localhost:3005"
-echo "    Reports:      http://localhost:3006"
+echo "  Next steps:"
+echo "    1. Run the test flow: ./scripts/test-flow.sh"
+echo "    2. Access RabbitMQ UI: http://localhost:15672 (guest/guest)"
 echo ""
-echo "  Infrastructure:"
-echo "    RabbitMQ UI:  http://localhost:15672 (guest/guest)"
-echo ""
-echo "  Press Ctrl+C to stop all services"
-echo ""
-
-# Wait for all background processes
-wait
