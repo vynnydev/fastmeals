@@ -1,0 +1,30 @@
+### ============================================
+### FastMeals Optimization Service — REST Client
+### ============================================
+
+@baseUrl = http://localhost:3005
+@adminToken = COLE_O_TOKEN_DO_LOGIN_ADMIN_AQUI
+
+### Health Check
+GET {{baseUrl}}/health
+
+### ──────────────────────────────────
+### Execute Optimization (admin only)
+### ──────────────────────────────────
+
+POST {{baseUrl}}/api/orders/optimize-assignment
+Authorization: Bearer {{adminToken}}
+
+### ──────────────────────────────────
+### Viewer tries to optimize (403)
+### ──────────────────────────────────
+
+# Use viewer token here
+POST {{baseUrl}}/api/orders/optimize-assignment
+Authorization: Bearer COLE_VIEWER_TOKEN_AQUI
+
+### ──────────────────────────────────
+### Without token (401)
+### ──────────────────────────────────
+
+POST {{baseUrl}}/api/orders/optimize-assignment
