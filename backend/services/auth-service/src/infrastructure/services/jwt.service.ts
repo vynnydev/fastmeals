@@ -15,7 +15,7 @@ export class JwtService implements IJwtService {
         expiresIn: env.JWT_ACCESS_EXPIRATION,
         issuer: 'fastmeals-auth-service',
         subject: payload.userId,
-      },
+      } as jwt.SignOptions,
     );
   }
 
@@ -31,7 +31,7 @@ export class JwtService implements IJwtService {
         expiresIn: env.JWT_REFRESH_EXPIRATION,
         issuer: 'fastmeals-auth-service',
         subject: payload.userId,
-      },
+      } as jwt.SignOptions,
     );
   }
 

@@ -45,30 +45,32 @@ async function start(): Promise<void> {
   try {
     const channel = await connectRabbitMQ(env.RABBITMQ_URL);
 
-    const consumer = new DeliveryEventConsumer(channel);
-    await consumer.setup();
+    if (channel) {
+      const consumer = new DeliveryEventConsumer(channel);
+      await consumer.setup();
 
-    // Listen for order status changes
-    await consumer.consumeOrderStatusChanged(async (event) => {
-      // When order is delivered or cancelled, the delivery person becomes free
-      if (
-        event.deliveryPersonId &&
-        (event.newStatus === 'delivered' || event.newStatus === 'cancelled')
-      ) {
-        console.log(
-          `🚴 Delivery person ${event.deliveryPersonId} is now FREE (order ${event.orderId} → ${event.newStatus})`,
-        );
-        // In a production system, we could update a local cache here
-        // to avoid HTTP calls to orders-service for availability checks
-      }
+      // Listen for order status changes
+      await consumer.consumeOrderStatusChanged(async (event) => {
+        // When order is delivered or cancelled, the delivery person becomes free
+        if (
+          event.deliveryPersonId &&
+          (event.newStatus === 'delivered' || event.newStatus === 'cancelled')
+        ) {
+          console.log(
+            `🚴 Delivery person ${event.deliveryPersonId} is now FREE (order ${event.orderId} → ${event.newStatus})`,
+          );
+          // In a production system, we could update a local cache here
+          // to avoid HTTP calls to orders-service for availability checks
+        }
 
-      // When order transitions to delivering, the delivery person is busy
-      if (event.deliveryPersonId && event.newStatus === 'delivering') {
-        console.log(
-          `🚴 Delivery person ${event.deliveryPersonId} is now BUSY (order ${event.orderId} → delivering)`,
-        );
-      }
-    });
+        // When order transitions to delivering, the delivery person is busy
+        if (event.deliveryPersonId && event.newStatus === 'delivering') {
+          console.log(
+            `🚴 Delivery person ${event.deliveryPersonId} is now BUSY (order ${event.orderId} → delivering)`,
+          );
+        }
+      });
+    }
 
     console.log('🐰 RabbitMQ messaging ready');
   } catch (error) {

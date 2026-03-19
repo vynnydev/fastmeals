@@ -1,5 +1,5 @@
 import { IProductRepository } from '../../domain/repositories/product-repository.interface';
-import { Product } from '../../domain/entities/product.entity';
+import { Product, ProductCategory } from '../../domain/entities/product.entity';
 import { UpdateProductDTO } from '../dtos/update-product.dto';
 import { AppError } from '../../infrastructure/http/errors/app-error';
 
@@ -13,7 +13,12 @@ export class UpdateProductUseCase {
       throw AppError.notFound('PRODUCT_NOT_FOUND', 'Produto não encontrado');
     }
 
-    const updatedProduct = await this.productRepository.update(id, dto);
+    const { category, ...rest } = dto;
+
+    const updatedProduct = await this.productRepository.update(id, {
+      ...rest,
+      ...(category && { category: category as unknown as ProductCategory }),
+    });
 
     return updatedProduct;
   }

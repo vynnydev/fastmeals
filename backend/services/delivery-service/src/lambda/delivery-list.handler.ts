@@ -1,7 +1,6 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
 import { ListDeliveryPersonsUseCase } from '../application/use-cases/list-delivery-persons.use-case';
 import { PrismaDeliveryPersonRepository } from '../infrastructure/repositories/prisma-delivery-person.repository';
-import { OrdersServiceClient } from '../infrastructure/clients/orders-service.client';
 import { getPrismaClient } from '../infrastructure/database/prisma-client';
 import { listDeliveryPersonsQuerySchema } from '../infrastructure/http/validators/delivery-person.validator';
 import { AppError } from '../infrastructure/http/errors/app-error';
@@ -12,8 +11,7 @@ let useCase: ListDeliveryPersonsUseCase | null = null;
 function getUseCase(): ListDeliveryPersonsUseCase {
   if (!useCase) {
     const prisma = getPrismaClient();
-    const ordersClient = new OrdersServiceClient();
-    const repository = new PrismaDeliveryPersonRepository(prisma, ordersClient);
+    const repository = new PrismaDeliveryPersonRepository(prisma);
     useCase = new ListDeliveryPersonsUseCase(repository);
   }
   return useCase;

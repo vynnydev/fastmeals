@@ -1,9 +1,9 @@
 export interface UpdateProductDTO {
-    name?: string;
-    description?: string;
-    price?: number;
-    category?: 'meal' | 'drink' | 'dessert' | 'side';
-    imageUrl?: string;
-    isAvailable?: boolean;
-    preparationTime?: number;
+  name?: string;
+  description?: string;
+  price?: number;
+  category?: string;
+  imageUrl?: string;
+  isAvailable?: boolean;
+  preparationTime?: number;
 }

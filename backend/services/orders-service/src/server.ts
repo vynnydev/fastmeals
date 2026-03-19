@@ -45,16 +45,18 @@ async function start(): Promise<void> {
   try {
     const channel = await connectRabbitMQ(env.RABBITMQ_URL);
 
-    // Setup event consumer
-    const consumer = new EventConsumer(channel);
-    await consumer.setup();
+    if (channel) {
+      // Setup event consumer
+      const consumer = new EventConsumer(channel);
+      await consumer.setup();
 
-    // Listen for delivery assignments from optimization-service
-    await consumer.consumeDeliveryAssigned(async (event) => {
-      console.log(`📥 Delivery assigned: Order ${event.orderId} → Delivery Person ${event.deliveryPersonId}`);
-      // In production, this would update the order via the repository
-      // For now, we log it to demonstrate the messaging flow
-    });
+      // Listen for delivery assignments from optimization-service
+      await consumer.consumeDeliveryAssigned(async (event) => {
+        console.log(`📥 Delivery assigned: Order ${event.orderId} → Delivery Person ${event.deliveryPersonId}`);
+        // In production, this would update the order via the repository
+        // For now, we log it to demonstrate the messaging flow
+      });
+    }
 
     console.log('🐰 RabbitMQ messaging ready');
   } catch (error) {
