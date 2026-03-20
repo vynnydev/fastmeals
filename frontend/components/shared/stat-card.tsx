@@ -12,6 +12,7 @@ interface StatCardProps {
   changeLabel?: string
   icon?: LucideIcon
   variant?: 'default' | 'gold' | 'success' | 'warning' | 'info'
+  loading?: boolean
   className?: string
   onClick?: () => void
 }
@@ -32,12 +33,28 @@ export function StatCard({
   changeLabel,
   icon: Icon,
   variant = 'default',
+  loading = false,
   className,
   onClick,
 }: StatCardProps) {
   const isPositive = change && change > 0
   const isNegative = change && change < 0
   const isGold = variant === 'gold'
+
+  if (loading) {
+    return (
+      <Card className={cn('p-6', variantStyles[variant], className)}>
+        <div className="animate-pulse space-y-4">
+          <div className="flex items-start justify-between">
+            <div className="h-4 w-24 bg-muted rounded" />
+            <div className="h-8 w-8 bg-muted rounded-lg" />
+          </div>
+          <div className="h-8 w-32 bg-muted rounded" />
+          <div className="h-4 w-20 bg-muted rounded" />
+        </div>
+      </Card>
+    )
+  }
 
   return (
     <Card

@@ -11,6 +11,7 @@ import type {
   DeliveryPerson,
   DeliveryPersonCreateRequest,
   DeliveryPersonUpdateRequest,
+  Delivery,
   OptimizationRequest,
   OptimizationResponse,
   ReportFilters,
@@ -168,6 +169,11 @@ export const ordersApi = {
 export const deliveryApi = {
   getAll: async (params?: { status?: string; active?: boolean }): Promise<DeliveryPerson[]> => {
     const response = await api.get<DeliveryPerson[]>('/api/delivery-persons', { params })
+    return response.data
+  },
+
+  getDeliveries: async (params?: { status?: string }): Promise<Delivery[]> => {
+    const response = await api.get<Delivery[]>('/api/deliveries', { params })
     return response.data
   },
 

@@ -1,7 +1,6 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -27,10 +26,22 @@ const loginSchema = z.object({
 type LoginFormData = z.infer<typeof loginSchema>
 
 export default function LoginPage() {
-  const router = useRouter()
-  const { login, isLoading } = useAuthStore()
+  const { login, isLoading, isAuthenticated, checkAuth } = useAuthStore()
   const [showPassword, setShowPassword] = useState(false)
   const [rememberMe, setRememberMe] = useState(false)
+  const [isClient, setIsClient] = useState(false)
+
+  useEffect(() => {
+    setIsClient(true)
+    checkAuth()
+  }, [checkAuth])
+
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (isClient && isAuthenticated) {
+      window.location.href = '/dashboard'
+    }
+  }, [isClient, isAuthenticated])
 
   const {
     register,
@@ -48,7 +59,8 @@ export default function LoginPage() {
     try {
       await login(data)
       toast.success('Login realizado com sucesso!')
-      router.push('/dashboard')
+      // Use window.location to avoid router initialization issues
+      window.location.href = '/dashboard'
     } catch {
       toast.error('Credenciais invalidas. Tente novamente.')
     }

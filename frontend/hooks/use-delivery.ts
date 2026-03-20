@@ -1,7 +1,15 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useCallback } from 'react'
 import { useDeliveryStore } from '@/stores/delivery-store'
+import useSWR from 'swr'
+import { deliveryApi } from '@/lib/api'
+import type { Delivery, DeliveryPerson } from '@/types'
+
+interface DeliveryData {
+  deliveryPersons: DeliveryPerson[]
+  deliveries: Delivery[]
+}
 
 export function useDeliveryPersons() {
   const store = useDeliveryStore()
@@ -11,6 +19,36 @@ export function useDeliveryPersons() {
   }, [store.filters])
 
   return store
+}
+
+// Alias for backward compatibility
+export function useDelivery() {
+  const fetcher = async (): Promise<DeliveryData> => {
+    const [persons, deliveries] = await Promise.all([
+      deliveryApi.getAll(),
+      deliveryApi.getDeliveries()
+    ])
+    return {
+      deliveryPersons: persons,
+      deliveries: deliveries
+    }
+  }
+
+  const { data, error, isLoading, mutate } = useSWR<DeliveryData>(
+    'delivery-data',
+    fetcher,
+    {
+      revalidateOnFocus: false,
+      revalidateOnReconnect: true,
+    }
+  )
+
+  return {
+    data,
+    error: error ? (error instanceof Error ? error.message : 'Erro ao carregar dados') : null,
+    isLoading,
+    mutate
+  }
 }
 
 export function useDeliveryPersonById(id: string) {

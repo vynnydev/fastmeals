@@ -75,6 +75,10 @@ const deliveryStatusConfig: Record<DeliveryPersonStatus, { label: string; classN
     label: 'Offline',
     className: 'bg-muted text-muted-foreground border-border',
   },
+  on_break: {
+    label: 'Em Pausa',
+    className: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
+  },
 }
 
 export function StatusBadge({ status, variant = 'order', size = 'md', className }: StatusBadgeProps) {

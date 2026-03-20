@@ -84,10 +84,7 @@ export default function ProductsPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   // Data fetching
-  const { data: products, error, isLoading, mutate } = useProducts({
-    category: categoryFilter !== "all" ? categoryFilter : undefined,
-    search: search || undefined,
-  })
+  const { products, error, isLoading, fetchProducts, setFilters, deleteProduct, updateProduct, createProduct } = useProducts()
 
   // Filter products locally for status
   const filteredProducts = useMemo(() => {
@@ -138,26 +135,13 @@ export default function ProductsPage() {
     setIsSubmitting(true)
     try {
       if (selectedProduct) {
-        // Update product
-        const response = await fetch(`/api/products/${selectedProduct.id}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(data),
-        })
-        if (!response.ok) throw new Error("Falha ao atualizar produto")
+        await updateProduct(selectedProduct.id, data as any)
         toast({ title: "Produto atualizado com sucesso!" })
       } else {
-        // Create product
-        const response = await fetch("/api/products", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(data),
-        })
-        if (!response.ok) throw new Error("Falha ao criar produto")
+        await createProduct(data as any)
         toast({ title: "Produto criado com sucesso!" })
       }
       setFormModalOpen(false)
-      mutate()
     } catch (error) {
       toast({
         title: "Erro",
@@ -167,19 +151,15 @@ export default function ProductsPage() {
     } finally {
       setIsSubmitting(false)
     }
-  }, [selectedProduct, mutate, toast])
+  }, [selectedProduct, updateProduct, createProduct, toast])
 
   const handleConfirmDelete = useCallback(async () => {
     if (!selectedProduct) return
     setIsSubmitting(true)
     try {
-      const response = await fetch(`/api/products/${selectedProduct.id}`, {
-        method: "DELETE",
-      })
-      if (!response.ok) throw new Error("Falha ao excluir produto")
+      await deleteProduct(selectedProduct.id)
       toast({ title: "Produto excluído com sucesso!" })
       setDeleteModalOpen(false)
-      mutate()
     } catch (error) {
       toast({
         title: "Erro",
@@ -189,7 +169,7 @@ export default function ProductsPage() {
     } finally {
       setIsSubmitting(false)
     }
-  }, [selectedProduct, mutate, toast])
+  }, [selectedProduct, deleteProduct, toast])
 
   const handleBulkDelete = async () => {
     if (selectedIds.length === 0) return
@@ -242,8 +222,8 @@ export default function ProductsPage() {
         </div>
         <ErrorState 
           title="Erro ao carregar produtos"
-          description="Não foi possível carregar a lista de produtos."
-          onRetry={() => mutate()}
+          message="Não foi possível carregar a lista de produtos."
+          onRetry={() => fetchProducts()}
         />
       </div>
     )
@@ -398,24 +378,26 @@ export default function ProductsPage() {
       {/* Content */}
       {filteredProducts.length === 0 ? (
         <EmptyState
-          icon={Package}
+          type={hasActiveFilters ? "search" : "products"}
           title={hasActiveFilters ? "Nenhum produto encontrado" : "Nenhum produto cadastrado"}
           description={
             hasActiveFilters 
               ? "Tente ajustar os filtros de busca"
               : "Comece adicionando seu primeiro produto ao cardápio"
           }
-          action={
-            canWrite && !hasActiveFilters ? (
-              <Button onClick={handleCreate}>
-                <Plus className="mr-2 h-4 w-4" />
-                Adicionar Produto
-              </Button>
-            ) : hasActiveFilters ? (
-              <Button variant="outline" onClick={clearFilters}>
-                Limpar Filtros
-              </Button>
-            ) : undefined
+          actionLabel={
+            canWrite && !hasActiveFilters 
+              ? "Adicionar Produto" 
+              : hasActiveFilters 
+                ? "Limpar Filtros" 
+                : undefined
+          }
+          onAction={
+            canWrite && !hasActiveFilters 
+              ? handleCreate 
+              : hasActiveFilters 
+                ? clearFilters 
+                : undefined
           }
         />
       ) : viewMode === "grid" ? (

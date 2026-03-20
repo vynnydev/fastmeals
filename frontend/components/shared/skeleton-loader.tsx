@@ -4,15 +4,17 @@ import { cn } from '@/lib/utils'
 
 interface SkeletonProps {
   className?: string
+  style?: React.CSSProperties
 }
 
-export function Skeleton({ className }: SkeletonProps) {
+export function Skeleton({ className, style }: SkeletonProps) {
   return (
     <div
       className={cn(
         'animate-pulse rounded-md bg-muted',
         className
       )}
+      style={style}
     />
   )
 }
@@ -47,6 +49,16 @@ export function CardSkeleton() {
       </div>
       <Skeleton className="h-8 w-32" />
       <Skeleton className="h-3 w-20" />
+    </div>
+  )
+}
+
+export function CardsSkeleton({ count = 6 }: { count?: number }) {
+  return (
+    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      {Array.from({ length: count }).map((_, i) => (
+        <CardSkeleton key={i} />
+      ))}
     </div>
   )
 }

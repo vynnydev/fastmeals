@@ -206,7 +206,7 @@ export default function DeliveryPage() {
         </div>
         <ErrorState 
           title="Erro ao carregar dados"
-          description="Não foi possível carregar as informações de entrega."
+          message="Não foi possível carregar as informações de entrega."
           onRetry={() => mutate()}
         />
       </div>
@@ -295,7 +295,7 @@ export default function DeliveryPage() {
           {/* Drivers Grid */}
           {filteredDrivers.length === 0 ? (
             <EmptyState
-              icon={Users}
+              type="users"
               title="Nenhum entregador encontrado"
               description={search || statusFilter !== "all" 
                 ? "Tente ajustar os filtros de busca"
@@ -356,7 +356,7 @@ export default function DeliveryPage() {
           {/* Deliveries Content */}
           {!deliveryData?.deliveries || deliveryData.deliveries.length === 0 ? (
             <EmptyState
-              icon={Truck}
+              type="delivery"
               title="Nenhuma entrega"
               description="As entregas aparecerão aqui quando pedidos forem atribuídos"
             />

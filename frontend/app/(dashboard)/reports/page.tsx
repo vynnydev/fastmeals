@@ -211,7 +211,7 @@ export default function ReportsPage() {
         </div>
         <ErrorState 
           title="Erro ao carregar relatórios"
-          description="Não foi possível carregar os dados de relatórios."
+          message="Não foi possível carregar os dados de relatórios."
           onRetry={() => mutate()}
         />
       </div>
@@ -259,7 +259,7 @@ export default function ReportsPage() {
           change={summaryStats.revenueChange}
           changeLabel="vs. período anterior"
           icon={DollarSign}
-          variant="primary"
+          variant="gold"
           loading={isLoading}
         />
         <StatCard

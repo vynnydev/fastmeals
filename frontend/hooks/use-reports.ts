@@ -1,8 +1,45 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import useSWR from 'swr'
 import { reportsApi } from '@/lib/api'
 import type { DashboardMetrics, ReportSummary, ReportFilters } from '@/types'
+
+interface ReportsData {
+  metrics: DashboardMetrics | null
+  summary: ReportSummary | null
+}
+
+// Combined useReports hook
+export function useReports() {
+  const fetcher = async (): Promise<ReportsData> => {
+    try {
+      const [metrics, summary] = await Promise.all([
+        reportsApi.getDashboardMetrics().catch(() => null),
+        reportsApi.getSummary({}).catch(() => null)
+      ])
+      return { metrics, summary }
+    } catch {
+      return { metrics: null, summary: null }
+    }
+  }
+
+  const { data, error, isLoading, mutate } = useSWR<ReportsData>(
+    'reports-data',
+    fetcher,
+    {
+      revalidateOnFocus: false,
+      revalidateOnReconnect: true,
+    }
+  )
+
+  return {
+    data,
+    error: error ? (error instanceof Error ? error.message : 'Erro ao carregar relatorios') : null,
+    isLoading,
+    mutate
+  }
+}
 
 export function useDashboardMetrics() {
   const [metrics, setMetrics] = useState<DashboardMetrics | null>(null)

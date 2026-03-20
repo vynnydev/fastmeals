@@ -9,6 +9,42 @@ interface UseWebSocketOptions {
   enabled?: boolean
   fallbackToPolling?: boolean
   pollInterval?: number
+  onMessage?: (event: string, data: unknown) => void
+}
+
+// Generic useWebSocket hook
+export function useWebSocket(options: UseWebSocketOptions = {}) {
+  const { enabled = true, onMessage } = options
+  const [isConnected, setIsConnected] = useState(false)
+
+  useEffect(() => {
+    if (!enabled) return
+
+    const unsubConnect = orderWebSocket.onConnect(() => {
+      setIsConnected(true)
+    })
+
+    const unsubDisconnect = orderWebSocket.onDisconnect(() => {
+      setIsConnected(false)
+    })
+
+    const unsubMessage = orderWebSocket.onMessage((message: WebSocketMessage) => {
+      if (onMessage) {
+        onMessage(message.event, message.data)
+      }
+    })
+
+    orderWebSocket.connect()
+
+    return () => {
+      unsubConnect()
+      unsubDisconnect()
+      unsubMessage()
+      orderWebSocket.disconnect()
+    }
+  }, [enabled, onMessage])
+
+  return { isConnected }
 }
 
 export function useOrderWebSocket(options: UseWebSocketOptions = {}) {

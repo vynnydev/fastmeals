@@ -1,10 +1,10 @@
 'use client'
 
-import { Package, ShoppingBag, Users, Truck, FileText, Search } from 'lucide-react'
+import { Package, ShoppingBag, Users, Truck, FileText, Search, Package2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 
-type EmptyStateType = 'orders' | 'products' | 'delivery' | 'reports' | 'search' | 'generic'
+type EmptyStateType = 'orders' | 'products' | 'delivery' | 'reports' | 'search' | 'users' | 'generic'
 
 interface EmptyStateProps {
   type?: EmptyStateType
@@ -21,6 +21,7 @@ const icons: Record<EmptyStateType, React.ElementType> = {
   delivery: Truck,
   reports: FileText,
   search: Search,
+  users: Users,
   generic: Package,
 }
 
@@ -44,6 +45,10 @@ const defaultContent: Record<EmptyStateType, { title: string; description: strin
   search: {
     title: 'Nenhum resultado encontrado',
     description: 'Tente ajustar os filtros ou termos de busca.',
+  },
+  users: {
+    title: 'Nenhum entregador encontrado',
+    description: 'Adicione entregadores para gerenciar suas entregas.',
   },
   generic: {
     title: 'Nada para exibir',

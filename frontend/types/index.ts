@@ -47,12 +47,18 @@ export interface Product {
   name: string
   description: string
   price: number
-  category: ProductCategory
+  category: ProductCategory | string
   image_url?: string
+  imageUrl?: string
   is_available: boolean
+  active?: boolean // alias for is_available
+  stock?: number
   preparation_time: number // em minutos
+  preparationTime?: number // alias camelCase
   created_at: string
   updated_at: string
+  createdAt?: string
+  updatedAt?: string
 }
 
 export interface ProductCreateRequest {
@@ -157,23 +163,38 @@ export interface OrderStatusUpdateRequest {
 // ============================================
 
 export type VehicleType = 'bicycle' | 'motorcycle' | 'car'
-export type DeliveryPersonStatus = 'available' | 'busy' | 'offline'
+export type DeliveryPersonStatus = 'available' | 'busy' | 'offline' | 'on_break'
+
+export interface DeliveryPersonLocation {
+  lat: number
+  lng: number
+}
 
 export interface DeliveryPerson {
   id: string
   name: string
   phone: string
   email?: string
+  photoUrl?: string
   vehicle_type: VehicleType
+  vehicleType?: VehicleType // camelCase alias
   vehicle_plate?: string
+  vehiclePlate?: string
   status: DeliveryPersonStatus
   current_lat?: number
   current_lng?: number
+  currentLocation?: DeliveryPersonLocation
   is_active: boolean
+  isActive?: boolean
   total_deliveries: number
+  totalDeliveries?: number
+  activeDeliveries?: number
   average_rating: number
+  rating?: number // alias
   created_at: string
   updated_at: string
+  createdAt?: string
+  updatedAt?: string
 }
 
 export interface DeliveryPersonCreateRequest {
@@ -188,6 +209,39 @@ export interface DeliveryPersonUpdateRequest extends Partial<DeliveryPersonCreat
   id: string
   status?: DeliveryPersonStatus
   is_active?: boolean
+}
+
+// ============================================
+// DELIVERY TYPES
+// ============================================
+
+export type DeliveryStatus = 'pending' | 'assigned' | 'picked_up' | 'in_transit' | 'delivered' | 'cancelled'
+
+export interface DeliveryAddress {
+  street: string
+  number: string
+  complement?: string
+  neighborhood?: string
+  city?: string
+  state?: string
+  zipCode?: string
+}
+
+export interface Delivery {
+  id: string
+  orderId: string
+  deliveryPersonId?: string
+  deliveryPersonName?: string
+  status: DeliveryStatus
+  deliveryAddress?: string | DeliveryAddress
+  estimatedTime?: string
+  estimatedDeliveryTime?: number // in minutes
+  actualTime?: string
+  distance?: number
+  priority?: 'low' | 'normal' | 'high'
+  notes?: string
+  createdAt: string
+  updatedAt: string
 }
 
 // ============================================
@@ -222,9 +276,12 @@ export interface OptimizationResponse {
 // ============================================
 
 export interface ReportFilters {
-  start_date: string
-  end_date: string
+  start_date?: string
+  end_date?: string
+  startDate?: string
+  endDate?: string
   group_by?: 'day' | 'week' | 'month'
+  groupBy?: 'day' | 'week' | 'month'
 }
 
 export interface RevenueData {
