@@ -18,7 +18,7 @@ export interface LoginRequest {
 }
 
 export interface LoginResponse {
-  access_token: string
+  accessToken: string
   token_type: string
   user: User
 }
@@ -50,6 +50,7 @@ export interface Product {
   category: ProductCategory | string
   image_url?: string
   imageUrl?: string
+  isAvailable?: boolean
   is_available: boolean
   active?: boolean // alias for is_available
   stock?: number

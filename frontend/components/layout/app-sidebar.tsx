@@ -29,32 +29,32 @@ import { useUIStore } from '@/stores/ui-store'
 const navItems = [
   {
     title: 'Dashboard',
-    href: '/dashboard',
+    href: '/',
     icon: LayoutDashboard,
   },
   {
     title: 'Pedidos',
-    href: '/dashboard/orders',
+    href: '/orders',
     icon: ShoppingBag,
   },
   {
     title: 'Produtos',
-    href: '/dashboard/products',
+    href: '/products',
     icon: Package,
   },
   {
     title: 'Entregadores',
-    href: '/dashboard/delivery',
+    href: '/delivery',
     icon: Truck,
   },
   {
-    title: 'Otimizacao',
-    href: '/dashboard/optimization',
+    title: 'Otimização',
+    href: '/optimization',
     icon: Route,
   },
   {
-    title: 'Relatorios',
-    href: '/dashboard/reports',
+    title: 'Relatórios',
+    href: '/reports',
     icon: BarChart3,
   },
 ]
@@ -79,7 +79,7 @@ export function AppSidebar() {
       >
         {/* Logo */}
         <div className="flex h-16 items-center justify-between border-b border-sidebar-border px-4">
-          <Link href="/dashboard" className="flex items-center gap-3">
+          <Link href="/" className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl gold-gradient">
               <UtensilsCrossed className="h-5 w-5 text-primary-foreground" />
             </div>
@@ -106,7 +106,7 @@ export function AppSidebar() {
         <nav className="flex-1 space-y-1 p-3 overflow-y-auto">
           {navItems.map((item) => {
             const isActive = pathname === item.href || 
-              (item.href !== '/dashboard' && pathname.startsWith(item.href))
+              (item.href !== '/' && pathname.startsWith(item.href))
 
             const NavLink = (
               <Link
@@ -145,7 +145,7 @@ export function AppSidebar() {
           <Tooltip>
             <TooltipTrigger asChild>
               <Link
-                href="/dashboard/settings"
+                href="/settings"
                 className={cn(
                   'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-all mb-2'
                 )}

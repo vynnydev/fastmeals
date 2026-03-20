@@ -33,12 +33,16 @@ export const useAuthStore = create<AuthState>()(
         try {
           const response = await authApi.login(credentials)
           
-          // Store token in localStorage for axios interceptor
-          localStorage.setItem('fastmeals_token', response.access_token)
+          const token = response.accessToken
+          
+          // Save token separately for axios interceptor
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('fastmeals_token', token)
+          }
           
           set({
             user: response.user,
-            token: response.access_token,
+            token: token,
             isAuthenticated: true,
             isLoading: false,
             error: null,
@@ -87,28 +91,38 @@ export const useAuthStore = create<AuthState>()(
       checkAuth: async () => {
         const token = localStorage.getItem('fastmeals_token')
         if (!token) {
-          set({ isAuthenticated: false, user: null })
+          set({ isAuthenticated: false, user: null, token: null })
           return
         }
-
-        set({ isLoading: true })
-        try {
-          const user = await authApi.me()
-          set({
-            user,
-            token,
-            isAuthenticated: true,
-            isLoading: false,
-          })
-        } catch {
-          localStorage.removeItem('fastmeals_token')
-          set({
-            user: null,
-            token: null,
-            isAuthenticated: false,
-            isLoading: false,
-          })
+      
+        // Token exists, check if user data is in store
+        const { user } = get()
+        if (user) {
+          set({ isAuthenticated: true, token })
+          return
         }
+      
+        // Try to get user from persisted state
+        const persisted = localStorage.getItem('fastmeals-auth')
+        if (persisted) {
+          try {
+            const parsed = JSON.parse(persisted)
+            if (parsed.state?.user) {
+              set({
+                user: parsed.state.user,
+                token,
+                isAuthenticated: true,
+              })
+              return
+            }
+          } catch {
+            // Invalid persisted state
+          }
+        }
+      
+        // No user data, clear token
+        localStorage.removeItem('fastmeals_token')
+        set({ isAuthenticated: false, user: null, token: null })
       },
     }),
     {

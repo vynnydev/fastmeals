@@ -79,9 +79,7 @@ export function OrderTable({
           <TableRow className="bg-muted/30 hover:bg-muted/30">
             <TableHead className="w-12">
               <Checkbox
-                checked={allSelected}
-                // @ts-expect-error - indeterminate is a valid HTML attribute
-                indeterminate={someSelected}
+                checked={someSelected ? "indeterminate" : allSelected}
                 onCheckedChange={(checked) => onSelectAll(!!checked)}
               />
             </TableHead>

@@ -71,7 +71,7 @@ export default function DashboardLayout({
       <AppSidebar />
       <main
         className={cn(
-          'min-h-screen transition-all duration-300',
+          'min-h-screen transition-all duration-300 m-8',
           sidebarCollapsed ? 'lg:pl-[72px]' : 'lg:pl-64'
         )}
       >

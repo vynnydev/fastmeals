@@ -39,7 +39,7 @@ export default function LoginPage() {
   // Redirect if already authenticated
   useEffect(() => {
     if (isClient && isAuthenticated) {
-      window.location.href = '/dashboard'
+      window.location.href = '/'
     }
   }, [isClient, isAuthenticated])
 
@@ -60,7 +60,7 @@ export default function LoginPage() {
       await login(data)
       toast.success('Login realizado com sucesso!')
       // Use window.location to avoid router initialization issues
-      window.location.href = '/dashboard'
+      window.location.href = '/'
     } catch {
       toast.error('Credenciais invalidas. Tente novamente.')
     }
@@ -178,7 +178,7 @@ export default function LoginPage() {
           </form>
 
           {/* Demo Credentials */}
-          <div className="rounded-lg border border-border bg-card/50 p-4">
+          {/* <div className="rounded-lg border border-border bg-card/50 p-4">
             <p className="text-sm text-muted-foreground text-center mb-3">
               Credenciais de demonstracao:
             </p>
@@ -194,7 +194,7 @@ export default function LoginPage() {
                 <p className="text-foreground font-mono">viewer123</p>
               </div>
             </div>
-          </div>
+          </div> */}
 
           {/* Footer */}
           <p className="text-center text-sm text-muted-foreground">
@@ -226,7 +226,7 @@ export default function LoginPage() {
               Nao é apenas comida, é uma experiência.
             </h2>
             <p className="text-lg text-white/80">
-              Gerencie seus pedidos, otimize suas entregas e acompanhe tudo em tempo real com nosso dashboard inteligente.
+              Gerencie seus pedidos, otimize suas entregas e acompanhe tudo em tempo real com nosso  inteligente.
             </p>
           </div>
         </div>

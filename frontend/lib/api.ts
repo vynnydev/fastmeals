@@ -89,8 +89,10 @@ export const authApi = {
 
 export const productsApi = {
   getAll: async (params?: { category?: string; available?: boolean }): Promise<Product[]> => {
-    const response = await api.get<Product[]>('/api/products', { params })
-    return response.data
+    const response = await api.get('/api/products', { params })
+    // Backend returns { data: Product[], pagination: {...} }
+    const result = response.data
+    return Array.isArray(result) ? result : result.data || []
   },
 
   getById: async (id: string): Promise<Product> => {

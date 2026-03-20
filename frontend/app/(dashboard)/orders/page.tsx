@@ -29,7 +29,6 @@ import {
   WifiOff,
 } from 'lucide-react'
 import { toast } from 'sonner'
-import { useOrderWebSocket } from '@/hooks/use-websocket'
 import { useRole } from '@/hooks/use-auth'
 import type { Order, OrderStatus, ViewMode } from '@/types'
 import { cn } from '@/lib/utils'
@@ -213,7 +212,6 @@ export default function OrdersPage() {
   const [modalOpen, setModalOpen] = useState(false)
 
   const { canWrite } = useRole()
-  const { isConnected, isUsingPolling } = useOrderWebSocket({ enabled: true })
 
   useEffect(() => {
     // Simulate API call
@@ -324,33 +322,6 @@ export default function OrdersPage() {
           </div>
 
           <div className="flex items-center gap-3">
-            {/* Connection Status */}
-            <div className={cn(
-              'flex items-center gap-2 px-3 py-1.5 rounded-full text-sm',
-              isConnected 
-                ? 'bg-status-delivered/20 text-status-delivered' 
-                : isUsingPolling 
-                  ? 'bg-status-pending/20 text-status-pending'
-                  : 'bg-muted text-muted-foreground'
-            )}>
-              {isConnected ? (
-                <>
-                  <Wifi className="h-4 w-4" />
-                  <span className="hidden sm:inline">Tempo real</span>
-                </>
-              ) : isUsingPolling ? (
-                <>
-                  <RefreshCw className="h-4 w-4" />
-                  <span className="hidden sm:inline">Polling</span>
-                </>
-              ) : (
-                <>
-                  <WifiOff className="h-4 w-4" />
-                  <span className="hidden sm:inline">Offline</span>
-                </>
-              )}
-            </div>
-
             {/* View Mode Toggle */}
             <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as ViewMode)}>
               <TabsList>

@@ -90,8 +90,9 @@ export default function ProductsPage() {
   const filteredProducts = useMemo(() => {
     if (!products) return []
     return products.filter(product => {
-      if (statusFilter === "active" && !product.active) return false
-      if (statusFilter === "inactive" && product.active) return false
+      const available = product.isAvailable ?? product.is_available
+      if (statusFilter === "active" && !available) return false
+      if (statusFilter === "inactive" && available) return false
       return true
     })
   }, [products, statusFilter])
@@ -101,8 +102,8 @@ export default function ProductsPage() {
     if (!products) return { total: 0, active: 0, lowStock: 0 }
     return {
       total: products.length,
-      active: products.filter(p => p.active).length,
-      lowStock: products.filter(p => p.stock !== undefined && p.stock <= 10).length,
+      active: products.filter(p => p.isAvailable ?? p.is_available).length,
+      lowStock: 0,
     }
   }, [products])
 
@@ -213,7 +214,7 @@ export default function ProductsPage() {
   // Render error state
   if (error) {
     return (
-      <div className="space-y-6">
+      <div className="space-y-8">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold text-foreground">Produtos</h1>
@@ -230,7 +231,7 @@ export default function ProductsPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>

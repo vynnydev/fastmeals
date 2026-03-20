@@ -58,16 +58,6 @@ export default function DeliveryPage() {
     mutate 
   } = useDelivery()
 
-  // WebSocket for real-time updates
-  const { isConnected } = useWebSocket({
-    enabled: true,
-    onMessage: (event, data) => {
-      if (event === "delivery_updated" || event === "driver_status_changed") {
-        mutate()
-      }
-    }
-  })
-
   // Filter delivery persons
   const filteredDrivers = useMemo(() => {
     if (!deliveryData?.deliveryPersons) return []
@@ -220,12 +210,6 @@ export default function DeliveryPage() {
         <div>
           <div className="flex items-center gap-3">
             <h1 className="text-2xl font-bold text-foreground">Entregas</h1>
-            {isConnected && (
-              <Badge variant="outline" className="bg-emerald-500/10 text-emerald-400 border-emerald-500/30">
-                <span className="h-2 w-2 rounded-full bg-emerald-400 mr-2 animate-pulse" />
-                Tempo Real
-              </Badge>
-            )}
           </div>
           <p className="text-muted-foreground">
             {stats.totalDrivers} entregadores • {stats.availableDrivers} disponíveis • {stats.pendingDeliveries} pedidos pendentes
