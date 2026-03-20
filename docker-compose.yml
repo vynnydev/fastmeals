@@ -300,6 +300,30 @@ services:
     networks:
       - fastmeals-network
 
+# ═══════════════════════════════════════════
+# FRONTEND
+# ═══════════════════════════════════════════
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: fastmeals-frontend
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: production
+      NEXT_PUBLIC_API_URL: http://localhost
+    depends_on:
+      auth-service:
+        condition: service_started
+      products-service:
+        condition: service_started
+      orders-service:
+        condition: service_started
+    networks:
+      - fastmeals-network
+
   # ═══════════════════════════════════════════
   # API GATEWAY (Nginx)
   # ═══════════════════════════════════════════
