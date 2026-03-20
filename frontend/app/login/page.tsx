@@ -178,7 +178,7 @@ export default function LoginPage() {
           </form>
 
           {/* Demo Credentials */}
-          {/* <div className="rounded-lg border border-border bg-card/50 p-4">
+          <div className="rounded-lg border border-border bg-card/50 p-4">
             <p className="text-sm text-muted-foreground text-center mb-3">
               Credenciais de demonstracao:
             </p>
@@ -186,7 +186,7 @@ export default function LoginPage() {
               <div className="space-y-1">
                 <p className="text-muted-foreground">Admin:</p>
                 <p className="text-foreground font-mono">admin@fastmeals.com</p>
-                <p className="text-foreground font-mono">admin123</p>
+                <p className="text-foreground font-mono">Admin@123</p>
               </div>
               <div className="space-y-1">
                 <p className="text-muted-foreground">Viewer:</p>
@@ -194,7 +194,7 @@ export default function LoginPage() {
                 <p className="text-foreground font-mono">viewer123</p>
               </div>
             </div>
-          </div> */}
+          </div>
 
           {/* Footer */}
           <p className="text-center text-sm text-muted-foreground">

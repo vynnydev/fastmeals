@@ -22,15 +22,13 @@ export function useDeliveryPersons() {
 }
 
 // Alias for backward compatibility
+// Alias for backward compatibility
 export function useDelivery() {
   const fetcher = async (): Promise<DeliveryData> => {
-    const [persons, deliveries] = await Promise.all([
-      deliveryApi.getAll(),
-      deliveryApi.getDeliveries()
-    ])
+    const persons = await deliveryApi.getAll()
     return {
-      deliveryPersons: persons,
-      deliveries: deliveries
+      deliveryPersons: Array.isArray(persons) ? persons : (persons as any).data || [],
+      deliveries: []
     }
   }
 

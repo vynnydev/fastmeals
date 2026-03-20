@@ -4,12 +4,12 @@
 
 export interface User {
   id: string
-  name: string
+  name?: string
   email: string
   role: 'admin' | 'viewer'
   avatar?: string
-  createdAt: string
-  updatedAt: string
+  createdAt?: string
+  updatedAt?: string
 }
 
 export interface LoginRequest {
@@ -19,7 +19,7 @@ export interface LoginRequest {
 
 export interface LoginResponse {
   accessToken: string
-  token_type: string
+  refreshToken: string
   user: User
 }
 
@@ -34,13 +34,7 @@ export interface AuthState {
 // PRODUCT TYPES
 // ============================================
 
-export type ProductCategory = 
-  | 'burgers'
-  | 'pizzas'
-  | 'drinks'
-  | 'desserts'
-  | 'sides'
-  | 'combos'
+export type ProductCategory = 'meal' | 'drink' | 'dessert' | 'side'
 
 export interface Product {
   id: string
@@ -48,115 +42,120 @@ export interface Product {
   description: string
   price: number
   category: ProductCategory | string
-  image_url?: string
-  imageUrl?: string
-  isAvailable?: boolean
-  is_available: boolean
-  active?: boolean // alias for is_available
+  imageUrl: string | null
+  image_url?: string | null
+  isAvailable: boolean
+  is_available?: boolean
+  active?: boolean
   stock?: number
-  preparation_time: number // em minutos
-  preparationTime?: number // alias camelCase
-  created_at: string
-  updated_at: string
-  createdAt?: string
-  updatedAt?: string
+  preparationTime: number
+  preparation_time?: number
+  createdAt: string
+  updatedAt: string
+  created_at?: string
+  updated_at?: string
 }
 
 export interface ProductCreateRequest {
   name: string
   description: string
   price: number
-  category: ProductCategory
-  image_url?: string
-  is_available?: boolean
-  preparation_time: number
+  category: ProductCategory | string
+  imageUrl?: string
+  isAvailable?: boolean
+  preparationTime: number
 }
 
-export interface ProductUpdateRequest extends Partial<ProductCreateRequest> {
-  id: string
-}
+export interface ProductUpdateRequest extends Partial<ProductCreateRequest> {}
 
 // ============================================
 // ORDER TYPES
 // ============================================
 
-export type OrderStatus = 
+export type OrderStatus =
   | 'pending'
-  | 'confirmed'
   | 'preparing'
   | 'ready'
-  | 'out_for_delivery'
+  | 'delivering'
   | 'delivered'
   | 'cancelled'
 
-export type PaymentMethod = 
+export interface OrderItem {
+  id: string
+  orderId: string
+  productId: string
+  product_id?: string
+  product_name?: string
+  quantity: number
+  unitPrice: number
+  unit_price?: number
+  subtotal: number
+  total_price?: number
+  createdAt?: string
+}
+
+export interface Order {
+  id: string
+  order_number?: string
+  customerName: string
+  customer_name?: string
+  customerPhone: string
+  customer_phone?: string
+  customer_email?: string
+  deliveryAddress: string
+  delivery_address?: string
+  latitude: number
+  longitude: number
+  delivery_lat?: number
+  delivery_lng?: number
+  items: OrderItem[]
+  totalAmount: number
+  total?: number
+  subtotal?: number
+  delivery_fee?: number
+  status: OrderStatus
+  deliveryPersonId: string | null
+  delivery_person_id?: string | null
+  delivery_person_name?: string
+  notes?: string
+  createdAt: string
+  updatedAt: string
+  created_at?: string
+  updated_at?: string
+  // Frontend-only fields (not from backend)
+  payment_method?: PaymentMethod
+  payment_status?: PaymentStatus
+  estimated_delivery_time?: string
+  actual_delivery_time?: string
+}
+
+export type PaymentMethod =
   | 'credit_card'
   | 'debit_card'
   | 'pix'
   | 'cash'
   | 'voucher'
 
-export type PaymentStatus = 
+export type PaymentStatus =
   | 'pending'
   | 'paid'
   | 'refunded'
   | 'failed'
 
-export interface OrderItem {
-  id: string
-  product_id: string
-  product_name: string
-  quantity: number
-  unit_price: number
-  total_price: number
-  notes?: string
-}
-
-export interface Order {
-  id: string
-  order_number: string
-  customer_name: string
-  customer_phone: string
-  customer_email?: string
-  delivery_address: string
-  delivery_lat?: number
-  delivery_lng?: number
-  items: OrderItem[]
-  subtotal: number
-  delivery_fee: number
-  total: number
-  status: OrderStatus
-  payment_method: PaymentMethod
-  payment_status: PaymentStatus
-  notes?: string
-  estimated_delivery_time?: string
-  actual_delivery_time?: string
-  delivery_person_id?: string
-  delivery_person_name?: string
-  created_at: string
-  updated_at: string
-}
-
 export interface OrderCreateRequest {
-  customer_name: string
-  customer_phone: string
-  customer_email?: string
-  delivery_address: string
-  delivery_lat?: number
-  delivery_lng?: number
+  customerName: string
+  customerPhone: string
+  deliveryAddress: string
+  latitude: number
+  longitude: number
   items: {
-    product_id: string
+    productId: string
     quantity: number
-    notes?: string
   }[]
-  payment_method: PaymentMethod
-  notes?: string
 }
 
 export interface OrderStatusUpdateRequest {
-  order_id: string
   status: OrderStatus
-  notes?: string
 }
 
 // ============================================
@@ -177,40 +176,39 @@ export interface DeliveryPerson {
   phone: string
   email?: string
   photoUrl?: string
-  vehicle_type: VehicleType
-  vehicleType?: VehicleType // camelCase alias
-  vehicle_plate?: string
+  vehicleType: VehicleType
+  vehicle_type?: VehicleType
   vehiclePlate?: string
+  vehicle_plate?: string
   status: DeliveryPersonStatus
+  currentLatitude: number | null
+  currentLongitude: number | null
   current_lat?: number
   current_lng?: number
   currentLocation?: DeliveryPersonLocation
-  is_active: boolean
-  isActive?: boolean
-  total_deliveries: number
+  isActive: boolean
+  is_active?: boolean
+  currentOrderId: string | null
   totalDeliveries?: number
+  total_deliveries?: number
   activeDeliveries?: number
-  average_rating: number
-  rating?: number // alias
-  created_at: string
-  updated_at: string
-  createdAt?: string
+  rating?: number
+  average_rating?: number
+  createdAt: string
   updatedAt?: string
+  created_at?: string
+  updated_at?: string
 }
 
 export interface DeliveryPersonCreateRequest {
   name: string
   phone: string
-  email?: string
-  vehicle_type: VehicleType
-  vehicle_plate?: string
+  vehicleType: VehicleType
+  currentLatitude?: number
+  currentLongitude?: number
 }
 
-export interface DeliveryPersonUpdateRequest extends Partial<DeliveryPersonCreateRequest> {
-  id: string
-  status?: DeliveryPersonStatus
-  is_active?: boolean
-}
+export interface DeliveryPersonUpdateRequest extends Partial<DeliveryPersonCreateRequest> {}
 
 // ============================================
 // DELIVERY TYPES
@@ -236,7 +234,7 @@ export interface Delivery {
   status: DeliveryStatus
   deliveryAddress?: string | DeliveryAddress
   estimatedTime?: string
-  estimatedDeliveryTime?: number // in minutes
+  estimatedDeliveryTime?: number
   actualTime?: string
   distance?: number
   priority?: 'low' | 'normal' | 'high'
@@ -255,21 +253,30 @@ export interface OptimizationRequest {
 }
 
 export interface Assignment {
-  order_id: string
-  order_number: string
-  delivery_person_id: string
-  delivery_person_name: string
-  distance_km: number
-  estimated_time_minutes: number
-  priority_score: number
+  orderId: string
+  order_id?: string
+  deliveryPersonId: string
+  delivery_person_id?: string
+  deliveryPersonName: string
+  delivery_person_name?: string
+  estimatedDistanceKm: number
+  distance_km?: number
+  orderAddress: string
+  order_number?: string
+  estimated_time_minutes?: number
+  priority_score?: number
 }
 
 export interface OptimizationResponse {
   assignments: Assignment[]
-  unassigned_orders: string[]
-  total_distance_km: number
-  algorithm_execution_time_ms: number
-  timestamp: string
+  unassigned: { orderId: string; orderAddress: string; reason: string }[]
+  unassigned_orders?: string[]
+  totalDistanceKm: number
+  total_distance_km?: number
+  algorithm: string
+  executionTimeMs: number
+  algorithm_execution_time_ms?: number
+  timestamp?: string
 }
 
 // ============================================
@@ -277,76 +284,86 @@ export interface OptimizationResponse {
 // ============================================
 
 export interface ReportFilters {
-  start_date?: string
-  end_date?: string
   startDate?: string
   endDate?: string
-  group_by?: 'day' | 'week' | 'month'
+  start_date?: string
+  end_date?: string
   groupBy?: 'day' | 'week' | 'month'
+  group_by?: 'day' | 'week' | 'month'
 }
 
 export interface RevenueData {
   date: string
   revenue: number
-  orders_count: number
+  orders: number
+  orders_count?: number
 }
 
 export interface OrdersByStatusData {
   status: OrderStatus
   count: number
-  percentage: number
+  percentage?: number
 }
 
 export interface TopProductData {
-  product_id: string
-  product_name: string
-  quantity_sold: number
-  revenue: number
+  productId: string
+  product_id?: string
+  productName: string
+  product_name?: string
+  totalQuantity: number
+  quantity_sold?: number
+  totalRevenue: number
+  revenue?: number
 }
 
 export interface DeliveryTimeData {
-  date: string
-  average_time_minutes: number
-  min_time: number
-  max_time: number
+  averageMinutes: number
+  average_time_minutes?: number
+  fastestMinutes?: number
+  slowestMinutes?: number
+  totalDelivered?: number
+  byVehicleType?: {
+    vehicleType: string
+    averageMinutes: number
+    count: number
+  }[]
 }
 
 export interface DashboardMetrics {
-  total_orders: number
-  total_revenue: number
-  pending_orders: number
-  average_delivery_time: number
-  orders_today: number
-  revenue_today: number
-  orders_growth_percent: number
-  revenue_growth_percent: number
+  totalOrders: number
+  total_orders?: number
+  totalRevenue: number
+  total_revenue?: number
+  pendingOrders?: number
+  pending_orders?: number
+  averageDeliveryTime?: number
+  average_delivery_time?: number
+  ordersToday?: number
+  orders_today?: number
+  revenueToday?: number
+  revenue_today?: number
 }
 
 export interface AIInsight {
-  type: 'recommendation' | 'highlight' | 'warning'
-  title: string
-  description: string
-  priority: 'high' | 'medium' | 'low'
+  summary: string
+  recommendations: string[]
+  highlights: string[]
+  generatedAt: string
+  model: string
 }
 
 export interface ReportSummary {
-  period: {
-    start_date: string
-    end_date: string
-  }
-  metrics: DashboardMetrics
-  revenue_by_day: RevenueData[]
-  orders_by_status: OrdersByStatusData[]
-  top_products: TopProductData[]
-  delivery_times: DeliveryTimeData[]
-  ai_insights: AIInsight[]
+  revenue: any
+  ordersByStatus: any
+  topProducts: any
+  deliveryTime: any
 }
 
 // ============================================
 // UI TYPES
 // ============================================
 
-export type ViewMode = 'table' | 'cards' | 'kanban'
+export type ViewMode = 'table' | 'cards' | 'kanban' | 'grid'
 
 export interface PaginationParams {
   page: number
@@ -355,31 +372,23 @@ export interface PaginationParams {
 
 export interface PaginatedResponse<T> {
   data: T[]
-  total: number
-  page: number
-  limit: number
-  total_pages: number
+  pagination: {
+    page: number
+    limit: number
+    total: number
+    totalPages: number
+  }
+  total?: number
+  page?: number
+  limit?: number
+  total_pages?: number
 }
 
 export interface ApiError {
-  message: string
-  code?: string
+  error: {
+    code: string
+    message: string
+  }
+  message?: string
   details?: Record<string, string[]>
-}
-
-// ============================================
-// WEBSOCKET TYPES
-// ============================================
-
-export type WebSocketEventType = 
-  | 'order_created'
-  | 'order_updated'
-  | 'order_status_changed'
-  | 'delivery_assigned'
-  | 'delivery_location_updated'
-
-export interface WebSocketMessage {
-  event: WebSocketEventType
-  data: Order | DeliveryPerson
-  timestamp: string
 }

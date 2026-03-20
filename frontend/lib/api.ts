@@ -4,19 +4,12 @@ import type {
   LoginResponse,
   Product,
   ProductCreateRequest,
-  ProductUpdateRequest,
   Order,
-  OrderCreateRequest,
-  OrderStatusUpdateRequest,
   DeliveryPerson,
   DeliveryPersonCreateRequest,
   DeliveryPersonUpdateRequest,
-  Delivery,
-  OptimizationRequest,
   OptimizationResponse,
   ReportFilters,
-  ReportSummary,
-  DashboardMetrics,
   PaginatedResponse,
   ApiError,
 } from '@/types'
@@ -52,11 +45,13 @@ api.interceptors.response.use(
   (response) => response,
   (error: AxiosError<ApiError>) => {
     if (error.response?.status === 401) {
-      // Clear auth data and redirect to login
       if (typeof window !== 'undefined') {
-        localStorage.removeItem('fastmeals_token')
-        localStorage.removeItem('fastmeals_user')
-        window.location.href = '/login'
+        // Don't redirect if already on login page
+        if (!window.location.pathname.includes('/login')) {
+          localStorage.removeItem('fastmeals_token')
+          localStorage.removeItem('fastmeals_user')
+          window.location.href = '/login'
+        }
       }
     }
     return Promise.reject(error)
@@ -73,12 +68,8 @@ export const authApi = {
     return response.data
   },
 
-  logout: async (): Promise<void> => {
-    await api.post('/api/auth/logout')
-  },
-
-  me: async () => {
-    const response = await api.get('/api/auth/me')
+  refreshToken: async (refreshToken: string): Promise<LoginResponse> => {
+    const response = await api.post<LoginResponse>('/api/auth/refresh-token', { refreshToken })
     return response.data
   },
 }
@@ -88,9 +79,8 @@ export const authApi = {
 // ============================================
 
 export const productsApi = {
-  getAll: async (params?: { category?: string; available?: boolean }): Promise<Product[]> => {
+  getAll: async (params?: { category?: string; available?: boolean; search?: string }): Promise<Product[]> => {
     const response = await api.get('/api/products', { params })
-    // Backend returns { data: Product[], pagination: {...} }
     const result = response.data
     return Array.isArray(result) ? result : result.data || []
   },
@@ -114,8 +104,11 @@ export const productsApi = {
     await api.delete(`/api/products/${id}`)
   },
 
+  // Toggle availability using PUT (no dedicated endpoint)
   toggleAvailability: async (id: string): Promise<Product> => {
-    const response = await api.patch<Product>(`/api/products/${id}/toggle-availability`)
+    const product = await productsApi.getById(id)
+    const isAvailable = product.isAvailable ?? product.is_available
+    const response = await api.put<Product>(`/api/products/${id}`, { isAvailable: !isAvailable })
     return response.data
   },
 }
@@ -129,11 +122,10 @@ export const ordersApi = {
     status?: string
     page?: number
     limit?: number
-    start_date?: string
-    end_date?: string
-  }): Promise<PaginatedResponse<Order>> => {
-    const response = await api.get<PaginatedResponse<Order>>('/api/orders', { params })
-    return response.data
+  }): Promise<Order[]> => {
+    const response = await api.get('/api/orders', { params })
+    const result = response.data
+    return Array.isArray(result) ? result : result.data || []
   },
 
   getById: async (id: string): Promise<Order> => {
@@ -141,25 +133,27 @@ export const ordersApi = {
     return response.data
   },
 
-  create: async (data: OrderCreateRequest): Promise<Order> => {
+  create: async (data: any): Promise<Order> => {
     const response = await api.post<Order>('/api/orders', data)
     return response.data
   },
 
-  updateStatus: async (id: string, data: OrderStatusUpdateRequest): Promise<Order> => {
-    const response = await api.patch<Order>(`/api/orders/${id}/status`, data)
+  updateStatus: async (id: string, status: string): Promise<Order> => {
+    const response = await api.patch<Order>(`/api/orders/${id}/status`, { status })
     return response.data
   },
 
+  // Fixed: PATCH instead of POST, deliveryPersonId instead of delivery_person_id
   assignDelivery: async (orderId: string, deliveryPersonId: string): Promise<Order> => {
-    const response = await api.post<Order>(`/api/orders/${orderId}/assign`, {
-      delivery_person_id: deliveryPersonId,
+    const response = await api.patch<Order>(`/api/orders/${orderId}/assign`, {
+      deliveryPersonId,
     })
     return response.data
   },
 
-  cancel: async (id: string, reason?: string): Promise<Order> => {
-    const response = await api.post<Order>(`/api/orders/${id}/cancel`, { reason })
+  // Cancel using status update (no dedicated cancel endpoint)
+  cancel: async (id: string): Promise<Order> => {
+    const response = await api.patch<Order>(`/api/orders/${id}/status`, { status: 'cancelled' })
     return response.data
   },
 }
@@ -169,14 +163,10 @@ export const ordersApi = {
 // ============================================
 
 export const deliveryApi = {
-  getAll: async (params?: { status?: string; active?: boolean }): Promise<DeliveryPerson[]> => {
-    const response = await api.get<DeliveryPerson[]>('/api/delivery-persons', { params })
-    return response.data
-  },
-
-  getDeliveries: async (params?: { status?: string }): Promise<Delivery[]> => {
-    const response = await api.get<Delivery[]>('/api/deliveries', { params })
-    return response.data
+  getAll: async (params?: { status?: string; active?: boolean; available?: boolean }): Promise<DeliveryPerson[]> => {
+    const response = await api.get('/api/delivery-persons', { params })
+    const result = response.data
+    return Array.isArray(result) ? result : result.data || []
   },
 
   getById: async (id: string): Promise<DeliveryPerson> => {
@@ -197,19 +187,6 @@ export const deliveryApi = {
   delete: async (id: string): Promise<void> => {
     await api.delete(`/api/delivery-persons/${id}`)
   },
-
-  updateStatus: async (id: string, status: string): Promise<DeliveryPerson> => {
-    const response = await api.patch<DeliveryPerson>(`/api/delivery-persons/${id}/status`, { status })
-    return response.data
-  },
-
-  updateLocation: async (id: string, lat: number, lng: number): Promise<DeliveryPerson> => {
-    const response = await api.patch<DeliveryPerson>(`/api/delivery-persons/${id}/location`, {
-      lat,
-      lng,
-    })
-    return response.data
-  },
 }
 
 // ============================================
@@ -217,25 +194,18 @@ export const deliveryApi = {
 // ============================================
 
 export const optimizationApi = {
-  getSuggestions: async (data?: OptimizationRequest): Promise<OptimizationResponse> => {
-    const response = await api.post<OptimizationResponse>('/api/optimization/suggest', data)
+  // Fixed: correct endpoint path
+  getSuggestions: async (): Promise<OptimizationResponse> => {
+    const response = await api.post<OptimizationResponse>('/api/orders/optimize-assignment')
     return response.data
   },
 
+  // Apply assignment using existing endpoints
   applyAssignment: async (orderId: string, deliveryPersonId: string): Promise<Order> => {
-    const response = await api.post<Order>('/api/optimization/apply', {
-      order_id: orderId,
-      delivery_person_id: deliveryPersonId,
-    })
-    return response.data
-  },
-
-  applyAll: async (assignments: { order_id: string; delivery_person_id: string }[]): Promise<{
-    success: number
-    failed: number
-    results: Order[]
-  }> => {
-    const response = await api.post('/api/optimization/apply-all', { assignments })
+    // 1. Assign delivery person
+    await api.patch(`/api/orders/${orderId}/assign`, { deliveryPersonId })
+    // 2. Update status to delivering
+    const response = await api.patch<Order>(`/api/orders/${orderId}/status`, { status: 'delivering' })
     return response.data
   },
 }
@@ -245,39 +215,51 @@ export const optimizationApi = {
 // ============================================
 
 export const reportsApi = {
-  getDashboardMetrics: async (): Promise<DashboardMetrics> => {
-    const response = await api.get<DashboardMetrics>('/api/reports/dashboard')
-    return response.data
-  },
-
-  getSummary: async (filters: ReportFilters): Promise<ReportSummary> => {
-    const response = await api.get<ReportSummary>('/api/reports/summary', { params: filters })
-    return response.data
-  },
-
   getRevenueByPeriod: async (filters: ReportFilters) => {
     const response = await api.get('/api/reports/revenue', { params: filters })
     return response.data
   },
 
-  getOrdersByStatus: async (filters: ReportFilters) => {
-    const response = await api.get('/api/reports/orders-by-status', { params: filters })
+  getOrdersByStatus: async () => {
+    const response = await api.get('/api/reports/orders-by-status')
     return response.data
   },
 
-  getTopProducts: async (filters: ReportFilters & { limit?: number }) => {
+  getTopProducts: async (filters?: ReportFilters & { limit?: number }) => {
     const response = await api.get('/api/reports/top-products', { params: filters })
     return response.data
   },
 
-  getDeliveryTimes: async (filters: ReportFilters) => {
-    const response = await api.get('/api/reports/delivery-times', { params: filters })
+  // Fixed: correct endpoint name
+  getAverageDeliveryTime: async () => {
+    const response = await api.get('/api/reports/average-delivery-time')
     return response.data
   },
 
   getAIInsights: async (filters: ReportFilters) => {
     const response = await api.get('/api/reports/ai-insights', { params: filters })
     return response.data
+  },
+
+  // Dashboard metrics: consolidate from all report endpoints
+  getDashboardMetrics: async () => {
+    const now = new Date()
+    const startDate = new Date(now.getFullYear(), 0, 1).toISOString().split('T')[0]
+    const endDate = now.toISOString().split('T')[0]
+
+    const [revenue, ordersByStatus, topProducts, deliveryTime] = await Promise.all([
+      reportsApi.getRevenueByPeriod({ startDate, endDate }).catch(() => ({ totalRevenue: 0, totalOrders: 0, averageOrderValue: 0 })),
+      reportsApi.getOrdersByStatus().catch(() => ({ data: [], total: 0 })),
+      reportsApi.getTopProducts({ limit: 5 }).catch(() => ({ data: [] })),
+      reportsApi.getAverageDeliveryTime().catch(() => ({ averageMinutes: 0, totalDelivered: 0 })),
+    ])
+
+    return {
+      revenue,
+      ordersByStatus,
+      topProducts,
+      deliveryTime,
+    }
   },
 }
 

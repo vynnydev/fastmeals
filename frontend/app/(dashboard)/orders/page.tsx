@@ -30,173 +30,16 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useRole } from '@/hooks/use-auth'
+import { ordersApi } from '@/lib/api'
 import type { Order, OrderStatus, ViewMode } from '@/types'
 import { cn } from '@/lib/utils'
-
-// Mock data for demonstration
-const mockOrders: Order[] = [
-  {
-    id: '1',
-    order_number: '#4772827',
-    customer_name: 'John Smith',
-    customer_phone: '11999998888',
-    customer_email: 'john@email.com',
-    delivery_address: 'Rua das Flores, 123 - Centro',
-    items: [
-      { id: '1', product_id: '1', product_name: 'Hamburguer Classico', quantity: 2, unit_price: 25.5, total_price: 51.0 },
-      { id: '2', product_id: '2', product_name: 'Batata Frita', quantity: 1, unit_price: 12.0, total_price: 12.0 },
-    ],
-    subtotal: 63.0,
-    delivery_fee: 5.0,
-    total: 120.75,
-    status: 'delivered',
-    payment_method: 'debit_card',
-    payment_status: 'paid',
-    delivery_person_id: '1',
-    delivery_person_name: 'Carlos Silva',
-    created_at: '2024-06-24T21:23:00Z',
-    updated_at: '2024-06-24T22:15:00Z',
-  },
-  {
-    id: '2',
-    order_number: '#5839201',
-    customer_name: 'Emily Johnson',
-    customer_phone: '11988887777',
-    delivery_address: 'Av. Brasil, 456 - Jardins',
-    items: [
-      { id: '3', product_id: '3', product_name: 'Pizza Margherita', quantity: 1, unit_price: 45.0, total_price: 45.0 },
-    ],
-    subtotal: 45.0,
-    delivery_fee: 8.0,
-    total: 250.0,
-    status: 'delivered',
-    payment_method: 'credit_card',
-    payment_status: 'paid',
-    delivery_person_id: '2',
-    delivery_person_name: 'Ana Costa',
-    created_at: '2023-03-15T14:45:00Z',
-    updated_at: '2023-03-15T15:30:00Z',
-  },
-  {
-    id: '3',
-    order_number: '#6273845',
-    customer_name: 'Michael Brown',
-    customer_phone: '11977776666',
-    delivery_address: 'Praca Central, 789',
-    items: [
-      { id: '4', product_id: '4', product_name: 'Salada Caesar', quantity: 2, unit_price: 28.0, total_price: 56.0 },
-      { id: '5', product_id: '5', product_name: 'Suco Natural', quantity: 2, unit_price: 8.0, total_price: 16.0 },
-    ],
-    subtotal: 72.0,
-    delivery_fee: 6.0,
-    total: 89.99,
-    status: 'delivered',
-    payment_method: 'pix',
-    payment_status: 'paid',
-    created_at: '2022-04-10T11:30:00Z',
-    updated_at: '2022-04-10T12:00:00Z',
-  },
-  {
-    id: '4',
-    order_number: '#7382910',
-    customer_name: 'Jessica Davis',
-    customer_phone: '11966665555',
-    delivery_address: 'Rua Augusta, 1500',
-    items: [
-      { id: '6', product_id: '6', product_name: 'Combo Familia', quantity: 1, unit_price: 89.9, total_price: 89.9 },
-    ],
-    subtotal: 89.9,
-    delivery_fee: 0,
-    total: 1500.2,
-    status: 'pending',
-    payment_method: 'pix',
-    payment_status: 'pending',
-    created_at: '2023-02-28T18:15:00Z',
-    updated_at: '2023-02-28T18:15:00Z',
-  },
-  {
-    id: '5',
-    order_number: '#8491763',
-    customer_name: 'Daniel Wilson',
-    customer_phone: '11955554444',
-    delivery_address: 'Rua Oscar Freire, 200',
-    items: [
-      { id: '7', product_id: '7', product_name: 'Wrap Vegetariano', quantity: 3, unit_price: 22.0, total_price: 66.0 },
-    ],
-    subtotal: 66.0,
-    delivery_fee: 5.0,
-    total: 45.5,
-    status: 'preparing',
-    payment_method: 'pix',
-    payment_status: 'paid',
-    created_at: '2024-05-19T19:55:00Z',
-    updated_at: '2024-05-19T20:00:00Z',
-  },
-  {
-    id: '6',
-    order_number: '#9503842',
-    customer_name: 'Sarah Miller',
-    customer_phone: '11944443333',
-    delivery_address: 'Alameda Santos, 800',
-    items: [
-      { id: '8', product_id: '8', product_name: 'Poke Bowl', quantity: 2, unit_price: 42.0, total_price: 84.0 },
-    ],
-    subtotal: 84.0,
-    delivery_fee: 7.0,
-    total: 360.0,
-    status: 'ready',
-    payment_method: 'credit_card',
-    payment_status: 'paid',
-    created_at: '2024-01-03T12:05:00Z',
-    updated_at: '2024-01-03T12:30:00Z',
-  },
-  {
-    id: '7',
-    order_number: '#1627493',
-    customer_name: 'David Anderson',
-    customer_phone: '11933332222',
-    delivery_address: 'Rua Haddock Lobo, 450',
-    items: [
-      { id: '9', product_id: '9', product_name: 'Acai Premium', quantity: 1, unit_price: 35.0, total_price: 35.0 },
-    ],
-    subtotal: 35.0,
-    delivery_fee: 5.0,
-    total: 299.99,
-    status: 'out_for_delivery',
-    payment_method: 'pix',
-    payment_status: 'paid',
-    delivery_person_id: '3',
-    delivery_person_name: 'Pedro Santos',
-    created_at: '2023-07-21T20:40:00Z',
-    updated_at: '2023-07-21T21:00:00Z',
-  },
-  {
-    id: '8',
-    order_number: '#2738915',
-    customer_name: 'Laura Taylor',
-    customer_phone: '11922221111',
-    delivery_address: 'Rua Bela Cintra, 600',
-    items: [
-      { id: '10', product_id: '10', product_name: 'Tacos Mexicanos', quantity: 4, unit_price: 18.0, total_price: 72.0 },
-    ],
-    subtotal: 72.0,
-    delivery_fee: 6.0,
-    total: 580.75,
-    status: 'confirmed',
-    payment_method: 'debit_card',
-    payment_status: 'paid',
-    created_at: '2023-09-16T15:25:00Z',
-    updated_at: '2023-09-16T15:30:00Z',
-  },
-]
 
 const statusFilters = [
   { value: 'all', label: 'Todos' },
   { value: 'pending', label: 'Pendentes' },
-  { value: 'confirmed', label: 'Confirmados' },
   { value: 'preparing', label: 'Preparando' },
   { value: 'ready', label: 'Prontos' },
-  { value: 'out_for_delivery', label: 'Em Entrega' },
+  { value: 'delivering', label: 'Em Entrega' },
   { value: 'delivered', label: 'Entregues' },
   { value: 'cancelled', label: 'Cancelados' },
 ]
@@ -214,34 +57,36 @@ export default function OrdersPage() {
   const { canWrite } = useRole()
 
   useEffect(() => {
-    // Simulate API call
-    const timer = setTimeout(() => {
-      setOrders(mockOrders)
-      setIsLoading(false)
-    }, 1000)
-
-    return () => clearTimeout(timer)
+    const loadOrders = async () => {
+      try {
+        const data = await ordersApi.getAll()
+        setOrders(data)
+      } catch (error) {
+        toast.error('Erro ao carregar pedidos')
+      } finally {
+        setIsLoading(false)
+      }
+    }
+    loadOrders()
   }, [])
 
   const filteredOrders = useMemo(() => {
     let result = orders
-
-    // Filter by status
+  
     if (statusFilter !== 'all') {
       result = result.filter((order) => order.status === statusFilter)
     }
-
-    // Filter by search query
+  
     if (searchQuery) {
       const query = searchQuery.toLowerCase()
       result = result.filter(
         (order) =>
-          order.order_number.toLowerCase().includes(query) ||
-          order.customer_name.toLowerCase().includes(query) ||
-          order.customer_phone.includes(query)
+          order.id.toLowerCase().includes(query) ||
+          (order.customerName || order.customer_name || '').toLowerCase().includes(query) ||
+          (order.customerPhone || order.customer_phone || '').includes(query)
       )
     }
-
+  
     return result
   }, [orders, statusFilter, searchQuery])
 
@@ -266,24 +111,29 @@ export default function OrdersPage() {
     setModalOpen(true)
   }
 
-  const handleUpdateStatus = (orderId: string, status: string) => {
-    // Simulate API call
-    setOrders(
-      orders.map((order) =>
-        order.id === orderId ? { ...order, status: status as OrderStatus } : order
-      )
-    )
-    toast.success(`Status atualizado para ${status}`)
-    setModalOpen(false)
+  const handleUpdateStatus = async (orderId: string, status: string) => {
+    try {
+      await ordersApi.updateStatus(orderId, status)
+      const data = await ordersApi.getAll()
+      setOrders(data)
+      toast.success(`Status atualizado para ${status}`)
+      setModalOpen(false)
+    } catch (error) {
+      toast.error('Erro ao atualizar status')
+    }
   }
 
-  const handleRefresh = () => {
+  const handleRefresh = async () => {
     setIsLoading(true)
-    setTimeout(() => {
-      setOrders(mockOrders)
-      setIsLoading(false)
+    try {
+      const data = await ordersApi.getAll()
+      setOrders(data)
       toast.success('Pedidos atualizados')
-    }, 500)
+    } catch (error) {
+      toast.error('Erro ao atualizar pedidos')
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (
@@ -418,14 +268,14 @@ export default function OrdersPage() {
                 <div className="rounded-lg border border-border bg-card p-4 hover:border-primary/50 transition-colors">
                   <div className="flex justify-between items-start mb-3">
                     <div>
-                      <p className="font-semibold">{order.order_number}</p>
-                      <p className="text-sm text-muted-foreground">{order.customer_name}</p>
+                      <p className="font-semibold">#{order.id.slice(0, 8)}</p>
+                      <p className="text-sm text-muted-foreground">{order.customerName || order.customer_name}</p>
                     </div>
                     <span className="font-bold text-primary">
                       {new Intl.NumberFormat('pt-BR', {
                         style: 'currency',
                         currency: 'BRL',
-                      }).format(order.total)}
+                      }).format(order.totalAmount || order.total || 0)}
                     </span>
                   </div>
                   <div className="flex items-center justify-between">

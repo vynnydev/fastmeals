@@ -1,13 +1,11 @@
 'use client'
 
-import { useState } from 'react'
 import {
   MoreHorizontal,
   Eye,
   Truck,
   XCircle,
   CheckCircle,
-  CreditCard,
 } from 'lucide-react'
 import {
   Table,
@@ -28,7 +26,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { StatusBadge } from '@/components/shared/status-badge'
 import { cn } from '@/lib/utils'
-import type { Order, PaymentMethod } from '@/types'
+import type { Order } from '@/types'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 
@@ -40,18 +38,6 @@ interface OrderTableProps {
   onViewOrder: (order: Order) => void
   onUpdateStatus: (orderId: string, status: string) => void
   isLoading?: boolean
-}
-
-const paymentMethodIcons: Record<PaymentMethod, React.ReactNode> = {
-  credit_card: <CreditCard className="h-4 w-4" />,
-  debit_card: <CreditCard className="h-4 w-4" />,
-  pix: (
-    <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
-      <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
-    </svg>
-  ),
-  cash: <span className="text-sm font-bold">$</span>,
-  voucher: <span className="text-sm">V</span>,
 }
 
 export function OrderTable({
@@ -66,7 +52,37 @@ export function OrderTable({
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
       currency: 'BRL',
-    }).format(value)
+    }).format(value || 0)
+  }
+
+  const getOrderDate = (order: Order): string => {
+    const dateStr = order.createdAt || order.created_at
+    if (!dateStr) return '-'
+    try {
+      return format(new Date(dateStr), "dd MMM yyyy, HH:mm", { locale: ptBR })
+    } catch {
+      return '-'
+    }
+  }
+
+  const getCustomerName = (order: Order): string => {
+    return (order as any).customerName || order.customer_name || 'Cliente'
+  }
+
+  const getOrderTotal = (order: Order): number => {
+    return (order as any).totalAmount || order.total || 0
+  }
+
+  const getOrderItems = (order: Order): number => {
+    return order.items?.length || 0
+  }
+
+  const getDeliveryPersonId = (order: Order): string | undefined => {
+    return (order as any).deliveryPersonId || order.delivery_person_id
+  }
+
+  const getOrderId = (order: Order): string => {
+    return order.order_number || `#${order.id.slice(0, 8)}`
   }
 
   const allSelected = orders.length > 0 && selectedOrders.length === orders.length
@@ -88,10 +104,8 @@ export function OrderTable({
             <TableHead className="font-medium">Total</TableHead>
             <TableHead className="font-medium">Itens</TableHead>
             <TableHead className="font-medium">Data</TableHead>
-            <TableHead className="font-medium">Pagamento</TableHead>
-            <TableHead className="font-medium">Metodo</TableHead>
             <TableHead className="font-medium">Status</TableHead>
-            <TableHead className="font-medium">Rastreio</TableHead>
+            <TableHead className="font-medium">Entregador</TableHead>
             <TableHead className="w-12"></TableHead>
           </TableRow>
         </TableHeader>
@@ -111,31 +125,22 @@ export function OrderTable({
                   onCheckedChange={(checked) => onSelectOrder(order.id, !!checked)}
                 />
               </TableCell>
-              <TableCell className="font-medium">{order.order_number}</TableCell>
-              <TableCell>{order.customer_name}</TableCell>
-              <TableCell className="font-medium">{formatCurrency(order.total)}</TableCell>
+              <TableCell className="font-medium font-mono text-sm">
+                {getOrderId(order)}
+              </TableCell>
+              <TableCell>{getCustomerName(order)}</TableCell>
+              <TableCell className="font-medium">{formatCurrency(getOrderTotal(order))}</TableCell>
               <TableCell>
-                {order.items.length} {order.items.length === 1 ? 'item' : 'itens'}
+                {getOrderItems(order)} {getOrderItems(order) === 1 ? 'item' : 'itens'}
               </TableCell>
               <TableCell className="text-muted-foreground">
-                {format(new Date(order.created_at), "dd MMM yyyy, HH:mm", { locale: ptBR })}
-              </TableCell>
-              <TableCell>
-                <StatusBadge status={order.payment_status} variant="payment" size="sm" />
-              </TableCell>
-              <TableCell>
-                <div className="flex items-center gap-2 text-muted-foreground">
-                  {paymentMethodIcons[order.payment_method]}
-                  <span className="text-sm capitalize">
-                    {order.payment_method.replace('_', ' ')}
-                  </span>
-                </div>
+                {getOrderDate(order)}
               </TableCell>
               <TableCell>
                 <StatusBadge status={order.status} size="sm" />
               </TableCell>
               <TableCell className="text-muted-foreground font-mono text-sm">
-                {order.delivery_person_id ? `#${order.delivery_person_id.slice(0, 8)}` : '-'}
+                {getDeliveryPersonId(order) ? `#${getDeliveryPersonId(order)!.slice(0, 8)}` : '-'}
               </TableCell>
               <TableCell onClick={(e) => e.stopPropagation()}>
                 <DropdownMenu>
@@ -151,12 +156,6 @@ export function OrderTable({
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     {order.status === 'pending' && (
-                      <DropdownMenuItem onClick={() => onUpdateStatus(order.id, 'confirmed')}>
-                        <CheckCircle className="mr-2 h-4 w-4" />
-                        Confirmar
-                      </DropdownMenuItem>
-                    )}
-                    {order.status === 'confirmed' && (
                       <DropdownMenuItem onClick={() => onUpdateStatus(order.id, 'preparing')}>
                         <CheckCircle className="mr-2 h-4 w-4" />
                         Iniciar preparo
@@ -169,12 +168,12 @@ export function OrderTable({
                       </DropdownMenuItem>
                     )}
                     {order.status === 'ready' && (
-                      <DropdownMenuItem onClick={() => onUpdateStatus(order.id, 'out_for_delivery')}>
+                      <DropdownMenuItem onClick={() => onUpdateStatus(order.id, 'delivering')}>
                         <Truck className="mr-2 h-4 w-4" />
                         Enviar para entrega
                       </DropdownMenuItem>
                     )}
-                    {order.status === 'out_for_delivery' && (
+                    {order.status === 'delivering' && (
                       <DropdownMenuItem onClick={() => onUpdateStatus(order.id, 'delivered')}>
                         <CheckCircle className="mr-2 h-4 w-4" />
                         Marcar como entregue

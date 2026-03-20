@@ -47,11 +47,11 @@ const navItems = [
     href: '/delivery',
     icon: Truck,
   },
-  {
-    title: 'Otimização',
-    href: '/optimization',
-    icon: Route,
-  },
+  // {
+  //   title: 'Otimização',
+  //   href: '/optimization',
+  //   icon: Route,
+  // },
   {
     title: 'Relatórios',
     href: '/reports',

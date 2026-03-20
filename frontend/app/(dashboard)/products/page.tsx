@@ -48,11 +48,10 @@ type ViewMode = "grid" | "table"
 
 const categories = [
   { value: "all", label: "Todas Categorias" },
-  { value: "Lanches", label: "Lanches" },
-  { value: "Bebidas", label: "Bebidas" },
-  { value: "Sobremesas", label: "Sobremesas" },
-  { value: "Acompanhamentos", label: "Acompanhamentos" },
-  { value: "Combos", label: "Combos" },
+  { value: "meal", label: "Refeições" },
+  { value: "drink", label: "Bebidas" },
+  { value: "dessert", label: "Sobremesas" },
+  { value: "side", label: "Acompanhamentos" },
 ]
 
 const statusOptions = [
@@ -90,12 +89,29 @@ export default function ProductsPage() {
   const filteredProducts = useMemo(() => {
     if (!products) return []
     return products.filter(product => {
+      // Search filter
+      if (search) {
+        const searchLower = search.toLowerCase()
+        const matchesName = product.name.toLowerCase().includes(searchLower)
+        const matchesDescription = (product.description || '').toLowerCase().includes(searchLower)
+        if (!matchesName && !matchesDescription) return false
+      }
+  
+      // Category filter
+      if (categoryFilter !== "all") {
+        const productCategory = (product.category || '').toLowerCase()
+        const filterCategory = categoryFilter.toLowerCase()
+        if (productCategory !== filterCategory) return false
+      }
+  
+      // Status filter
       const available = product.isAvailable ?? product.is_available
       if (statusFilter === "active" && !available) return false
       if (statusFilter === "inactive" && available) return false
+  
       return true
     })
-  }, [products, statusFilter])
+  }, [products, search, categoryFilter, statusFilter])
 
   // Stats
   const stats = useMemo(() => {
