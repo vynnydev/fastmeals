@@ -155,8 +155,13 @@ export default function DashboardPage() {
 
   return (
     <div className="flex flex-col min-h-screen">
-      <Header title="Overview" />
-      
+      {/* Header */}
+      <div>
+        <h1 className="text-2xl font-bold text-foreground">Overview</h1>
+        <p className="text-muted-foreground">
+          {totalOrders} pedidos • {totalDelivered} entregues • Receita: {formatCurrency(totalRevenue)}
+        </p>
+      </div>
       <div className="flex-1 p-6 space-y-6">
         {/* Stats Cards with Animated Numbers */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">

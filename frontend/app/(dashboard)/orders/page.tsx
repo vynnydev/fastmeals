@@ -138,8 +138,13 @@ export default function OrdersPage() {
 
   return (
     <div className="flex flex-col min-h-screen">
-      <Header title="Pedidos" />
-
+      {/* Header */}
+      <div>
+        <h1 className="text-2xl font-bold text-foreground">Pedidos</h1>
+        <p className="text-muted-foreground">
+          {orders.length} pedidos • {orders.filter(o => o.status === 'pending').length} pendentes • {orders.filter(o => o.status === 'delivered').length} entregues
+        </p>
+      </div>
       <div className="flex-1 p-6 space-y-6">
         {/* Toolbar */}
         <div className="flex flex-col lg:flex-row gap-4 justify-between">

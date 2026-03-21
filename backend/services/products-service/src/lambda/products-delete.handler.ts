@@ -20,7 +20,7 @@ function getUseCase(): DeleteProductUseCase {
 export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
   const headers = {
     'Content-Type': 'application/json',
-    'Access-Control-Allow-Origin': process.env.CORS_ORIGIN || '*',
+    'Access-Control-Allow-Origin': process.env.CORS_ORIGIN || 'http://localhost:3000',
   };
 
   try {

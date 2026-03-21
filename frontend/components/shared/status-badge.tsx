@@ -17,10 +17,6 @@ const orderStatusConfig: Record<OrderStatus, { label: string; className: string 
     label: 'Pendente',
     className: 'bg-status-pending/20 text-status-pending border-status-pending/30',
   },
-  confirmed: {
-    label: 'Confirmado',
-    className: 'bg-status-confirmed/20 text-status-confirmed border-status-confirmed/30',
-  },
   preparing: {
     label: 'Preparando',
     className: 'bg-status-preparing/20 text-status-preparing border-status-preparing/30',
@@ -29,7 +25,7 @@ const orderStatusConfig: Record<OrderStatus, { label: string; className: string 
     label: 'Pronto',
     className: 'bg-status-ready/20 text-status-ready border-status-ready/30',
   },
-  out_for_delivery: {
+  delivering: {
     label: 'Em Entrega',
     className: 'bg-status-delivering/20 text-status-delivering border-status-delivering/30',
   },

@@ -16,10 +16,8 @@ interface OrderKanbanProps {
 
 const columns: { id: OrderStatus; title: string; color: string }[] = [
   { id: 'pending', title: 'Pendentes', color: 'bg-status-pending' },
-  { id: 'confirmed', title: 'Confirmados', color: 'bg-status-confirmed' },
   { id: 'preparing', title: 'Preparando', color: 'bg-status-preparing' },
   { id: 'ready', title: 'Prontos', color: 'bg-status-ready' },
-  { id: 'out_for_delivery', title: 'Em Entrega', color: 'bg-status-delivering' },
   { id: 'delivered', title: 'Entregues', color: 'bg-status-delivered' },
 ]
 
@@ -27,10 +25,9 @@ export function OrderKanban({ orders, onViewOrder, isLoading }: OrderKanbanProps
   const ordersByStatus = useMemo(() => {
     const grouped: Record<OrderStatus, Order[]> = {
       pending: [],
-      confirmed: [],
       preparing: [],
       ready: [],
-      out_for_delivery: [],
+      delivering: [],
       delivered: [],
       cancelled: [],
     }
@@ -59,7 +56,7 @@ export function OrderKanban({ orders, onViewOrder, isLoading }: OrderKanbanProps
       <div className="flex gap-4 pb-4 min-h-[calc(100vh-280px)]">
         {columns.map((column) => {
           const columnOrders = ordersByStatus[column.id] || []
-          const totalValue = columnOrders.reduce((sum, order) => sum + order.total, 0)
+          const totalValue = columnOrders.reduce((sum, order) => sum + (order.totalAmount || order.total || 0), 0)
 
           return (
             <div

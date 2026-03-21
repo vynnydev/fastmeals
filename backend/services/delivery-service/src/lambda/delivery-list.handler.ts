@@ -18,7 +18,7 @@ function getUseCase(): ListDeliveryPersonsUseCase {
 }
 
 export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
-  const headers = { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': process.env.CORS_ORIGIN || '*' };
+  const headers = { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': process.env.CORS_ORIGIN || 'http://localhost:3000' };
 
   try {
     const query = listDeliveryPersonsQuerySchema.parse(event.queryStringParameters || {});

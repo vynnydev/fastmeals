@@ -73,14 +73,14 @@ export const useOrdersStore = create<OrdersState>((set, get) => ({
         params.end_date = filters.dateRange.end
       }
 
-      const response = await ordersApi.getAll(params as Parameters<typeof ordersApi.getAll>[0])
+      const orders = await ordersApi.getAll(params as Parameters<typeof ordersApi.getAll>[0])
 
       set({
-        orders: response.data,
+        orders: Array.isArray(orders) ? orders : [],
         pagination: {
           ...pagination,
-          total: response.total,
-          totalPages: response.total_pages,
+          total: Array.isArray(orders) ? orders.length : 0,
+          totalPages: 1,
         },
         isLoading: false,
       })
@@ -103,7 +103,7 @@ export const useOrdersStore = create<OrdersState>((set, get) => ({
 
   updateOrderStatus: async (id: string, status: OrderStatus) => {
     try {
-      const updatedOrder = await ordersApi.updateStatus(id, { order_id: id, status })
+      const updatedOrder = await ordersApi.updateStatus(id, status)
       get().updateOrderInList(updatedOrder)
       
       if (get().selectedOrder?.id === id) {

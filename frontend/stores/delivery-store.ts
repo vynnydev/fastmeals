@@ -132,7 +132,7 @@ export const useDeliveryStore = create<DeliveryState>((set, get) => ({
 
   updateStatus: async (id: string, status: DeliveryPersonStatus) => {
     try {
-      const updatedPerson = await deliveryApi.updateStatus(id, status)
+      const updatedPerson = await deliveryApi.update(id, { status } as any)
       set((state) => ({
         deliveryPersons: state.deliveryPersons.map((p) => (p.id === id ? updatedPerson : p)),
       }))

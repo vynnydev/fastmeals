@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import { AppSidebar } from '@/components/layout/app-sidebar'
+import { Header } from '@/components/layout/header'
 import { useAuthStore } from '@/stores/auth-store'
 import { useUIStore } from '@/stores/ui-store'
 import { cn } from '@/lib/utils'
@@ -69,14 +70,17 @@ export default function DashboardLayout({
   return (
     <div className="min-h-screen bg-background">
       <AppSidebar />
-      <main
+      <div
         className={cn(
-          'min-h-screen transition-all duration-300 m-8',
+          'min-h-screen transition-all duration-300',
           sidebarCollapsed ? 'lg:pl-[72px]' : 'lg:pl-64'
         )}
       >
-        {children}
-      </main>
+        <Header />
+        <main className="p-4 sm:p-6">
+          {children}
+        </main>
+      </div>
     </div>
   )
 }

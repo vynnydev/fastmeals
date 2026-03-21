@@ -61,19 +61,14 @@ export const useAuthStore = create<AuthState>()(
       },
 
       logout: async () => {
-        try {
-          await authApi.logout()
-        } catch {
-          // Ignore errors on logout
-        } finally {
-          localStorage.removeItem('fastmeals_token')
-          set({
-            user: null,
-            token: null,
-            isAuthenticated: false,
-            error: null,
-          })
-        }
+        localStorage.removeItem('fastmeals_token')
+        localStorage.removeItem('fastmeals-auth')
+        set({
+          user: null,
+          token: null,
+          isAuthenticated: false,
+          error: null,
+        })
       },
 
       setUser: (user: User | null) => {

@@ -16,7 +16,7 @@ function getUseCase(): OptimizeAssignmentUseCase {
 }
 
 export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
-  const headers = { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': process.env.CORS_ORIGIN || '*' };
+  const headers = { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': process.env.CORS_ORIGIN || 'http://localhost:3000' };
 
   try {
     const token = event.headers?.Authorization?.split(' ')[1] || event.headers?.authorization?.split(' ')[1] || '';
