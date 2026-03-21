@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next'
 import { Geist, Geist_Mono } from 'next/font/google'
 import { Toaster } from 'sonner'
+import { ThemeProvider } from 'next-themes'
 import './globals.css'
 
 const geist = Geist({ 
@@ -16,25 +17,12 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: 'FastMeals - Sistema de Gestao de Pedidos e Entregas',
   description: 'Dashboard analitico para gerenciamento de pedidos, produtos e entregas em tempo real.',
-  generator: 'v0.app',
+  generator: 'Vinicius Prudencio - VynnyTech',
   keywords: ['delivery', 'gestao', 'pedidos', 'entregas', 'restaurante', 'dashboard'],
   authors: [{ name: 'FastMeals Team' }],
   icons: {
-    icon: [
-      {
-        url: '/icon-light-32x32.png',
-        media: '(prefers-color-scheme: light)',
-      },
-      {
-        url: '/icon-dark-32x32.png',
-        media: '(prefers-color-scheme: dark)',
-      },
-      {
-        url: '/icon.svg',
-        type: 'image/svg+xml',
-      },
-    ],
-    apple: '/apple-icon.png',
+    icon: '/icon.svg',
+    apple: '/icon.svg',
   },
 }
 
@@ -52,9 +40,11 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="pt-BR" className="dark">
+    <html lang="pt-BR" suppressHydrationWarning>
       <body className={`${geist.variable} ${geistMono.variable} font-sans antialiased`}>
-        {children}
+        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
+          {children}
+        </ThemeProvider>
         <Toaster 
           position="top-right" 
           richColors 

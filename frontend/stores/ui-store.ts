@@ -3,6 +3,7 @@ import { create } from 'zustand'
 interface UIState {
   sidebarOpen: boolean
   sidebarCollapsed: boolean
+  mobileMenuOpen: boolean
   activeModal: string | null
   modalData: unknown
   
@@ -10,6 +11,7 @@ interface UIState {
   setSidebarOpen: (open: boolean) => void
   toggleSidebar: () => void
   setSidebarCollapsed: (collapsed: boolean) => void
+  setMobileMenuOpen: (open: boolean) => void
   openModal: (modalId: string, data?: unknown) => void
   closeModal: () => void
 }
@@ -17,6 +19,7 @@ interface UIState {
 export const useUIStore = create<UIState>((set) => ({
   sidebarOpen: true,
   sidebarCollapsed: false,
+  mobileMenuOpen: false,
   activeModal: null,
   modalData: null,
 
@@ -30,6 +33,10 @@ export const useUIStore = create<UIState>((set) => ({
 
   setSidebarCollapsed: (collapsed: boolean) => {
     set({ sidebarCollapsed: collapsed })
+  },
+
+  setMobileMenuOpen: (open: boolean) => {
+    set({ mobileMenuOpen: open })
   },
 
   openModal: (modalId: string, data?: unknown) => {
