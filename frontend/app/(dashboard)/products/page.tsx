@@ -30,6 +30,7 @@ import { ProductFormModal } from "@/components/products/product-form-modal"
 import { CardsSkeleton, TableSkeleton } from "@/components/shared/skeleton-loader"
 import { EmptyState } from "@/components/shared/empty-state"
 import { ErrorState } from "@/components/shared/error-state"
+import { ProductDetailModal } from "@/components/products/product-detail-modal"
 import { 
   Plus, 
   Search, 
@@ -81,6 +82,7 @@ export default function ProductsPage() {
   const [deleteModalOpen, setDeleteModalOpen] = useState(false)
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [detailModalOpen, setDetailModalOpen] = useState(false)
 
   // Data fetching
   const { products, error, isLoading, fetchProducts, setFilters, deleteProduct, updateProduct, createProduct } = useProducts()
@@ -141,11 +143,7 @@ export default function ProductsPage() {
 
   const handleView = (product: Product) => {
     setSelectedProduct(product)
-    // Could open a view modal here
-    toast({
-      title: product.name,
-      description: `${product.description || 'Sem descrição'} - ${product.category}`,
-    })
+    setDetailModalOpen(true)
   }
 
   const handleFormSubmit = useCallback(async (data: Partial<Product>) => {
@@ -271,10 +269,10 @@ export default function ProductsPage() {
               Excluir ({selectedIds.length})
             </Button>
           )}
-          <Button variant="outline" size="sm" onClick={handleExport}>
+          {/* <Button variant="outline" size="sm" onClick={handleExport}>
             <Download className="mr-2 h-4 w-4" />
             Exportar
-          </Button>
+          </Button> */}
           {canWrite && (
             <Button onClick={handleCreate}>
               <Plus className="mr-2 h-4 w-4" />
@@ -447,6 +445,16 @@ export default function ProductsPage() {
         onSubmit={handleFormSubmit}
         product={selectedProduct}
         isLoading={isSubmitting}
+      />
+
+      {/* View Product Details */}
+      <ProductDetailModal
+        product={selectedProduct}
+        open={detailModalOpen}
+        onOpenChange={setDetailModalOpen}
+        onEdit={handleEdit}
+        onDelete={handleDelete}
+        canWrite={canWrite}
       />
 
       <AlertDialog open={deleteModalOpen} onOpenChange={setDeleteModalOpen}>
