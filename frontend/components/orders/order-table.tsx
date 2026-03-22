@@ -31,6 +31,7 @@ import { cn } from '@/lib/utils'
 import type { Order } from '@/types'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
+import { useRole } from '@/hooks/use-auth'
 
 interface OrderTableProps {
   orders: Order[]
@@ -50,6 +51,8 @@ export function OrderTable({
   onViewOrder,
   onUpdateStatus,
 }: OrderTableProps) {
+  const { canWrite } = useRole()
+
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
@@ -181,41 +184,45 @@ export function OrderTable({
                       <Eye className="mr-2 h-4 w-4" />
                       Ver detalhes
                     </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    {order.status === 'pending' && (
-                      <DropdownMenuItem onClick={() => onUpdateStatus(order.id, 'preparing')}>
-                        <CheckCircle className="mr-2 h-4 w-4" />
-                        Iniciar preparo
-                      </DropdownMenuItem>
-                    )}
-                    {order.status === 'preparing' && (
-                      <DropdownMenuItem onClick={() => onUpdateStatus(order.id, 'ready')}>
-                        <CheckCircle className="mr-2 h-4 w-4" />
-                        Marcar como pronto
-                      </DropdownMenuItem>
-                    )}
-                    {order.status === 'ready' && (order.deliveryPersonId || order.delivery_person_id) && (
-                      <DropdownMenuItem onClick={() => onUpdateStatus(order.id, 'delivering')}>
-                        <Truck className="mr-2 h-4 w-4" />
-                        Enviar para entrega
-                      </DropdownMenuItem>
-                    )}
-                    {order.status === 'delivering' && (
-                      <DropdownMenuItem onClick={() => onUpdateStatus(order.id, 'delivered')}>
-                        <CheckCircle className="mr-2 h-4 w-4" />
-                        Marcar como entregue
-                      </DropdownMenuItem>
-                    )}
-                    {!['delivered', 'cancelled', 'delivering'].includes(order.status) && (
+                    {canWrite && (
                       <>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem
-                          className="text-destructive focus:text-destructive"
-                          onClick={() => onUpdateStatus(order.id, 'cancelled')}
-                        >
-                          <XCircle className="mr-2 h-4 w-4" />
-                          Cancelar pedido
-                        </DropdownMenuItem>
+                        {order.status === 'pending' && (
+                          <DropdownMenuItem onClick={() => onUpdateStatus(order.id, 'preparing')}>
+                            <CheckCircle className="mr-2 h-4 w-4" />
+                            Iniciar preparo
+                          </DropdownMenuItem>
+                        )}
+                        {order.status === 'preparing' && (
+                          <DropdownMenuItem onClick={() => onUpdateStatus(order.id, 'ready')}>
+                            <CheckCircle className="mr-2 h-4 w-4" />
+                            Marcar como pronto
+                          </DropdownMenuItem>
+                        )}
+                        {order.status === 'ready' && (order.deliveryPersonId || order.delivery_person_id) && (
+                          <DropdownMenuItem onClick={() => onUpdateStatus(order.id, 'delivering')}>
+                            <Truck className="mr-2 h-4 w-4" />
+                            Enviar para entrega
+                          </DropdownMenuItem>
+                        )}
+                        {order.status === 'delivering' && (
+                          <DropdownMenuItem onClick={() => onUpdateStatus(order.id, 'delivered')}>
+                            <CheckCircle className="mr-2 h-4 w-4" />
+                            Marcar como entregue
+                          </DropdownMenuItem>
+                        )}
+                        {!['delivered', 'cancelled', 'delivering'].includes(order.status) && (
+                          <>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              className="text-destructive focus:text-destructive"
+                              onClick={() => onUpdateStatus(order.id, 'cancelled')}
+                            >
+                              <XCircle className="mr-2 h-4 w-4" />
+                              Cancelar pedido
+                            </DropdownMenuItem>
+                          </>
+                        )}
                       </>
                     )}
                   </DropdownMenuContent>

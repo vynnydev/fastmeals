@@ -745,7 +745,10 @@ export default function DeliveryPage() {
                 </div>
                 <h3 className="font-semibold text-foreground">Otimização não executada</h3>
                 <p className="text-sm text-muted-foreground max-w-sm">
-                  Clique no botão acima para executar o algoritmo Hungarian e obter sugestões de atribuição otimizadas.
+                  {canWrite
+                    ? 'Clique no botão acima para executar o algoritmo Hungarian e obter sugestões de atribuição otimizadas.'
+                    : 'Somente administradores podem executar a otimização de atribuição de entregadores.'
+                  }
                 </p>
               </div>
             </Card>

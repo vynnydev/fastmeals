@@ -191,7 +191,7 @@ export default function LoginPage() {
               <div className="space-y-1">
                 <p className="text-muted-foreground">Viewer:</p>
                 <p className="text-foreground font-mono">viewer@fastmeals.com</p>
-                <p className="text-foreground font-mono">viewer123</p>
+                <p className="text-foreground font-mono">Viewer@123</p>
               </div>
             </div>
           </div>
