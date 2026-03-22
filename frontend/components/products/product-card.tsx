@@ -10,7 +10,7 @@ import {
   DropdownMenuItem, 
   DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu"
-import { MoreHorizontal, Edit, Trash2, Eye, Package } from "lucide-react"
+import { MoreHorizontal, Edit, Trash2, Eye, Package, Clock } from "lucide-react"
 import { formatCurrency } from "@/lib/utils"
 import { useAuthStore } from "@/stores/auth-store"
 import Image from "next/image"
@@ -22,27 +22,38 @@ interface ProductCardProps {
   onView?: (product: Product) => void
 }
 
+const categoryLabels: Record<string, string> = {
+  meal: "Refeições",
+  drink: "Bebidas",
+  dessert: "Sobremesas",
+  side: "Acompanhamentos",
+}
+
+const categoryColors: Record<string, string> = {
+  meal: "bg-amber-500/20 text-amber-400 border-amber-500/30",
+  drink: "bg-blue-500/20 text-blue-400 border-blue-500/30",
+  dessert: "bg-pink-500/20 text-pink-400 border-pink-500/30",
+  side: "bg-green-500/20 text-green-400 border-green-500/30",
+}
+
 export function ProductCard({ product, onEdit, onDelete, onView }: ProductCardProps) {
   const { user } = useAuthStore()
   const canWrite = user?.role !== "viewer"
-
-  const categoryColors: Record<string, string> = {
-    "Lanches": "bg-amber-500/20 text-amber-400 border-amber-500/30",
-    "Bebidas": "bg-blue-500/20 text-blue-400 border-blue-500/30",
-    "Sobremesas": "bg-pink-500/20 text-pink-400 border-pink-500/30",
-    "Acompanhamentos": "bg-green-500/20 text-green-400 border-green-500/30",
-    "Combos": "bg-purple-500/20 text-purple-400 border-purple-500/30",
-  }
+  const isAvailable = product.isAvailable ?? product.is_available ?? true
+  const imageUrl = product.imageUrl || product.image_url
+  const category = product.category || 'meal'
+  const prepTime = product.preparationTime || product.preparation_time || 0
 
   return (
     <Card className="group bg-card/50 border-border/50 hover:border-primary/30 transition-all duration-300 overflow-hidden">
       <div className="relative aspect-video bg-muted/30 overflow-hidden">
-        {product.imageUrl ? (
+        {imageUrl ? (
           <Image
-            src={product.imageUrl}
+            src={imageUrl}
             alt={product.name}
             fill
             className="object-cover transition-transform duration-300 group-hover:scale-105"
+            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
           />
         ) : (
           <div className="absolute inset-0 flex items-center justify-center">
@@ -50,6 +61,18 @@ export function ProductCard({ product, onEdit, onDelete, onView }: ProductCardPr
           </div>
         )}
         
+        {/* Status badge */}
+        <div className="absolute top-2 left-2">
+          <Badge 
+            className={isAvailable 
+              ? "bg-emerald-500/90 text-white text-xs" 
+              : "bg-destructive/90 text-white text-xs"
+            }
+          >
+            {isAvailable ? "Ativo" : "Inativo"}
+          </Badge>
+        </div>
+
         {/* Actions overlay */}
         <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
           <DropdownMenu>
@@ -81,15 +104,6 @@ export function ProductCard({ product, onEdit, onDelete, onView }: ProductCardPr
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
-
-        {/* Stock indicator */}
-        {product.stock !== undefined && product.stock <= 10 && (
-          <div className="absolute bottom-2 left-2">
-            <Badge variant="destructive" className="text-xs">
-              {product.stock === 0 ? "Sem estoque" : `${product.stock} unid.`}
-            </Badge>
-          </div>
-        )}
       </div>
 
       <CardContent className="p-4">
@@ -97,9 +111,9 @@ export function ProductCard({ product, onEdit, onDelete, onView }: ProductCardPr
           <h3 className="font-semibold text-foreground line-clamp-1">{product.name}</h3>
           <Badge 
             variant="outline" 
-            className={categoryColors[product.category] || "bg-muted text-muted-foreground"}
+            className={categoryColors[category] || "bg-muted text-muted-foreground"}
           >
-            {product.category}
+            {categoryLabels[category] || category}
           </Badge>
         </div>
         
@@ -111,29 +125,14 @@ export function ProductCard({ product, onEdit, onDelete, onView }: ProductCardPr
           <span className="text-xl font-bold text-primary">
             {formatCurrency(product.price)}
           </span>
-          {product.preparationTime && (
-            <span className="text-xs text-muted-foreground">
-              {product.preparationTime} min preparo
+          {prepTime > 0 && (
+            <span className="flex items-center gap-1 text-xs text-muted-foreground">
+              <Clock className="h-3 w-3" />
+              {prepTime} min
             </span>
           )}
         </div>
       </CardContent>
-
-      <CardFooter className="p-4 pt-0">
-        <div className="flex items-center gap-2 w-full">
-          <Badge 
-            variant={product.active ? "default" : "secondary"}
-            className={product.active ? "bg-emerald-500/20 text-emerald-400" : ""}
-          >
-            {product.active ? "Ativo" : "Inativo"}
-          </Badge>
-          {product.stock !== undefined && (
-            <span className="text-xs text-muted-foreground ml-auto">
-              Estoque: {product.stock}
-            </span>
-          )}
-        </div>
-      </CardFooter>
     </Card>
   )
 }

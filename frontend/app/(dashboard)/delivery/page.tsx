@@ -1,10 +1,10 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import { useDelivery } from "@/hooks/use-delivery"
 import { useAuthStore } from "@/stores/auth-store"
 import { useToast } from "@/hooks/use-toast"
-import { DeliveryPerson, Assignment } from "@/types"
+import { DeliveryPerson, Assignment, Order } from "@/types"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -38,7 +38,21 @@ import {
 } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
-import { optimizationApi, ordersApi } from "@/lib/api"
+import { optimizationApi, ordersApi, deliveryApi } from "@/lib/api"
+import { DeliveryFormModal } from "@/components/delivery/delivery-form-modal"
+import { DeliveryDetailModal } from "@/components/delivery/delivery-detail-modal"
+import { DriverKanban } from "@/components/delivery/driver-kanban"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
+import { LayoutGrid, Columns3 } from "lucide-react"
 
 export default function DeliveryPage() {
   const { user } = useAuthStore()
@@ -62,6 +76,12 @@ export default function DeliveryPage() {
   const [acceptedAssignments, setAcceptedAssignments] = useState<Set<string>>(new Set())
   const [rejectedAssignments, setRejectedAssignments] = useState<Set<string>>(new Set())
   const [applyingAssignment, setApplyingAssignment] = useState<string | null>(null)
+  const [formModalOpen, setFormModalOpen] = useState(false)
+  const [detailModalOpen, setDetailModalOpen] = useState(false)
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false)
+  const [selectedPerson, setSelectedPerson] = useState<DeliveryPerson | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
+  const [driversView, setDriversView] = useState<"cards" | "kanban">("cards")
 
   // Data fetching
   const { 
@@ -71,19 +91,45 @@ export default function DeliveryPage() {
     mutate 
   } = useDelivery()
 
+  // Adiciona state para pedidos
+  const [activeOrders, setActiveOrders] = useState<Order[]>([])
+
+  // Carrega pedidos em delivering
+  useEffect(() => {
+    const loadActiveOrders = async () => {
+      try {
+        const orders = await ordersApi.getAll()
+        setActiveOrders(Array.isArray(orders) ? orders.filter((o: any) => o.status === 'delivering') : [])
+      } catch {
+        // ignore
+      }
+    }
+    loadActiveOrders()
+  }, [deliveryData])
+
   // Filter delivery persons
   const filteredDrivers = useMemo(() => {
     if (!deliveryData?.deliveryPersons) return []
+    
+    const busyDriverIds = new Set(
+      activeOrders.map((o: any) => o.deliveryPersonId || o.delivery_person_id).filter(Boolean)
+    )
+    
     return deliveryData.deliveryPersons.filter(driver => {
       if (search && !driver.name.toLowerCase().includes(search.toLowerCase())) {
         return false
       }
-      if (statusFilter !== "all" && driver.status !== statusFilter) {
-        return false
-      }
+      
+      const isActive = driver.isActive ?? driver.is_active
+      const isBusy = busyDriverIds.has(driver.id)
+      
+      if (statusFilter === "available" && (!isActive || isBusy)) return false
+      if (statusFilter === "busy" && !isBusy) return false
+      if (statusFilter === "offline" && isActive) return false
+      
       return true
     })
-  }, [deliveryData?.deliveryPersons, search, statusFilter])
+  }, [deliveryData?.deliveryPersons, search, statusFilter, activeOrders])
 
   // Stats
   const stats = useMemo(() => {
@@ -91,13 +137,17 @@ export default function DeliveryPage() {
       return { totalDrivers: 0, availableDrivers: 0, busyDrivers: 0, offlineDrivers: 0 }
     }
     const persons = deliveryData.deliveryPersons
+    const busyDriverIds = new Set(
+      activeOrders.map((o: any) => o.deliveryPersonId || o.delivery_person_id).filter(Boolean)
+    )
+    
     return {
       totalDrivers: persons.length,
-      availableDrivers: persons.filter(d => d.status === 'available' || (d.isActive ?? d.is_active)).length,
-      busyDrivers: persons.filter(d => d.status === 'busy').length,
-      offlineDrivers: persons.filter(d => d.status === 'offline' || !(d.isActive ?? d.is_active)).length,
+      availableDrivers: persons.filter(d => (d.isActive ?? d.is_active) && !busyDriverIds.has(d.id)).length,
+      busyDrivers: busyDriverIds.size,
+      offlineDrivers: persons.filter(d => !(d.isActive ?? d.is_active)).length,
     }
-  }, [deliveryData])
+  }, [deliveryData, activeOrders])
 
   // Optimization handler
   const handleRunOptimization = async () => {
@@ -170,15 +220,37 @@ export default function DeliveryPage() {
 
   // Driver handlers
   const handleEditDriver = (driver: DeliveryPerson) => {
-    toast({ title: "Editar", description: `Editando ${driver.name}` })
+    setSelectedPerson(driver)
+    setFormModalOpen(true)
   }
-
+  
   const handleDeleteDriver = (driver: DeliveryPerson) => {
-    toast({ title: "Remover", description: `Removendo ${driver.name}` })
+    setSelectedPerson(driver)
+    setDeleteModalOpen(true)
   }
-
+  
   const handleViewDriver = (driver: DeliveryPerson) => {
-    toast({ title: driver.name, description: `Status: ${driver.status}` })
+    setSelectedPerson(driver)
+    setDetailModalOpen(true)
+  }
+  
+  const handleConfirmDelete = async () => {
+    if (!selectedPerson) return
+    setIsDeleting(true)
+    try {
+      await deliveryApi.delete(selectedPerson.id)
+      toast({ title: "Entregador removido com sucesso!" })
+      setDeleteModalOpen(false)
+      mutate()
+    } catch (error) {
+      toast({
+        title: "Erro ao remover",
+        description: error instanceof Error ? error.message : "Não foi possível remover o entregador",
+        variant: "destructive",
+      })
+    } finally {
+      setIsDeleting(false)
+    }
   }
 
   const handleAssignOrder = (driver: DeliveryPerson) => {
@@ -235,7 +307,7 @@ export default function DeliveryPage() {
             Atualizar
           </Button>
           {canWrite && (
-            <Button onClick={() => toast({ title: "Novo Entregador", description: "Formulário em desenvolvimento" })}>
+            <Button onClick={() => { setSelectedPerson(null); setFormModalOpen(true) }}>
               <Plus className="mr-2 h-4 w-4" />
               Novo Entregador
             </Button>
@@ -258,6 +330,7 @@ export default function DeliveryPage() {
 
         {/* Drivers Tab */}
         <TabsContent value="drivers" className="space-y-4">
+          {/* Filters */}
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -269,25 +342,54 @@ export default function DeliveryPage() {
               />
             </div>
 
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-[160px] bg-background">
-                <Filter className="mr-2 h-4 w-4" />
-                <SelectValue placeholder="Status" />
-              </SelectTrigger>
-              <SelectContent className="bg-card border-border">
-                <SelectItem value="all">Todos</SelectItem>
-                <SelectItem value="available">Disponíveis</SelectItem>
-                <SelectItem value="busy">Em Entrega</SelectItem>
-                <SelectItem value="offline">Offline</SelectItem>
-              </SelectContent>
-            </Select>
+            <div className="flex items-center gap-2">
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-[160px] bg-background">
+                  <Filter className="mr-2 h-4 w-4" />
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent className="bg-card border-border">
+                  <SelectItem value="all">Todos</SelectItem>
+                  <SelectItem value="available">Disponíveis</SelectItem>
+                  <SelectItem value="busy">Em Entrega</SelectItem>
+                  <SelectItem value="offline">Inativos</SelectItem>
+                </SelectContent>
+              </Select>
+
+              <div className="flex items-center border border-border rounded-md">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className={cn("h-9 w-9 rounded-r-none", driversView === "cards" && "bg-muted")}
+                  onClick={() => setDriversView("cards")}
+                >
+                  <LayoutGrid className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className={cn("h-9 w-9 rounded-l-none", driversView === "kanban" && "bg-muted")}
+                  onClick={() => setDriversView("kanban")}
+                >
+                  <Columns3 className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
           </div>
 
-          {filteredDrivers.length === 0 ? (
+          {/* Content */}
+          {driversView === "kanban" ? (
+            <DriverKanban
+              drivers={deliveryData?.deliveryPersons || []}
+              activeOrders={activeOrders}
+              onView={handleViewDriver}
+              onEdit={handleEditDriver}
+            />
+          ) : filteredDrivers.length === 0 ? (
             <EmptyState
               type="users"
               title="Nenhum entregador encontrado"
-              description={search || statusFilter !== "all" 
+              description={search || statusFilter !== "all"
                 ? "Tente ajustar os filtros de busca"
                 : "Adicione entregadores para começar"
               }
@@ -650,6 +752,40 @@ export default function DeliveryPage() {
           )}
         </TabsContent>
       </Tabs>
+
+      {/* Modals */}
+      <DeliveryFormModal
+        open={formModalOpen}
+        onOpenChange={setFormModalOpen}
+        person={selectedPerson}
+        onSuccess={() => mutate()}
+      />
+
+      <DeliveryDetailModal
+        person={selectedPerson}
+        open={detailModalOpen}
+        onOpenChange={setDetailModalOpen}
+      />
+
+      <AlertDialog open={deleteModalOpen} onOpenChange={setDeleteModalOpen}>
+        <AlertDialogContent className="bg-card border-border">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remover Entregador</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja remover "{selectedPerson?.name}"? Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDeleting ? "Removendo..." : "Remover"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

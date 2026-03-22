@@ -32,6 +32,20 @@ interface ProductTableProps {
   onView?: (product: Product) => void
 }
 
+const categoryLabels: Record<string, string> = {
+  meal: "Refeições",
+  drink: "Bebidas",
+  dessert: "Sobremesas",
+  side: "Acompanhamentos",
+}
+
+const categoryColors: Record<string, string> = {
+  meal: "bg-amber-500/20 text-amber-400 border-amber-500/30",
+  drink: "bg-blue-500/20 text-blue-400 border-blue-500/30",
+  dessert: "bg-pink-500/20 text-pink-400 border-pink-500/30",
+  side: "bg-green-500/20 text-green-400 border-green-500/30",
+}
+
 export function ProductTable({ 
   products, 
   selectedIds = [],
@@ -42,14 +56,6 @@ export function ProductTable({
 }: ProductTableProps) {
   const { user } = useAuthStore()
   const canWrite = user?.role !== "viewer"
-
-  const categoryColors: Record<string, string> = {
-    "Lanches": "bg-amber-500/20 text-amber-400 border-amber-500/30",
-    "Bebidas": "bg-blue-500/20 text-blue-400 border-blue-500/30",
-    "Sobremesas": "bg-pink-500/20 text-pink-400 border-pink-500/30",
-    "Acompanhamentos": "bg-green-500/20 text-green-400 border-green-500/30",
-    "Combos": "bg-purple-500/20 text-purple-400 border-purple-500/30",
-  }
 
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
@@ -82,100 +88,104 @@ export function ProductTable({
             <TableHead>Produto</TableHead>
             <TableHead>Categoria</TableHead>
             <TableHead className="text-right">Preço</TableHead>
-            <TableHead className="text-center">Estoque</TableHead>
+            <TableHead className="text-center">Preparo</TableHead>
             <TableHead className="text-center">Status</TableHead>
             <TableHead className="w-12"></TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
-          {products.map((product) => (
-            <TableRow key={product.id} className="hover:bg-muted/20">
-              <TableCell>
-                <Checkbox 
-                  checked={selectedIds.includes(product.id)}
-                  onCheckedChange={(checked) => handleSelectOne(product.id, !!checked)}
-                />
-              </TableCell>
-              <TableCell>
-                <div className="relative h-10 w-10 rounded-md overflow-hidden bg-muted/30">
-                  {product.imageUrl ? (
-                    <Image
-                      src={product.imageUrl}
-                      alt={product.name}
-                      fill
-                      className="object-cover"
-                    />
-                  ) : (
-                    <div className="h-full w-full flex items-center justify-center">
-                      <Package className="h-5 w-5 text-muted-foreground/50" />
-                    </div>
-                  )}
-                </div>
-              </TableCell>
-              <TableCell>
-                <div>
-                  <p className="font-medium text-foreground">{product.name}</p>
-                  <p className="text-xs text-muted-foreground line-clamp-1">
-                    {product.description || "Sem descrição"}
-                  </p>
-                </div>
-              </TableCell>
-              <TableCell>
-                <Badge 
-                  variant="outline" 
-                  className={categoryColors[product.category] || "bg-muted text-muted-foreground"}
-                >
-                  {product.category}
-                </Badge>
-              </TableCell>
-              <TableCell className="text-right font-medium text-primary">
-                {formatCurrency(product.price)}
-              </TableCell>
-              <TableCell className="text-center">
-                <span className={product.stock && product.stock <= 10 ? "text-destructive font-medium" : ""}>
-                  {product.stock ?? "-"}
-                </span>
-              </TableCell>
-              <TableCell className="text-center">
-                <Badge 
-                  variant={product.active ? "default" : "secondary"}
-                  className={product.active ? "bg-emerald-500/20 text-emerald-400" : ""}
-                >
-                  {product.active ? "Ativo" : "Inativo"}
-                </Badge>
-              </TableCell>
-              <TableCell>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" className="h-8 w-8">
-                      <MoreHorizontal className="h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="bg-card border-border">
-                    <DropdownMenuItem onClick={() => onView?.(product)}>
-                      <Eye className="mr-2 h-4 w-4" />
-                      Ver Detalhes
-                    </DropdownMenuItem>
-                    {canWrite && (
-                      <>
-                        <DropdownMenuItem onClick={() => onEdit?.(product)}>
-                          <Edit className="mr-2 h-4 w-4" />
-                          Editar
-                        </DropdownMenuItem>
-                        <DropdownMenuItem 
-                          onClick={() => onDelete?.(product)}
-                          className="text-destructive focus:text-destructive"
-                        >
-                          <Trash2 className="mr-2 h-4 w-4" />
-                          Excluir
-                        </DropdownMenuItem>
-                      </>
+          {products.map((product) => {
+            const isAvailable = product.isAvailable ?? product.is_available ?? true
+            const category = product.category || 'meal'
+            const prepTime = product.preparationTime || product.preparation_time || 0
+
+            return (
+              <TableRow key={product.id} className="hover:bg-muted/20">
+                <TableCell>
+                  <Checkbox 
+                    checked={selectedIds.includes(product.id)}
+                    onCheckedChange={(checked) => handleSelectOne(product.id, !!checked)}
+                  />
+                </TableCell>
+                <TableCell>
+                  <div className="relative h-10 w-10 rounded-md overflow-hidden bg-muted/30">
+                    {(product.imageUrl || product.image_url) ? (
+                      <Image
+                        src={product.imageUrl || product.image_url || ''}
+                        alt={product.name}
+                        fill
+                        className="object-cover"
+                      />
+                    ) : (
+                      <div className="h-full w-full flex items-center justify-center">
+                        <Package className="h-5 w-5 text-muted-foreground/50" />
+                      </div>
                     )}
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </TableCell>
-            </TableRow>
-          ))}
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <div>
+                    <p className="font-medium text-foreground">{product.name}</p>
+                    <p className="text-xs text-muted-foreground line-clamp-1">
+                      {product.description || "Sem descrição"}
+                    </p>
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <Badge 
+                    variant="outline" 
+                    className={categoryColors[category] || "bg-muted text-muted-foreground"}
+                  >
+                    {categoryLabels[category] || category}
+                  </Badge>
+                </TableCell>
+                <TableCell className="text-right font-medium text-primary">
+                  {formatCurrency(product.price)}
+                </TableCell>
+                <TableCell className="text-center text-sm text-muted-foreground">
+                  {prepTime} min
+                </TableCell>
+                <TableCell className="text-center">
+                  <Badge 
+                    variant={isAvailable ? "default" : "secondary"}
+                    className={isAvailable ? "bg-emerald-500/20 text-emerald-400" : "bg-destructive/20 text-destructive"}
+                  >
+                    {isAvailable ? "Ativo" : "Inativo"}
+                  </Badge>
+                </TableCell>
+                <TableCell>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-8 w-8">
+                        <MoreHorizontal className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="bg-card border-border">
+                      <DropdownMenuItem onClick={() => onView?.(product)}>
+                        <Eye className="mr-2 h-4 w-4" />
+                        Ver Detalhes
+                      </DropdownMenuItem>
+                      {canWrite && (
+                        <>
+                          <DropdownMenuItem onClick={() => onEdit?.(product)}>
+                            <Edit className="mr-2 h-4 w-4" />
+                            Editar
+                          </DropdownMenuItem>
+                          <DropdownMenuItem 
+                            onClick={() => onDelete?.(product)}
+                            className="text-destructive focus:text-destructive"
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Excluir
+                          </DropdownMenuItem>
+                        </>
+                      )}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </TableCell>
+              </TableRow>
+            )
+          })}
         </TableBody>
       </Table>
     </div>

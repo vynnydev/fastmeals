@@ -9,6 +9,7 @@ import { TableSkeleton } from '@/components/shared/skeleton-loader'
 import { EmptyState } from '@/components/shared/empty-state'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { OrderCreateModal } from '@/components/orders/order-create-modal'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
   Select,
@@ -52,6 +53,7 @@ export default function OrdersPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedOrders, setSelectedOrders] = useState<string[]>([])
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null)
+  const [createModalOpen, setCreateModalOpen] = useState(false)
   const [modalOpen, setModalOpen] = useState(false)
 
   const { canWrite } = useRole()
@@ -199,7 +201,7 @@ export default function OrdersPage() {
 
             {/* New Order (Admin only) */}
             {canWrite && (
-              <Button className="gold-gradient text-primary-foreground gap-2">
+              <Button className="gold-gradient text-primary-foreground gap-2" onClick={() => setCreateModalOpen(true)}>
                 <Plus className="h-4 w-4" />
                 <span className="hidden sm:inline">Novo Pedido</span>
               </Button>
@@ -312,6 +314,13 @@ export default function OrdersPage() {
             onUpdateStatus={handleUpdateStatus}
           />
         )}
+
+        {/* Order Create Modal */}
+        <OrderCreateModal
+          open={createModalOpen}
+          onOpenChange={setCreateModalOpen}
+          onSuccess={handleRefresh}
+        />
 
         {/* Order Detail Modal */}
         <OrderDetailModal

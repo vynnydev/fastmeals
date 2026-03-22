@@ -27,13 +27,12 @@ import {
 import { Spinner } from "@/components/ui/spinner"
 
 const productSchema = z.object({
-  name: z.string().min(2, "Nome deve ter no mínimo 2 caracteres"),
-  description: z.string().optional(),
+  name: z.string().min(3, "Nome deve ter no mínimo 3 caracteres"),
+  description: z.string().min(10, "Descrição deve ter no mínimo 10 caracteres"),
   price: z.coerce.number().min(0.01, "Preço deve ser maior que zero"),
   category: z.string().min(1, "Selecione uma categoria"),
-  imageUrl: z.string().url().optional().or(z.literal("")),
-  stock: z.coerce.number().min(0, "Estoque não pode ser negativo").optional(),
-  preparationTime: z.coerce.number().min(1, "Tempo de preparo mínimo é 1 minuto").optional(),
+  imageUrl: z.string().url("URL inválida").optional().or(z.literal("")),
+  preparationTime: z.coerce.number().min(1, "Mínimo 1 minuto").max(120, "Máximo 120 minutos"),
   active: z.boolean().default(true),
 })
 
@@ -48,11 +47,10 @@ interface ProductFormModalProps {
 }
 
 const categories = [
-  "Lanches",
-  "Bebidas",
-  "Sobremesas",
-  "Acompanhamentos",
-  "Combos",
+  { value: "meal", label: "Refeições" },
+  { value: "drink", label: "Bebidas" },
+  { value: "dessert", label: "Sobremesas" },
+  { value: "side", label: "Acompanhamentos" },
 ]
 
 export function ProductFormModal({ 
@@ -72,7 +70,6 @@ export function ProductFormModal({
       price: 0,
       category: "",
       imageUrl: "",
-      stock: 0,
       preparationTime: 10,
       active: true,
     },
@@ -85,10 +82,9 @@ export function ProductFormModal({
         description: product.description || "",
         price: product.price,
         category: product.category,
-        imageUrl: product.imageUrl || "",
-        stock: product.stock || 0,
-        preparationTime: product.preparationTime || 10,
-        active: product.active,
+        imageUrl: product.imageUrl || product.image_url || "",
+        preparationTime: product.preparationTime || product.preparation_time || 10,
+        active: product.isAvailable ?? product.is_available ?? true,
       })
     } else {
       form.reset({
@@ -97,7 +93,6 @@ export function ProductFormModal({
         price: 0,
         category: "",
         imageUrl: "",
-        stock: 0,
         preparationTime: 10,
         active: true,
       })
@@ -105,7 +100,16 @@ export function ProductFormModal({
   }, [product, form])
 
   const handleSubmit = async (data: ProductFormData) => {
-    await onSubmit(data)
+    const payload = {
+      name: data.name,
+      description: data.description,
+      price: data.price,
+      category: data.category,
+      imageUrl: data.imageUrl || null,
+      preparationTime: data.preparationTime,
+      isAvailable: data.active,
+    }
+    await onSubmit(payload as any)
     form.reset()
   }
 
@@ -176,7 +180,7 @@ export function ProductFormModal({
                 </SelectTrigger>
                 <SelectContent className="bg-card border-border">
                   {categories.map((cat) => (
-                    <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                    <SelectItem key={cat.value} value={cat.value}>{cat.label}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -186,28 +190,18 @@ export function ProductFormModal({
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="stock">Estoque</Label>
-              <Input
-                id="stock"
-                type="number"
-                {...form.register("stock")}
-                placeholder="0"
-                className="bg-background"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="preparationTime">Tempo de Preparo (min)</Label>
-              <Input
-                id="preparationTime"
-                type="number"
-                {...form.register("preparationTime")}
-                placeholder="10"
-                className="bg-background"
-              />
-            </div>
+          <div className="space-y-2">
+            <Label htmlFor="preparationTime">Tempo de Preparo (minutos) *</Label>
+            <Input
+              id="preparationTime"
+              type="number"
+              {...form.register("preparationTime")}
+              placeholder="10"
+              className="bg-background"
+            />
+            {form.formState.errors.preparationTime && (
+              <p className="text-xs text-destructive">{form.formState.errors.preparationTime.message}</p>
+            )}
           </div>
 
           <div className="space-y-2">

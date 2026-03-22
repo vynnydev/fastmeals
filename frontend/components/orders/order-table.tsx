@@ -1,5 +1,7 @@
 'use client'
 
+import { useState, useEffect } from 'react'
+import { deliveryApi } from '@/lib/api'
 import {
   MoreHorizontal,
   Eye,
@@ -88,6 +90,28 @@ export function OrderTable({
   const allSelected = orders.length > 0 && selectedOrders.length === orders.length
   const someSelected = selectedOrders.length > 0 && selectedOrders.length < orders.length
 
+  const [driverNames, setDriverNames] = useState<Record<string, string>>({})
+
+  useEffect(() => {
+    const loadDriverNames = async () => {
+      const driverIds = [...new Set(orders.map(o => (o as any).deliveryPersonId || o.delivery_person_id).filter(Boolean))]
+      if (driverIds.length === 0) return
+      
+      try {
+        const allDrivers = await deliveryApi.getAll()
+        const list = Array.isArray(allDrivers) ? allDrivers : (allDrivers as any).data || []
+        const names: Record<string, string> = {}
+        list.forEach((d: any) => {
+          names[d.id] = d.name
+        })
+        setDriverNames(names)
+      } catch {
+        // ignore
+      }
+    }
+    loadDriverNames()
+  }, [orders])
+
   return (
     <div className="rounded-lg border border-border overflow-hidden">
       <Table>
@@ -139,8 +163,11 @@ export function OrderTable({
               <TableCell>
                 <StatusBadge status={order.status} size="sm" />
               </TableCell>
-              <TableCell className="text-muted-foreground font-mono text-sm">
-                {getDeliveryPersonId(order) ? `#${getDeliveryPersonId(order)!.slice(0, 8)}` : '-'}
+              <TableCell className="text-muted-foreground text-sm">
+                {getDeliveryPersonId(order) 
+                  ? driverNames[getDeliveryPersonId(order)!] || `#${getDeliveryPersonId(order)!.slice(0, 8)}`
+                  : '-'
+                }
               </TableCell>
               <TableCell onClick={(e) => e.stopPropagation()}>
                 <DropdownMenu>
@@ -167,7 +194,7 @@ export function OrderTable({
                         Marcar como pronto
                       </DropdownMenuItem>
                     )}
-                    {order.status === 'ready' && (
+                    {order.status === 'ready' && (order.deliveryPersonId || order.delivery_person_id) && (
                       <DropdownMenuItem onClick={() => onUpdateStatus(order.id, 'delivering')}>
                         <Truck className="mr-2 h-4 w-4" />
                         Enviar para entrega
@@ -179,7 +206,7 @@ export function OrderTable({
                         Marcar como entregue
                       </DropdownMenuItem>
                     )}
-                    {!['delivered', 'cancelled'].includes(order.status) && (
+                    {!['delivered', 'cancelled', 'delivering'].includes(order.status) && (
                       <>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem

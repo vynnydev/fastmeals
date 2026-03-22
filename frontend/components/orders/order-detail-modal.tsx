@@ -17,6 +17,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import { useState, useEffect } from 'react'
+import { deliveryApi, ordersApi } from '@/lib/api'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import type { DeliveryPerson } from '@/types'
+import { Loader2 } from 'lucide-react'
+import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { StatusBadge } from '@/components/shared/status-badge'
@@ -39,6 +45,92 @@ const statusTransitions: Record<OrderStatus, { next: OrderStatus; label: string 
   cancelled: null,
 }
 
+function AssignDriverSection({ orderId, onAssigned }: { orderId: string; onAssigned: () => void }) {
+  const [drivers, setDrivers] = useState<DeliveryPerson[]>([])
+  const [selectedDriver, setSelectedDriver] = useState('')
+  const [isLoading, setIsLoading] = useState(false)
+  const [isAssigning, setIsAssigning] = useState(false)
+
+  useEffect(() => {
+    const load = async () => {
+      setIsLoading(true)
+      try {
+        const data = await deliveryApi.getAll()
+        const list = Array.isArray(data) ? data : (data as any).data || []
+        setDrivers(list.filter((d: DeliveryPerson) => d.isActive ?? d.is_active))
+      } catch {
+        // ignore
+      } finally {
+        setIsLoading(false)
+      }
+    }
+    load()
+  }, [])
+
+  const handleAssign = async () => {
+    if (!selectedDriver) return
+    setIsAssigning(true)
+    try {
+      await ordersApi.assignDelivery(orderId, selectedDriver)
+      toast.success('Entregador atribuído com sucesso!')
+      onAssigned()
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Erro ao atribuir entregador')
+    } finally {
+      setIsAssigning(false)
+    }
+  }
+
+  return (
+    <div className="pt-4 border-t border-border space-y-3">
+      <p className="text-sm text-amber-400">
+        Atribuição manual — selecione um entregador para este pedido. 
+        Para atribuição otimizada de múltiplos pedidos, use a tela de Entregadores → Otimização.
+      </p>
+      <div className="flex items-center gap-3">
+        <Select value={selectedDriver} onValueChange={setSelectedDriver}>
+          <SelectTrigger className="flex-1 bg-background">
+            <SelectValue placeholder={isLoading ? "Carregando..." : "Selecionar entregador"} />
+          </SelectTrigger>
+          <SelectContent className="bg-card border-border">
+            {drivers.map((driver) => {
+              const isBusy = !!driver.currentOrderId
+              return (
+                <SelectItem key={driver.id} value={driver.id} disabled={isBusy}>
+                  <div className="flex items-center gap-2">
+                    <span>{driver.name} — {driver.vehicleType || driver.vehicle_type}</span>
+                    {isBusy && (
+                      <span className="text-xs text-destructive">(em entrega)</span>
+                    )}
+                  </div>
+                </SelectItem>
+              )
+            })}
+          </SelectContent>
+        </Select>
+        <Button
+          onClick={handleAssign}
+          disabled={!selectedDriver || isAssigning}
+          className="gap-2 gold-gradient text-primary-foreground"
+        >
+          {isAssigning ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <Truck className="h-4 w-4" />
+          )}
+          Atribuir
+        </Button>
+      </div>
+      {drivers.length === 0 && !isLoading && (
+        <p className="text-xs text-muted-foreground">Nenhum entregador ativo no momento</p>
+      )}
+      {drivers.length > 0 && drivers.every(d => !!d.currentOrderId) && (
+        <p className="text-xs text-amber-400">Todos os entregadores estão em entrega no momento</p>
+      )}
+    </div>
+  )
+}
+
 export function OrderDetailModal({
   order,
   open,
@@ -46,6 +138,27 @@ export function OrderDetailModal({
   onUpdateStatus,
 }: OrderDetailModalProps) {
   const { canWrite } = useRole()
+  const [driverInfo, setDriverInfo] = useState<{ name: string; vehicleType: string } | null>(null)
+
+  useEffect(() => {
+    const loadDriver = async () => {
+      const driverId = order?.deliveryPersonId || order?.delivery_person_id
+      if (driverId) {
+        try {
+          const driver = await deliveryApi.getById(driverId)
+          setDriverInfo({
+            name: driver.name,
+            vehicleType: driver.vehicleType || driver.vehicle_type || '',
+          })
+        } catch {
+          setDriverInfo(null)
+        }
+      } else {
+        setDriverInfo(null)
+      }
+    }
+    if (open && order) loadDriver()
+  }, [open, order])
 
   if (!order) return null
 
@@ -76,7 +189,14 @@ export function OrderDetailModal({
   const deliveryPersonId = order.deliveryPersonId || order.delivery_person_id
   const deliveryPersonName = order.delivery_person_name || (deliveryPersonId ? `#${deliveryPersonId.slice(0, 8)}` : null)
 
+  const vehicleLabels: Record<string, string> = {
+    motorcycle: 'Motocicleta',
+    bicycle: 'Bicicleta',
+    car: 'Carro',
+  }
+
   const transition = statusTransitions[order.status]
+  const needsDriver = order.status === 'ready' && !(order.deliveryPersonId || order.delivery_person_id)
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -188,14 +308,21 @@ export function OrderDetailModal({
             <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
               Entrega
             </h3>
-            {deliveryPersonName ? (
+            {(deliveryPersonId || driverInfo) ? (
               <div className="flex items-center gap-3">
                 <div className="p-2 rounded-lg bg-muted">
                   <Truck className="h-4 w-4 text-muted-foreground" />
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Entregador</p>
-                  <p className="font-medium">{deliveryPersonName}</p>
+                  <p className="font-medium">
+                    {driverInfo ? driverInfo.name : `#${deliveryPersonId?.slice(0, 8)}`}
+                  </p>
+                  {driverInfo?.vehicleType && (
+                    <p className="text-xs text-muted-foreground">
+                      {vehicleLabels[driverInfo.vehicleType] || driverInfo.vehicleType}
+                    </p>
+                  )}
                 </div>
               </div>
             ) : (
@@ -216,9 +343,9 @@ export function OrderDetailModal({
           </div>
 
           {/* Action Buttons */}
-          {canWrite && transition && (
+          {canWrite && transition && !needsDriver && (
             <div className="flex justify-end gap-3 pt-4 border-t border-border">
-              {order.status !== 'cancelled' && (
+              {order.status !== 'cancelled' && order.status !== 'delivering' && (
                 <Button
                   variant="outline"
                   onClick={() => onUpdateStatus(order.id, 'cancelled')}
@@ -235,6 +362,13 @@ export function OrderDetailModal({
                 {transition.label}
               </Button>
             </div>
+          )}
+
+          {/* Needs driver warning */}
+          {canWrite && needsDriver && (
+            <AssignDriverSection orderId={order.id} onAssigned={() => {
+              onOpenChange(false)
+            }} />
           )}
         </div>
       </DialogContent>
