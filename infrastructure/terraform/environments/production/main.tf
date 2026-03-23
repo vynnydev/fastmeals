@@ -92,7 +92,7 @@ module "messaging" {
   mq_password = var.mq_password
 }
 
-# --- Lambda + API Gateway ---
+# --- Lambda ---
 module "lambda" {
   source = "../../modules/lambda"
 
@@ -101,7 +101,6 @@ module "lambda" {
   private_subnet_ids       = module.networking.private_subnet_ids
   lambda_security_group_id = module.networking.lambda_security_group_id
 
-  rds_endpoint  = module.database.rds_endpoint
   redis_url     = module.cache.redis_url
   rabbitmq_url  = module.messaging.rabbitmq_url
   database_urls = module.database.database_urls
@@ -109,20 +108,33 @@ module "lambda" {
   jwt_secret_arn = module.secrets.jwt_secret_arn
   secret_arns    = module.secrets.all_secret_arns
 
-  cors_origin    = "https://${var.domain_name}"
-  domain_name    = var.domain_name
+  cors_origin      = "https://${var.domain_name}"
   bedrock_model_id = var.bedrock_model_id
 }
 
-# --- Frontend ---
+# --- API Gateway ---
+module "api_gateway" {
+  source = "../../modules/api-gateway"
+
+  project_name     = var.project_name
+  cors_origins     = ["https://${var.domain_name}", "http://localhost:3000"]
+  lambda_functions = module.lambda.functions_for_api_gw
+}
+
+# --- Frontend (ECS Fargate) ---
 module "frontend" {
   source = "../../modules/frontend"
 
-  project_name        = var.project_name
-  github_repository   = var.github_repository
-  github_access_token = var.github_access_token
-  branch_name         = var.amplify_branch
+  project_name       = var.project_name
+  aws_region         = var.aws_region
+  vpc_id             = module.networking.vpc_id
+  public_subnet_ids  = module.networking.public_subnet_ids
+  private_subnet_ids = module.networking.private_subnet_ids
 
-  api_gateway_url = module.lambda.api_gateway_url
-  domain_name     = var.domain_name
+  api_gateway_url = module.api_gateway.api_url
+
+  task_cpu      = 256
+  task_memory   = 512
+  desired_count = 1
+  max_count     = 3
 }

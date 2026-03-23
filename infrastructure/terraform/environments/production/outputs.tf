@@ -39,20 +39,28 @@ output "secret_names" {
   value = module.secrets.secret_names
 }
 
-# --- Lambda ---
-output "api_gateway_url" {
-  value = module.lambda.api_gateway_url
-}
-
 output "lambda_function_names" {
   value = module.lambda.function_names
 }
 
 # --- Frontend ---
-output "amplify_url" {
-  value = module.frontend.amplify_branch_url
+output "frontend_url" {
+  value = module.frontend.frontend_url
 }
 
-output "amplify_default_domain" {
-  value = module.frontend.amplify_default_domain
+output "ecr_repository_url" {
+  value = module.frontend.ecr_repository_url
+}
+
+output "ecs_cluster_name" {
+  value = module.frontend.ecs_cluster_name
+}
+
+output "alb_dns_name" {
+  value = module.frontend.alb_dns_name
+}
+
+# --- API Gateway ---
+output "api_gateway_url" {
+  value = module.api_gateway.api_url
 }

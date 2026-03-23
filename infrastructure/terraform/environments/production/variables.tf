@@ -92,22 +92,28 @@ variable "bedrock_model_id" {
 }
 
 # --- Frontend ---
-variable "github_repository" {
-  description = "URL do repositório GitHub"
-  type        = string
-}
+# variable "github_repository" {
+#   description = "URL do repositório GitHub"
+#   type        = string
+# }
 
-variable "github_access_token" {
-  description = "GitHub PAT para Amplify"
-  type        = string
-  sensitive   = true
-}
+# variable "github_access_token" {
+#   description = "GitHub PAT para Amplify"
+#   type        = string
+#   sensitive   = true
+# }
 
-variable "amplify_branch" {
-  description = "Branch para deploy"
-  type        = string
-  default     = "development"
-}
+# variable "amplify_branch" {
+#   description = "Branch para deploy"
+#   type        = string
+#   default     = "development"
+# }
+
+# variable "domain_name" {
+#   description = "Domínio customizado"
+#   type        = string
+#   default     = "fastmeals.com.br"
+# }
 
 variable "domain_name" {
   description = "Domínio customizado"

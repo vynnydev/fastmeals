@@ -1,19 +1,39 @@
-output "amplify_app_id" {
-  description = "ID do Amplify App"
-  value       = aws_amplify_app.frontend.id
+output "alb_dns_name" {
+  description = "DNS name do ALB (URL para acessar o frontend)"
+  value       = aws_lb.frontend.dns_name
 }
 
-output "amplify_default_domain" {
-  description = "Domínio padrão do Amplify"
-  value       = aws_amplify_app.frontend.default_domain
+output "alb_zone_id" {
+  description = "Zone ID do ALB (para Route53 alias)"
+  value       = aws_lb.frontend.zone_id
 }
 
-output "amplify_branch_url" {
-  description = "URL da branch deployada"
-  value       = "https://${aws_amplify_branch.main.branch_name}.${aws_amplify_app.frontend.default_domain}"
+output "alb_arn" {
+  description = "ARN do ALB"
+  value       = aws_lb.frontend.arn
 }
 
-output "custom_domain" {
-  description = "Domínio customizado (se configurado)"
-  value       = var.domain_name != "" ? "https://${var.domain_name}" : "N/A"
+output "ecr_repository_url" {
+  description = "URL do ECR repository"
+  value       = aws_ecr_repository.frontend.repository_url
+}
+
+output "ecr_repository_name" {
+  description = "Nome do ECR repository"
+  value       = aws_ecr_repository.frontend.name
+}
+
+output "ecs_cluster_name" {
+  description = "Nome do ECS cluster"
+  value       = aws_ecs_cluster.main.name
+}
+
+output "ecs_service_name" {
+  description = "Nome do ECS service"
+  value       = aws_ecs_service.frontend.name
+}
+
+output "frontend_url" {
+  description = "URL do frontend"
+  value       = "http://${aws_lb.frontend.dns_name}"
 }

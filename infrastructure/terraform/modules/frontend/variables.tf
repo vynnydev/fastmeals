@@ -3,21 +3,24 @@ variable "project_name" {
   type        = string
 }
 
-variable "github_repository" {
-  description = "URL do repositório GitHub"
+variable "aws_region" {
+  description = "Região AWS"
   type        = string
 }
 
-variable "github_access_token" {
-  description = "GitHub Personal Access Token para Amplify"
+variable "vpc_id" {
+  description = "ID da VPC"
   type        = string
-  sensitive   = true
 }
 
-variable "branch_name" {
-  description = "Branch para deploy"
-  type        = string
-  default     = "development"
+variable "public_subnet_ids" {
+  description = "IDs das subnets públicas (para ALB)"
+  type        = list(string)
+}
+
+variable "private_subnet_ids" {
+  description = "IDs das subnets privadas (para ECS tasks)"
+  type        = list(string)
 }
 
 variable "api_gateway_url" {
@@ -25,8 +28,26 @@ variable "api_gateway_url" {
   type        = string
 }
 
-variable "domain_name" {
-  description = "Domínio customizado (vazio para não configurar)"
-  type        = string
-  default     = ""
+variable "task_cpu" {
+  description = "CPU do Fargate task (em units: 256 = 0.25 vCPU)"
+  type        = number
+  default     = 256
+}
+
+variable "task_memory" {
+  description = "Memória do Fargate task (em MiB)"
+  type        = number
+  default     = 512
+}
+
+variable "desired_count" {
+  description = "Número desejado de tasks"
+  type        = number
+  default     = 1
+}
+
+variable "max_count" {
+  description = "Número máximo de tasks (auto scaling)"
+  type        = number
+  default     = 3
 }
