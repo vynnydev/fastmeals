@@ -60,12 +60,16 @@ Thumbs.db
 docker-compose.override.yml
 
 # === Terraform ===
-infra/terraform/.terraform/
-infra/terraform/*.tfstate
-infra/terraform/*.tfstate.backup
-infra/terraform/*.tfplan
-infra/terraform/.terraform.lock.hcl
-infra/terraform/crash.log
+infrastructure/terraform/.terraform/
+infrastructure/terraform/**/.terraform/
+infrastructure/terraform/*.tfstate
+infrastructure/terraform/**/*.tfstate
+infrastructure/terraform/*.tfstate.backup
+infrastructure/terraform/**/*.tfstate.backup
+infrastructure/terraform/**/tfplan
+infrastructure/terraform/**/*.tfplan
+infrastructure/terraform/**/.terraform.lock.hcl
+infrastructure/terraform/crash.log
 
 # === AWS ===
 .aws/
