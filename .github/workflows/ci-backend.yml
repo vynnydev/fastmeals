@@ -1,0 +1,56 @@
+name: CI Backend
+
+on:
+  push:
+    branches: [development, main]
+    paths:
+      - 'backend/**'
+  pull_request:
+    branches: [development, main]
+    paths:
+      - 'backend/**'
+
+jobs:
+  test:
+    name: Test ${{ matrix.service }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service:
+          - auth-service
+          - products-service
+          - orders-service
+          - delivery-service
+          - optimization-service
+          - reports-service
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: backend/services/${{ matrix.service }}/package-lock.json
+
+      - name: Install dependencies
+        working-directory: backend/services/${{ matrix.service }}
+        run: npm ci
+
+      - name: Generate Prisma client
+        working-directory: backend/services/${{ matrix.service }}
+        run: |
+          if [ -f prisma/schema.prisma ]; then
+            DATABASE_URL="postgresql://dummy:dummy@localhost:5432/dummy" npx prisma generate
+          fi
+
+      - name: Run tests
+        working-directory: backend/services/${{ matrix.service }}
+        run: npm test -- --run
+        env:
+          NODE_ENV: test
+          DATABASE_URL: postgresql://dummy:dummy@localhost:5432/dummy
+          JWT_ACCESS_SECRET: test-secret-for-ci
+          JWT_REFRESH_SECRET: test-refresh-secret-for-ci
+          REDIS_URL: redis://localhost:6379
+          CORS_ORIGIN: http://localhost:3000

@@ -1,0 +1,99 @@
+name: Terraform
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'infrastructure/terraform/**'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'infrastructure/terraform/**'
+  workflow_dispatch:
+
+env:
+  AWS_REGION: us-east-1
+  TF_WORKING_DIR: infrastructure/terraform/environments/production
+
+permissions:
+  id-token: write
+  contents: read
+  pull-requests: write
+
+jobs:
+  plan:
+    name: Terraform Plan
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.7.5
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Terraform Init
+        working-directory: ${{ env.TF_WORKING_DIR }}
+        run: terraform init
+
+      - name: Terraform Plan
+        working-directory: ${{ env.TF_WORKING_DIR }}
+        run: |
+          terraform plan -no-color \
+            -var="rds_master_password=${{ secrets.RDS_MASTER_PASSWORD }}" \
+            -var="auth_db_password=${{ secrets.AUTH_DB_PASSWORD }}" \
+            -var="products_db_password=${{ secrets.PRODUCTS_DB_PASSWORD }}" \
+            -var="orders_db_password=${{ secrets.ORDERS_DB_PASSWORD }}" \
+            -var="delivery_db_password=${{ secrets.DELIVERY_DB_PASSWORD }}" \
+            -var="reports_db_password=${{ secrets.REPORTS_DB_PASSWORD }}" \
+            -var="mq_password=${{ secrets.MQ_PASSWORD }}" \
+            -var="jwt_access_secret=${{ secrets.JWT_ACCESS_SECRET }}" \
+            -var="jwt_refresh_secret=${{ secrets.JWT_REFRESH_SECRET }}" \
+            -var="domain_name=${{ secrets.DOMAIN_NAME }}"
+        continue-on-error: true
+
+  apply:
+    name: Terraform Apply
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.7.5
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Terraform Init
+        working-directory: ${{ env.TF_WORKING_DIR }}
+        run: terraform init
+
+      - name: Terraform Apply
+        working-directory: ${{ env.TF_WORKING_DIR }}
+        run: |
+          terraform apply -auto-approve \
+            -var="rds_master_password=${{ secrets.RDS_MASTER_PASSWORD }}" \
+            -var="auth_db_password=${{ secrets.AUTH_DB_PASSWORD }}" \
+            -var="products_db_password=${{ secrets.PRODUCTS_DB_PASSWORD }}" \
+            -var="orders_db_password=${{ secrets.ORDERS_DB_PASSWORD }}" \
+            -var="delivery_db_password=${{ secrets.DELIVERY_DB_PASSWORD }}" \
+            -var="reports_db_password=${{ secrets.REPORTS_DB_PASSWORD }}" \
+            -var="mq_password=${{ secrets.MQ_PASSWORD }}" \
+            -var="jwt_access_secret=${{ secrets.JWT_ACCESS_SECRET }}" \
+            -var="jwt_refresh_secret=${{ secrets.JWT_REFRESH_SECRET }}" \
+            -var="domain_name=${{ secrets.DOMAIN_NAME }}"

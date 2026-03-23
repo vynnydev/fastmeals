@@ -1,0 +1,102 @@
+name: Deploy Lambdas
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'backend/**'
+  workflow_dispatch:
+
+env:
+  AWS_REGION: us-east-1
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  deploy:
+    name: Deploy ${{ matrix.service }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - service: auth-service
+            functions: auth-login,auth-refresh_token
+          - service: products-service
+            functions: products-list,products-get,products-create,products-update,products-delete
+          - service: orders-service
+            functions: orders-list,orders-get,orders-create,orders-update_status,orders-assign
+          - service: delivery-service
+            functions: delivery-list,delivery-get,delivery-create,delivery-update,delivery-delete
+          - service: optimization-service
+            functions: optimization-execute
+          - service: reports-service
+            functions: reports-revenue,reports-orders_status,reports-top_products,reports-delivery_time,reports-ai_insights
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: backend/services/${{ matrix.service }}/package-lock.json
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Install dependencies
+        working-directory: backend/services/${{ matrix.service }}
+        run: npm ci
+
+      - name: Generate Prisma client
+        working-directory: backend/services/${{ matrix.service }}
+        run: |
+          if [ -f prisma/schema.prisma ]; then
+            DATABASE_URL="postgresql://dummy:dummy@localhost:5432/dummy" npx prisma generate
+          fi
+
+      - name: Build
+        working-directory: backend/services/${{ matrix.service }}
+        run: npm run build
+
+      - name: Package Lambda
+        working-directory: backend/services/${{ matrix.service }}
+        run: |
+          mkdir -p lambda-package
+          cp -r dist lambda-package/
+          cp -r node_modules lambda-package/
+          cp package.json lambda-package/
+          if [ -d prisma ]; then cp -r prisma lambda-package/; fi
+          if [ -d generated ]; then cp -r generated lambda-package/; fi
+          if [ -d node_modules/.prisma ]; then
+            mkdir -p lambda-package/node_modules/.prisma
+            cp -r node_modules/.prisma lambda-package/node_modules/.prisma
+          fi
+          cd lambda-package && zip -r ../lambda-package.zip . -x "*.ts" "*.map"
+
+      - name: Deploy Lambda functions
+        working-directory: backend/services/${{ matrix.service }}
+        run: |
+          IFS=',' read -ra FUNCTIONS <<< "${{ matrix.functions }}"
+          for fn in "${FUNCTIONS[@]}"; do
+            echo "🚀 Deploying fastmeals-$fn..."
+            aws lambda update-function-code \
+              --function-name "fastmeals-$fn" \
+              --zip-file "fileb://lambda-package.zip" \
+              --region ${{ env.AWS_REGION }} \
+              --no-cli-pager || echo "⚠️  Failed to deploy fastmeals-$fn"
+          done
+
+      - name: Verify deployment
+        run: |
+          IFS=',' read -ra FUNCTIONS <<< "${{ matrix.functions }}"
+          for fn in "${FUNCTIONS[@]}"; do
+            STATUS=$(aws lambda get-function --function-name "fastmeals-$fn" --query 'Configuration.LastUpdateStatus' --output text --region ${{ env.AWS_REGION }} 2>/dev/null || echo "NOT_FOUND")
+            echo "  fastmeals-$fn: $STATUS"
+          done
