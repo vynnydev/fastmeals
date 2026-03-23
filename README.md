@@ -12,6 +12,8 @@
 ![Prisma](https://img.shields.io/badge/Prisma-6.19-2D3748?logo=prisma&logoColor=white)
 ![Vitest](https://img.shields.io/badge/Vitest-3.0-6E9F18?logo=vitest&logoColor=white)
 ![Tests](https://img.shields.io/badge/Tests-180+-22c55e?logo=checkmarx&logoColor=white)
+![Terraform](https://img.shields.io/badge/Terraform-1.7-844FBA?logo=terraform&logoColor=white)
+![AWS](https://img.shields.io/badge/AWS-Cloud-FF9900?logo=amazon-aws&logoColor=white)
 
 # 🍔 FastMeals — Sistema de Gerenciamento de Pedidos e Entregas
 
@@ -23,29 +25,24 @@ Plataforma fullstack de gerenciamento de delivery com **6 microserviços**, **da
 
 1. [Demo](#-demo)
 2. [Arquitetura](#-arquitetura)
-3. [Como Rodar](#-como-rodar)
-4. [Stack Tecnológica](#-stack-tecnológica)
-5. [Microserviços](#-microserviços)
-6. [Frontend](#-frontend)
-7. [Algoritmo de Otimização](#-algoritmo-de-otimização)
-8. [Testes](#-testes)
-9. [Estrutura do Projeto](#-estrutura-do-projeto)
-10. [Documentação](#-documentação)
-11. [Variáveis de Ambiente](#-variáveis-de-ambiente)
-12. [Autor](#-autor)
+3. [Clean Architecture + SOLID](#-clean-architecture--solid)
+4. [Como Rodar](#-como-rodar)
+5. [Stack Tecnológica](#-stack-tecnológica)
+6. [Microserviços](#-microserviços)
+7. [Frontend](#-frontend)
+8. [Algoritmo de Otimização](#-algoritmo-de-otimização)
+9. [Infraestrutura AWS](#-infraestrutura-aws)
+10. [CI/CD Pipeline](#-cicd-pipeline)
+11. [Testes](#-testes)
+12. [Estrutura do Projeto](#-estrutura-do-projeto)
+13. [Documentação](#-documentação)
+14. [Variáveis de Ambiente](#-variáveis-de-ambiente)
+15. [Autor](#-autor)
 
 ---
 
-## 🎬 Demo
-
-<!-- OPÇÃO 1: Vídeo no YouTube (recomendado) -->
-<!-- [![FastMeals Demo](docs/screenshots/demo-thumbnail.png)](https://youtu.be/SEU_VIDEO_ID) -->
-
-<!-- OPÇÃO 2: GIF inline -->
+<!-- GIF de apresentação da aplicação -->
 <!-- ![FastMeals Demo](docs/screenshots/demo.gif) -->
-
-<!-- OPÇÃO 3: Link direto -->
-<!-- 🎥 **[Assistir demo completa (2 min)](https://youtu.be/SEU_VIDEO_ID)** -->
 
 > 🎥 **Demo em vídeo:** Em breve
 
@@ -53,24 +50,9 @@ Plataforma fullstack de gerenciamento de delivery com **6 microserviços**, **da
 
 ## 🏗 Arquitetura
 
-<!-- Inserir diagrama draw.io exportado -->
-<!-- ![Arquitetura](docs/diagrams/architecture-overview.png) -->
-
 A plataforma segue uma arquitetura de **microserviços** com **Clean Architecture** e princípios **SOLID**, orquestrada por Docker Compose com Nginx como API Gateway.
 
-```
-┌─────────────┐     ┌──────────────┐     ┌──────────────────────────────────────┐
-│   Frontend   │────▶│    Nginx     │────▶│           Microserviços              │
-│  Next.js 15  │     │  API Gateway │     │                                      │
-│  port: 3000  │     │  port: 80    │     │  Auth ─ Products ─ Orders ─ Delivery │
-└─────────────┘     └──────────────┘     │  Optimization ─ Reports              │
-                                          └──────────────────────────────────────┘
-                                                    │              │
-                                              ┌─────┴─────┐  ┌────┴────┐
-                                              │ RabbitMQ  │  │  Redis  │
-                                              │  Events   │  │ Tokens  │
-                                              └───────────┘  └─────────┘
-```
+![Arquitetura Geral](docs/diagrams/images/01-architecture-overview.drawio.png)
 
 **Padrões implementados:**
 
@@ -81,8 +63,13 @@ A plataforma segue uma arquitetura de **microserviços** com **Clean Architectur
 - **Clean Architecture** — Domain → Application → Infrastructure → Lambda
 - **Lambda per Use Case** — cada operação é uma função independente (20 Lambda handlers)
 
-<!-- Inserir diagrama draw.io das camadas Clean Architecture -->
-<!-- ![Clean Architecture](docs/diagrams/clean-architecture-layers.png) -->
+---
+
+## 🧅 Clean Architecture + SOLID
+
+Cada microserviço segue 4 camadas com a Dependency Rule: dependências apontam sempre para dentro — Domain nunca conhece Infrastructure.
+
+![Clean Architecture + SOLID](docs/diagrams/images/02-clean-architecture-solid.drawio.png)
 
 **Camadas por microserviço:**
 
@@ -185,6 +172,8 @@ cd frontend && npm test -- --run                      # 27 testes
 | Redis | 7 | Token store para JWT refresh tokens |
 | RabbitMQ | 3.13 | Mensageria assíncrona (topic exchange) |
 | Zod | 3.24 | Validação de entrada |
+| Pino | 10 | Logs estruturados (JSON) |
+| Swagger | 5.0 | Documentação OpenAPI (`/docs`) |
 | bcrypt | — | Hash de senhas (10 salt rounds) |
 | JWT | — | Access token (15min) + Refresh token (7d) |
 | AWS Bedrock | Claude | AI Insights no reports-service |
@@ -235,11 +224,7 @@ reports-service ──SQL──▶ reports_db           (CQRS read model cross-d
 
 ### Máquina de estados dos pedidos
 
-```
-  pending → preparing → ready → delivering → delivered
-    │          │         │
-    └──────────┴─────────┴──→ cancelled
-```
+![Order State Machine](docs/diagrams/images/03-order-state-machine.drawio.png)
 
 | De | Para | Condição |
 |----|------|----------|
@@ -251,37 +236,31 @@ reports-service ──SQL──▶ reports_db           (CQRS read model cross-d
 
 > `delivering → cancelled` **não é permitido**. `delivered` e `cancelled` são estados finais.
 
+### Fluxo de criação de pedido
+
+![Order Creation Flow](docs/diagrams/images/04-order-creation-flow.drawio.png)
+
 ---
 
 ## 🖥 Frontend
 
 ### Dashboard Overview
 
-<!-- ![Dashboard](docs/screenshots/dashboard-overview.png) -->
-
 Visão geral com stat cards animados (receita, pedidos, entregas, tempo médio), gráficos de pedidos por status, top produtos e últimos pedidos em tabela.
 
 ### Gestão de Pedidos
-
-<!-- ![Pedidos](docs/screenshots/orders-page.png) -->
 
 Três visualizações (Tabela/Cards/Kanban), criação de pedido com carrinho de produtos, transição de status, atribuição manual de entregador e cancelamento.
 
 ### Gestão de Produtos
 
-<!-- ![Produtos](docs/screenshots/products-page.png) -->
-
 Grid e tabela com filtros por categoria (Refeições/Bebidas/Sobremesas/Acompanhamentos), busca por nome, CRUD completo com modal de detalhes e imagem.
 
 ### Entregadores & Otimização
 
-<!-- ![Entregadores](docs/screenshots/delivery-optimization.png) -->
-
 Cards e Kanban de entregadores (Disponíveis/Em Entrega/Inativos), CRUD completo, e aba de **Otimização** com algoritmo Hungarian mostrando atribuições sugeridas, distâncias calculadas e comparação antes/depois.
 
 ### Relatórios & AI Insights
-
-<!-- ![Relatórios](docs/screenshots/reports-page.png) -->
 
 Receita diária, pedidos por status, top produtos, tempo de entrega por veículo (Motocicleta/Bicicleta/Carro), filtro por período, e **Insights com IA** via AWS Bedrock (Claude) gerando resumo, recomendações e destaques.
 
@@ -303,6 +282,8 @@ Receita diária, pedidos por status, top produtos, tempo de entrega por veículo
 ---
 
 ## 🧠 Algoritmo de Otimização
+
+![Optimization Flow](docs/diagrams/images/05-optimization-flow.drawio.png)
 
 ### Hungarian Algorithm (Kuhn-Munkres) — O(n³)
 
@@ -345,6 +326,44 @@ Retorna `assignments` (pedido → entregador com distância), `unassigned` (pedi
 
 ---
 
+## ☁️ Infraestrutura AWS
+
+Toda a infraestrutura é gerenciada por **Terraform** com 8 módulos, estado remoto no S3 e locking com DynamoDB.
+
+![AWS Infrastructure](docs/diagrams/images/06-aws-infrastructure.drawio.png)
+
+| Recurso | Serviço AWS | Especificação |
+|---------|------------|---------------|
+| Banco de dados | RDS PostgreSQL 16 | db.t3.micro, 5 databases, encrypted |
+| Cache | ElastiCache Redis 7.1 | cache.t3.micro, token store |
+| Mensageria | Amazon MQ RabbitMQ 3.13 | mq.t3.micro, AMQPS |
+| Backend | 20 Lambda Functions | Node.js 20, 256MB, VPC |
+| API | API Gateway HTTP | 23 routes, CORS, logs |
+| Frontend | ECS Fargate | 0.25 vCPU, 512MB, ALB |
+| DNS | Route53 + ACM | fastmeals.com.br, HTTPS |
+| Secrets | Secrets Manager | 9 secrets (DB, JWT, MQ, Bedrock) |
+| Logs | CloudWatch | 14 dias retention |
+| Registry | ECR | Docker images |
+| State | S3 + DynamoDB | Terraform remote state |
+
+---
+
+## 🔄 CI/CD Pipeline
+
+5 workflows no GitHub Actions com deploy automático.
+
+![CI/CD Pipeline](docs/diagrams/images/07-cicd-pipeline.drawio.png)
+
+| Pipeline | Trigger | O que faz |
+|----------|---------|-----------|
+| CI Backend | push development/main | Testa 6 serviços em paralelo (153+ testes) |
+| CI Frontend | push development/main | Type check + 27 testes + build |
+| Deploy Lambdas | merge to main | Build + zip + upload 20 Lambda functions |
+| Deploy Frontend | merge to main | Docker build (amd64) + ECR push + ECS deploy |
+| Terraform | PR (plan) / merge (apply) | Infra as Code com review |
+
+---
+
 ## 🧪 Testes
 
 | Camada | Framework | Quantidade | Cobertura |
@@ -376,6 +395,7 @@ fastmeals/
 ├── DECISIONS.md                       # 16 Architecture Decision Records
 ├── README.md                          # Este arquivo
 ├── docker-compose.yml                 # Orquestração (14 containers)
+├── .github/workflows/                 # 5 CI/CD pipelines
 ├── nginx/
 │   └── nginx.conf                     # API Gateway routing
 ├── scripts/
@@ -398,12 +418,19 @@ fastmeals/
 │   ├── lib/                           # API client (Axios), utils
 │   ├── types/                         # TypeScript interfaces
 │   └── tests/                         # 27 testes (Vitest + RTL)
+├── infrastructure/
+│   └── terraform/                     # ☁️ 8 módulos Terraform
+│       ├── bootstrap/                 # S3 + DynamoDB (state)
+│       ├── modules/                   # networking, database, cache, messaging, lambda, api-gateway, frontend, dns
+│       └── environments/production/   # Entry point
 ├── docs/
 │   ├── api-spec.md                    # Especificação completa da API
 │   ├── database-schema.md             # Schema do banco de dados
 │   ├── evaluation-criteria.md         # Critérios de avaliação
-│   ├── screenshots/                   # Screenshots e vídeo demo
-│   └── diagrams/                      # Diagramas draw.io
+│   ├── evidences/                     # Screenshots (frontend, backend, general)
+│   └── diagrams/                      # 7 diagramas draw.io
+│       ├── images/                    # PNGs exportados
+│       └── xml/                       # Arquivos .drawio editáveis
 └── seed/
     └── data.json                      # Dados de exemplo
 ```
@@ -423,6 +450,19 @@ fastmeals/
 | [Delivery Service](backend/services/delivery-service/README.md) | CRUD, disponibilidade, RabbitMQ |
 | [Optimization Service](backend/services/optimization-service/README.md) | Hungarian O(n³), Haversine |
 | [Reports Service](backend/services/reports-service/README.md) | Analytics, CQRS, AI Insights |
+
+### Swagger (OpenAPI)
+
+Cada serviço possui documentação interativa acessível em `/docs`:
+
+| Serviço | URL |
+|---------|-----|
+| Auth | http://localhost:3001/docs |
+| Products | http://localhost:3002/docs |
+| Orders | http://localhost:3003/docs |
+| Delivery | http://localhost:3004/docs |
+| Optimization | http://localhost:3005/docs |
+| Reports | http://localhost:3006/docs |
 
 ---
 

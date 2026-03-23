@@ -1,0 +1,71 @@
+<mxfile host="app.diagrams.net" agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36" version="29.6.4">
+  <diagram name="Order State Machine" id="state-machine">
+    <mxGraphModel dx="886" dy="779" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1200" pageHeight="500" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="title" parent="1" style="text;html=1;fontSize=20;fontStyle=1;align=center;fillColor=none;strokeColor=none;fontColor=#1a1a2e;" value="📋 Máquina de Estados — Ciclo de Vida do Pedido" vertex="1">
+          <mxGeometry height="35" width="800" x="200" y="20" as="geometry" />
+        </mxCell>
+        <mxCell id="start" parent="1" style="ellipse;fillColor=#333;strokeColor=#333;" value="" vertex="1">
+          <mxGeometry height="30" width="30" x="40" y="130" as="geometry" />
+        </mxCell>
+        <mxCell id="pending" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF9C4;strokeColor=#F9A825;fontSize=12;shadow=1;arcSize=12;" value="⏳&lt;br&gt;&lt;b&gt;&lt;br&gt;&lt;/b&gt;&lt;div&gt;&lt;b&gt;PENDING&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;Pedido criado&lt;br&gt;Aguardando preparo&lt;/font&gt;&lt;/div&gt;" vertex="1">
+          <mxGeometry height="90" width="140" x="120" y="100" as="geometry" />
+        </mxCell>
+        <mxCell id="preparing" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#BBDEFB;strokeColor=#1976D2;fontSize=12;shadow=1;arcSize=12;" value="👨‍🍳&lt;br&gt;&lt;b&gt;&lt;br&gt;&lt;/b&gt;&lt;div&gt;&lt;b&gt;PREPARING&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;Em preparo&lt;br&gt;na cozinha&lt;/font&gt;&lt;/div&gt;" vertex="1">
+          <mxGeometry height="90" width="140" x="320" y="100" as="geometry" />
+        </mxCell>
+        <mxCell id="ready" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E1BEE7;strokeColor=#7B1FA2;fontSize=12;shadow=1;arcSize=12;" value="✅&lt;br&gt;&lt;b&gt;&lt;br&gt;&lt;/b&gt;&lt;div&gt;&lt;b&gt;READY&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;Pronto para entrega&lt;br&gt;Aguardando entregador&lt;/font&gt;&lt;/div&gt;" vertex="1">
+          <mxGeometry height="90" width="160" x="523.52" y="100" as="geometry" />
+        </mxCell>
+        <mxCell id="delivering" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFE0B2;strokeColor=#F57C00;fontSize=12;shadow=1;arcSize=12;" value="🚴&lt;br&gt;&lt;b&gt;&lt;br&gt;&lt;/b&gt;&lt;div&gt;&lt;b&gt;DELIVERING&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;Em trânsito&lt;br&gt;⚠ Requer entregador&lt;/font&gt;&lt;/div&gt;" vertex="1">
+          <mxGeometry height="90" width="160" x="770" y="100" as="geometry" />
+        </mxCell>
+        <mxCell id="delivered" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#C8E6C9;strokeColor=#388E3C;fontSize=12;shadow=1;arcSize=12;" value="🎉&lt;br&gt;&lt;b&gt;&lt;br&gt;&lt;/b&gt;&lt;div&gt;&lt;b&gt;DELIVERED&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;Entregue com sucesso&lt;br&gt;Estado final ✓&lt;/font&gt;&lt;/div&gt;" vertex="1">
+          <mxGeometry height="90" width="150" x="990" y="100" as="geometry" />
+        </mxCell>
+        <mxCell id="cancelled" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFCDD2;strokeColor=#D32F2F;fontSize=12;shadow=1;arcSize=12;" value="❌&lt;br&gt;&lt;b&gt;&lt;br&gt;&lt;/b&gt;&lt;div&gt;&lt;b&gt;CANCELLED&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;Pedido cancelado&lt;br&gt;Estado final ✓&lt;/font&gt;&lt;/div&gt;" vertex="1">
+          <mxGeometry height="90" width="150" x="533.52" y="320" as="geometry" />
+        </mxCell>
+        <mxCell id="a0" edge="1" parent="1" source="start" style="strokeColor=#333;strokeWidth=2;" target="pending">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="a1" edge="1" parent="1" source="pending" style="strokeColor=#1976D2;strokeWidth=2;rounded=1;" target="preparing" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="a2" edge="1" parent="1" source="preparing" style="strokeColor=#7B1FA2;strokeWidth=2;rounded=1;" target="ready" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="a3" edge="1" parent="1" source="ready" style="strokeColor=#F57C00;strokeWidth=2;rounded=1;fontSize=12;fontColor=#F57C00;" target="delivering" value="Requer deliveryPersonId">
+          <mxGeometry relative="1" y="-15" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="a4" edge="1" parent="1" source="delivering" style="strokeColor=#388E3C;strokeWidth=2;rounded=1;" target="delivered" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="c1" edge="1" parent="1" source="pending" style="strokeColor=#D32F2F;strokeWidth=1.5;rounded=1;dashed=1;" target="cancelled" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="c2" edge="1" parent="1" source="preparing" style="strokeColor=#D32F2F;strokeWidth=1.5;rounded=1;dashed=1;" target="cancelled" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="c3" edge="1" parent="1" source="ready" style="strokeColor=#D32F2F;strokeWidth=1.5;rounded=1;dashed=1;entryX=0.455;entryY=-0.029;entryDx=0;entryDy=0;entryPerimeter=0;" target="cancelled" value="">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="519.9972727272727" y="320" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="blocked" parent="1" style="text;html=1;fontSize=11;fontStyle=1;fillColor=#FFCDD2;strokeColor=#D32F2F;fontColor=#D32F2F;rounded=1;shadow=0;" value="🚫 delivering → cancelled NÃO permitido" vertex="1">
+          <mxGeometry height="30" width="280" x="720" y="220" as="geometry" />
+        </mxCell>
+        <mxCell id="leg1" parent="1" style="text;html=1;fontSize=10;fillColor=none;strokeColor=none;fontColor=#333;" value="&lt;font style=&quot;font-size: 12px;&quot;&gt;— Transição válida&lt;/font&gt;" vertex="1">
+          <mxGeometry height="20" width="150" x="100" y="390" as="geometry" />
+        </mxCell>
+        <mxCell id="leg2" parent="1" style="text;html=1;fontSize=10;fillColor=none;strokeColor=none;fontColor=#D32F2F;" value="&lt;font style=&quot;font-size: 12px;&quot;&gt;--- Cancelamento&lt;/font&gt;" vertex="1">
+          <mxGeometry height="20" width="150" x="220" y="390" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

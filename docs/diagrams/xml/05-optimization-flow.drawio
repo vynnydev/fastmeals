@@ -1,0 +1,76 @@
+<mxfile host="app.diagrams.net" agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36" version="29.6.4">
+  <diagram name="Optimization Flow" id="opt-flow">
+    <mxGraphModel dx="1551" dy="1364" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1500" pageHeight="750" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="title" parent="1" style="text;html=1;fontSize=20;fontStyle=1;align=center;fillColor=none;strokeColor=none;fontColor=#1a1a2e;" value="🧠 Fluxo de Otimização — Hungarian Algorithm + Haversine" vertex="1">
+          <mxGeometry height="35" width="900" x="580" y="20" as="geometry" />
+        </mxCell>
+        <mxCell id="subtitle" parent="1" style="text;html=1;fontSize=12;align=center;fillColor=none;strokeColor=none;fontColor=#666;" value="POST /api/orders/optimize-assignment — Minimiza distância total entre entregadores e pedidos" vertex="1">
+          <mxGeometry height="20" width="900" x="580" y="50" as="geometry" />
+        </mxCell>
+        <mxCell id="s1" parent="1" style="rounded=1;fillColor=#E3F2FD;strokeColor=#1976D2;fontSize=12;shadow=1;arcSize=12;" value="1. Frontend &#xa;-&gt; Admin clica &#xa;-&gt; &quot;Sugerir Atribuição Otimizada&quot;" vertex="1">
+          <mxGeometry height="80" width="190" x="555" y="115" as="geometry" />
+        </mxCell>
+        <mxCell id="s2" parent="1" style="rounded=1;fillColor=#E1BEE7;strokeColor=#7B1FA2;fontSize=12;shadow=1;arcSize=12;" value="2. Buscar Pedidos -&gt; &#xa;GET /api/orders ?status=ready &#xa;-&gt; HTTP → Orders Service" vertex="1">
+          <mxGeometry height="110" width="190" x="835" y="100" as="geometry" />
+        </mxCell>
+        <mxCell id="a1" edge="1" parent="1" source="s1" style="strokeColor=#7B1FA2;strokeWidth=2;rounded=1;" target="s2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="s3" parent="1" style="rounded=1;fillColor=#E1BEE7;strokeColor=#7B1FA2;fontSize=12;shadow=1;arcSize=12;" value="3. Buscar Entregadores -&gt; &#xa;GET /api/delivery-persons? &#xa;available=true -&gt; HTTP → Delivery Service" vertex="1">
+          <mxGeometry height="90" width="250" x="1090" y="110" as="geometry" />
+        </mxCell>
+        <mxCell id="a2" edge="1" parent="1" source="s2" style="strokeColor=#7B1FA2;strokeWidth=2;rounded=1;" target="s3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="s4" parent="1" style="rounded=1;fillColor=#E8F5E9;strokeColor=#388E3C;fontSize=11;shadow=1;arcSize=12;" value="4. Matriz de Distâncias -&gt; Para cada par (entregador, pedido):&#xa;Haversine(lat1,lon1, lat2,lon2)&#xa;a = sin²(Δlat/2) + cos(lat1)·cos(lat2)·sin²(Δlon/2)&#xa;d = 2R · atan2(√a, √(1-a))&#xa;R = 6371 km • Complexidade: O(N×M)" vertex="1">
+          <mxGeometry height="110" width="310" x="630" y="260" as="geometry" />
+        </mxCell>
+        <mxCell id="a3" edge="1" parent="1" source="s3" style="strokeColor=#388E3C;strokeWidth=2;rounded=1;" target="s4">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="matrix" parent="1" style="rounded=1;fillColor=#F5F5F5;strokeColor=#9E9E9E;fontSize=10;shadow=0;arcSize=8;fontFamily=monospace;align=left;spacingLeft=10;" value="Exemplo de Matriz (km):&#xa;Pedido1   Pedido2   Pedido3&#xa;Carlos: 1.2, 3.5, 2.8&#xa;Ana:         4.1, 0.9, 5.2&#xa;Pedro:      2.3, 4.7, 1.5" vertex="1">
+          <mxGeometry height="130" width="180" x="410" y="245" as="geometry" />
+        </mxCell>
+        <mxCell id="s5" parent="1" style="rounded=1;fillColor=#EDE7F6;strokeColor=#673AB7;fontSize=11;shadow=1;arcSize=12;" value="5. Hungarian Algorithm&#xa;Kuhn-Munkres — O(n³) &#xa;Encontra atribuição ÓTIMA que minimiza soma total&#xa;Greedy: 11 km total&#xa;Hungarian: 5 km total ← 54% melhor" vertex="1">
+          <mxGeometry height="140" width="290" x="1035" y="240" as="geometry" />
+        </mxCell>
+        <mxCell id="a4" edge="1" parent="1" source="s4" style="strokeColor=#673AB7;strokeWidth=2;rounded=1;" target="s5">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="s6" parent="1" style="rounded=1;fillColor=#E8F5E9;strokeColor=#388E3C;fontSize=11;shadow=1;arcSize=12;" value="6. Resultado - assignments: Carlos → Pedido1 (1.2km)&#xa;Ana → Pedido2 (0.9km)&#xa;Pedro → Pedido 3 (1.5km)&#xa;unassigned:&#xa;totalDistanceKm: 3.6 executionTimeMs: 87" vertex="1">
+          <mxGeometry height="130" width="320" x="1390" y="403" as="geometry" />
+        </mxCell>
+        <mxCell id="a5" edge="1" parent="1" source="s5" style="strokeColor=#388E3C;strokeWidth=2;rounded=1;" target="s6">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="s7" parent="1" style="rounded=1;fillColor=#E3F2FD;strokeColor=#1976D2;fontSize=11;shadow=1;arcSize=12;" value="7. Visualização: Cards de atribuição&#xa;Aceitar / Rejeitar&#xa;Antes vs Depois&#xa;Economia de distância" vertex="1">
+          <mxGeometry height="90" width="220" x="1440" y="258" as="geometry" />
+        </mxCell>
+        <mxCell id="a6" edge="1" parent="1" source="s6" style="strokeColor=#1976D2;strokeWidth=2;rounded=1;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" target="s7">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge_bg" parent="1" style="rounded=1;fillColor=#FFF8E1;strokeColor=#FFB300;shadow=0;arcSize=5;" value="" vertex="1">
+          <mxGeometry height="120" width="580" x="360" y="410" as="geometry" />
+        </mxCell>
+        <mxCell id="edge_title" parent="1" style="text;html=1;fontSize=13;fontStyle=1;fillColor=none;strokeColor=none;fontColor=#F57C00;" value="⚠️ Edge Cases Tratados" vertex="1">
+          <mxGeometry height="20" width="250" x="375" y="417" as="geometry" />
+        </mxCell>
+        <mxCell id="ec1" parent="1" style="text;html=1;fontSize=11;fillColor=none;strokeColor=none;fontColor=#333;align=left;" value="&lt;font style=&quot;font-size:11px&quot;&gt;• &lt;b&gt;Mais pedidos que entregadores&lt;/b&gt; → excedentes vão para &lt;code&gt;unassigned&lt;/code&gt; com motivo&lt;br&gt;• &lt;b&gt;Mais entregadores que pedidos&lt;/b&gt; → entregadores extras ficam sem atribuição&lt;br&gt;• &lt;b&gt;Zero pedidos ready&lt;/b&gt; → retorna assignments vazio&lt;br&gt;• &lt;b&gt;Zero entregadores disponíveis&lt;/b&gt; → todos os pedidos vão para unassigned&lt;br&gt;• &lt;b&gt;Matriz retangular&lt;/b&gt; → Hungarian padroniza com zeros (padding)&lt;/font&gt;" vertex="1">
+          <mxGeometry height="80" width="550" x="375" y="442" as="geometry" />
+        </mxCell>
+        <mxCell id="perf_bg" parent="1" style="rounded=1;fillColor=#E8F5E9;strokeColor=#388E3C;shadow=0;arcSize=5;" value="" vertex="1">
+          <mxGeometry height="120" width="350" x="995" y="410" as="geometry" />
+        </mxCell>
+        <mxCell id="perf_title" parent="1" style="text;html=1;fontSize=13;fontStyle=1;fillColor=none;strokeColor=none;fontColor=#388E3C;" value="⚡ Performance" vertex="1">
+          <mxGeometry height="20" width="200" x="1010" y="418" as="geometry" />
+        </mxCell>
+        <mxCell id="perf" parent="1" style="text;html=1;fontSize=11;fillColor=none;strokeColor=none;fontColor=#333;align=left;" value="&lt;font style=&quot;font-size:11px&quot;&gt;• &lt;b&gt;30 entregadores × 50 pedidos:&lt;/b&gt; 87ms&lt;br&gt;• &lt;b&gt;Requisito:&lt;/b&gt; &amp;lt; 2.000ms&lt;br&gt;• &lt;b&gt;Complexidade:&lt;/b&gt; O(n³) — aceitável até ~500 elementos&lt;br&gt;• &lt;b&gt;29 testes&lt;/b&gt; cobrindo todos os cenários&lt;/font&gt;" vertex="1">
+          <mxGeometry height="80" width="320" x="1010" y="442" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
