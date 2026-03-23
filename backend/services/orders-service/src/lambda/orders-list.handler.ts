@@ -1,19 +1,19 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
-import { PrismaOrderRepository } from '../infrastructure/database/prisma-order.repository';
+import { PrismaOrderRepository } from '../infrastructure/repositories/prisma-order.repository';
 import { ListOrdersUseCase } from '../application/use-cases/list-orders.use-case';
-import { createPrismaClient } from '../infrastructure/database/prisma-client';
+import { getPrismaClient } from '../infrastructure/database/prisma-client';
 
-const prisma = createPrismaClient();
+const prisma = getPrismaClient();
 const orderRepository = new PrismaOrderRepository(prisma);
 const listOrdersUseCase = new ListOrdersUseCase(orderRepository);
 
-export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
-  const headers = {
-    'Content-Type': 'application/json',
-    'Access-Control-Allow-Origin': process.env.CORS_ORIGIN || 'http://localhost:3000',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-  };
+const headers = {
+  'Content-Type': 'application/json',
+  'Access-Control-Allow-Origin': process.env.CORS_ORIGIN || 'http://localhost:3000',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+};
 
+export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
   try {
     const query = event.queryStringParameters || {};
 
@@ -38,10 +38,6 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
     const statusCode = (error as any)?.statusCode || 500;
     const code = (error as any)?.code || 'INTERNAL_ERROR';
 
-    return {
-      statusCode,
-      headers,
-      body: JSON.stringify({ error: { code, message } }),
-    };
+    return { statusCode, headers, body: JSON.stringify({ error: { code, message } }) };
   }
 };
