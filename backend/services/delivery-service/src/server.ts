@@ -2,12 +2,15 @@ import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
-import morgan from 'morgan';
+import pinoHttp from 'pino-http';
+import swaggerUi from 'swagger-ui-express';
 import { createContainer } from './infrastructure/container';
 import { createDeliveryPersonRoutes } from './infrastructure/http/routes/delivery-person.routes';
 import { errorHandler } from './infrastructure/http/errors/error-handler';
 import { rateLimiter } from './infrastructure/http/middlewares/rate-limiter.middleware';
 import { env } from './infrastructure/config/env';
+import { logger } from './infrastructure/config/logger';
+import { swaggerSpec } from './infrastructure/http/swagger';
 import { disconnectPrisma } from './infrastructure/database/prisma-client';
 import { connectRabbitMQ, disconnectRabbitMQ } from './infrastructure/messaging/rabbitmq-client';
 import { DeliveryEventConsumer } from './infrastructure/messaging/event-consumer';
@@ -18,8 +21,14 @@ const app = express();
 app.use(helmet());
 app.use(cors({ origin: env.CORS_ORIGIN, credentials: true }));
 app.use(express.json());
-app.use(morgan('dev'));
+app.use(pinoHttp({ logger, autoLogging: { ignore: (req) => (req as any).url === '/health' } }));
 app.use(rateLimiter(env.RATE_LIMIT_WINDOW_MS, env.RATE_LIMIT_MAX_REQUESTS));
+
+// Swagger docs
+app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
+  customCss: '.swagger-ui .topbar { display: none }',
+  customSiteTitle: 'FastMeals Delivery API',
+}));
 
 // Health check
 app.get('/health', (_req, res) => {
@@ -27,6 +36,7 @@ app.get('/health', (_req, res) => {
     service: 'delivery-service',
     status: 'healthy',
     timestamp: new Date().toISOString(),
+    docs: '/docs',
   });
 });
 
@@ -49,60 +59,55 @@ async function start(): Promise<void> {
       const consumer = new DeliveryEventConsumer(channel);
       await consumer.setup();
 
-      // Listen for order status changes
       await consumer.consumeOrderStatusChanged(async (event) => {
-        // When order is delivered or cancelled, the delivery person becomes free
         if (
           event.deliveryPersonId &&
           (event.newStatus === 'delivered' || event.newStatus === 'cancelled')
         ) {
-          console.log(
-            `🚴 Delivery person ${event.deliveryPersonId} is now FREE (order ${event.orderId} → ${event.newStatus})`,
+          logger.info(
+            { deliveryPersonId: event.deliveryPersonId, orderId: event.orderId, status: event.newStatus },
+            'Delivery person is now FREE',
           );
-          // In a production system, we could update a local cache here
-          // to avoid HTTP calls to orders-service for availability checks
         }
 
-        // When order transitions to delivering, the delivery person is busy
         if (event.deliveryPersonId && event.newStatus === 'delivering') {
-          console.log(
-            `🚴 Delivery person ${event.deliveryPersonId} is now BUSY (order ${event.orderId} → delivering)`,
+          logger.info(
+            { deliveryPersonId: event.deliveryPersonId, orderId: event.orderId },
+            'Delivery person is now BUSY',
           );
         }
       });
     }
 
-    console.log('🐰 RabbitMQ messaging ready');
+    logger.info('🐰 RabbitMQ messaging ready');
   } catch (error) {
-    console.warn('⚠️  RabbitMQ not available — running without messaging');
-    console.warn('   Delivery service will still work via HTTP calls to orders-service');
+    logger.warn('RabbitMQ not available — running without messaging');
   }
 
   const server = app.listen(env.PORT, () => {
-    console.log(`🚴 Delivery service running on port ${env.PORT}`);
-    console.log(`   Environment: ${env.NODE_ENV}`);
-    console.log(`   Health: http://localhost:${env.PORT}/health`);
+    logger.info({ port: env.PORT, env: env.NODE_ENV }, '🚴 Delivery service running');
+    logger.info({ url: `http://localhost:${env.PORT}/docs` }, '📚 Swagger docs available');
   });
 
   // Graceful shutdown
   const gracefulShutdown = async (signal: string): Promise<void> => {
-    console.log(`\n${signal} received. Starting graceful shutdown...`);
+    logger.info({ signal }, 'Graceful shutdown initiated');
 
     server.close(async () => {
-      console.log('  ✅ HTTP server closed');
+      logger.info('HTTP server closed');
 
       await disconnectRabbitMQ();
-      console.log('  ✅ RabbitMQ disconnected');
+      logger.info('RabbitMQ disconnected');
 
       await disconnectPrisma();
-      console.log('  ✅ Database disconnected');
+      logger.info('Database disconnected');
 
-      console.log('👋 Delivery service shut down gracefully');
+      logger.info('👋 Delivery service shut down gracefully');
       process.exit(0);
     });
 
     setTimeout(() => {
-      console.error('⚠️  Forced shutdown after timeout');
+      logger.error('Forced shutdown after timeout');
       process.exit(1);
     }, 10000);
   };

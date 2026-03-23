@@ -32,4 +32,10 @@ EXPOSE 3006
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
   CMD wget --no-verbose --tries=1 --spider http://localhost:3006/health || exit 1
 
-CMD ["node", "dist/src/server.js"]
+COPY entrypoint.sh ./entrypoint.sh
+
+USER root
+RUN chmod +x ./entrypoint.sh
+USER reportsservice
+
+CMD ["./entrypoint.sh"]

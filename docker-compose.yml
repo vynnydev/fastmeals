@@ -167,6 +167,7 @@ services:
       RATE_LIMIT_WINDOW_MS: 60000
       RATE_LIMIT_MAX_REQUESTS: 100
       CORS_ORIGIN: http://localhost:3000
+      SERVICE_NAME: auth-service
     depends_on:
       auth-db:
         condition: service_healthy
@@ -190,6 +191,7 @@ services:
       RATE_LIMIT_WINDOW_MS: 60000
       RATE_LIMIT_MAX_REQUESTS: 100
       CORS_ORIGIN: http://localhost:3000
+      SERVICE_NAME: products-service
     depends_on:
       products-db:
         condition: service_healthy
@@ -214,6 +216,7 @@ services:
       PRODUCTS_SERVICE_URL: http://products-service:3002
       DELIVERY_SERVICE_URL: http://delivery-service:3004
       RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
+      SERVICE_NAME: orders-service
     depends_on:
       orders-db:
         condition: service_healthy
@@ -243,6 +246,7 @@ services:
       CORS_ORIGIN: http://localhost:3000
       ORDERS_SERVICE_URL: http://orders-service:3003
       RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
+      SERVICE_NAME: delivery-service
     depends_on:
       delivery-db:
         condition: service_healthy
@@ -267,6 +271,7 @@ services:
       CORS_ORIGIN: http://localhost:3000
       ORDERS_SERVICE_URL: http://orders-service:3003
       DELIVERY_SERVICE_URL: http://delivery-service:3004
+      SERVICE_NAME: optimization-service
     depends_on:
       orders-service:
         condition: service_started
@@ -294,6 +299,7 @@ services:
       AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
       AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
       BEDROCK_MODEL_ID: ${BEDROCK_MODEL_ID:-anthropic.claude-sonnet-4-5-20250514}
+      SERVICE_NAME: reports-service
     depends_on:
       reports-db:
         condition: service_healthy

@@ -2,12 +2,15 @@ import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
-import morgan from 'morgan';
+import pinoHttp from 'pino-http';
+import swaggerUi from 'swagger-ui-express';
 import { createContainer } from './infrastructure/container';
 import { createProductRoutes } from './infrastructure/http/routes/product.routes';
 import { errorHandler } from './infrastructure/http/errors/error-handler';
 import { rateLimiter } from './infrastructure/http/middlewares/rate-limiter.middleware';
 import { env } from './infrastructure/config/env';
+import { logger } from './infrastructure/config/logger';
+import { swaggerSpec } from './infrastructure/http/swagger';
 import { disconnectPrisma } from './infrastructure/database/prisma-client';
 
 const app = express();
@@ -16,8 +19,14 @@ const app = express();
 app.use(helmet());
 app.use(cors({ origin: env.CORS_ORIGIN, credentials: true }));
 app.use(express.json());
-app.use(morgan('dev'));
+app.use(pinoHttp({ logger, autoLogging: { ignore: (req) => (req as any).url === '/health' } }));
 app.use(rateLimiter(env.RATE_LIMIT_WINDOW_MS, env.RATE_LIMIT_MAX_REQUESTS));
+
+// Swagger docs
+app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
+  customCss: '.swagger-ui .topbar { display: none }',
+  customSiteTitle: 'FastMeals Products API',
+}));
 
 // Health check
 app.get('/health', (_req, res) => {
@@ -25,6 +34,7 @@ app.get('/health', (_req, res) => {
     service: 'products-service',
     status: 'healthy',
     timestamp: new Date().toISOString(),
+    docs: '/docs',
   });
 });
 
@@ -39,27 +49,26 @@ app.use(errorHandler);
 
 // Start server
 const server = app.listen(env.PORT, () => {
-  console.log(`📦 Products service running on port ${env.PORT}`);
-  console.log(`   Environment: ${env.NODE_ENV}`);
-  console.log(`   Health: http://localhost:${env.PORT}/health`);
+  logger.info({ port: env.PORT, env: env.NODE_ENV }, '📦 Products service running');
+  logger.info({ url: `http://localhost:${env.PORT}/docs` }, '📚 Swagger docs available');
 });
 
 // Graceful shutdown
 const gracefulShutdown = async (signal: string): Promise<void> => {
-  console.log(`\n${signal} received. Starting graceful shutdown...`);
+  logger.info({ signal }, 'Graceful shutdown initiated');
 
   server.close(async () => {
-    console.log('  ✅ HTTP server closed');
+    logger.info('HTTP server closed');
 
     await disconnectPrisma();
-    console.log('  ✅ Database disconnected');
+    logger.info('Database disconnected');
 
-    console.log('👋 Products service shut down gracefully');
+    logger.info('👋 Products service shut down gracefully');
     process.exit(0);
   });
 
   setTimeout(() => {
-    console.error('⚠️  Forced shutdown after timeout');
+    logger.error('Forced shutdown after timeout');
     process.exit(1);
   }, 10000);
 };
