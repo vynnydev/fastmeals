@@ -132,9 +132,22 @@ module "frontend" {
   private_subnet_ids = module.networking.private_subnet_ids
 
   api_gateway_url = module.api_gateway.api_url
+  certificate_arn = module.dns.certificate_arn
+  enable_https    = true
 
   task_cpu      = 256
   task_memory   = 512
   desired_count = 1
   max_count     = 3
+}
+
+# --- DNS + HTTPS ---
+module "dns" {
+  source = "../../modules/dns"
+
+  project_name = var.project_name
+  domain_name  = var.domain_name
+
+  alb_dns_name = module.frontend.alb_dns_name
+  alb_zone_id  = module.frontend.alb_zone_id
 }

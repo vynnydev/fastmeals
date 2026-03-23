@@ -51,3 +51,15 @@ variable "max_count" {
   type        = number
   default     = 3
 }
+
+variable "certificate_arn" {
+  description = "ARN do certificado ACM para HTTPS (vazio = sem HTTPS)"
+  type        = string
+  default     = ""
+}
+
+variable "enable_https" {
+  description = "Habilitar HTTPS listener no ALB"
+  type        = bool
+  default     = false
+}

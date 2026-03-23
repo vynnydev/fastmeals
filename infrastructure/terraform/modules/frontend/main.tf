@@ -232,6 +232,45 @@ resource "aws_lb_listener" "http" {
   }
 }
 
+# --- ALB Listener (HTTPS) ---
+resource "aws_lb_listener" "https" {
+  count = var.enable_https ? 1 : 0
+
+  load_balancer_arn = aws_lb.frontend.arn
+  port              = 443
+  protocol          = "HTTPS"
+  ssl_policy        = "ELBSecurityPolicy-TLS13-1-2-2021-06"
+  certificate_arn   = var.certificate_arn
+
+  default_action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.frontend.arn
+  }
+}
+
+# --- HTTP → HTTPS Redirect (quando certificado existir) ---
+resource "aws_lb_listener_rule" "http_redirect" {
+  count = var.enable_https ? 1 : 0
+
+  listener_arn = aws_lb_listener.http.arn
+  priority     = 1
+
+  action {
+    type = "redirect"
+    redirect {
+      port        = "443"
+      protocol    = "HTTPS"
+      status_code = "HTTP_301"
+    }
+  }
+
+  condition {
+    path_pattern {
+      values = ["/*"]
+    }
+  }
+}
+
 # --- ECS Task Definition ---
 resource "aws_ecs_task_definition" "frontend" {
   family                   = "${var.project_name}-frontend"

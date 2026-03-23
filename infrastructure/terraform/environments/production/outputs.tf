@@ -64,3 +64,17 @@ output "alb_dns_name" {
 output "api_gateway_url" {
   value = module.api_gateway.api_url
 }
+
+# --- DNS ---
+output "nameservers" {
+  description = "Configurar estes nameservers na Hostinger"
+  value       = module.dns.nameservers
+}
+
+output "domain_url" {
+  value = module.dns.domain_url
+}
+
+output "certificate_status" {
+  value = module.dns.certificate_status
+}
