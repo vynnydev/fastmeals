@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
+import { Input } from "@/components/ui/input"
 import { StatCardSkeleton, ChartSkeleton } from "@/components/shared/skeleton-loader"
 import { ErrorState } from "@/components/shared/error-state"
 import { AnimatedNumber, AnimatedCurrency } from "@/hooks/use-animated-counter"
@@ -34,8 +35,8 @@ import {
   Zap,
   CheckCircle2,
   Loader2,
-  Package,
   TrendingUp,
+  Calendar,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { ordersApi, reportsApi } from "@/lib/api"
@@ -60,58 +61,54 @@ const STATUS_LABELS: Record<string, string> = {
   cancelled: 'Cancelado',
 }
 
-// Get current week boundaries (Monday to Sunday)
-function getCurrentWeekRange() {
-  const now = new Date()
-  const dayOfWeek = now.getDay()
-  const monday = new Date(now)
-  monday.setDate(now.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1))
-  monday.setHours(0, 0, 0, 0)
-  
-  const sunday = new Date(monday)
-  sunday.setDate(monday.getDate() + 6)
-  sunday.setHours(23, 59, 59, 999)
-  
-  return { start: monday, end: sunday }
-}
-
 export default function ReportsPage() {
   const { toast } = useToast()
   const [activeTab, setActiveTab] = useState("overview")
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+
+  // Date filters
+  const [startDate, setStartDate] = useState(() => {
+    const d = new Date()
+    d.setMonth(d.getMonth() - 3)
+    return d.toISOString().split('T')[0]
+  })
+  const [endDate, setEndDate] = useState(() => new Date().toISOString().split('T')[0])
+
+  // Reports-service data
+  const [revenueData, setRevenueData] = useState<any>(null)
+  const [ordersByStatusData, setOrdersByStatusData] = useState<any>(null)
+  const [topProductsData, setTopProductsData] = useState<any>(null)
+  const [deliveryTimeData, setDeliveryTimeData] = useState<any>(null)
+
+  // Orders fallback
   const [allOrders, setAllOrders] = useState<Order[]>([])
 
-  // AI Insights state
+  // AI Insights
   const [aiInsights, setAiInsights] = useState<any>(null)
   const [isLoadingAI, setIsLoadingAI] = useState(false)
 
-  // Delivery time from reports-service
-  const [avgDeliveryTime, setAvgDeliveryTime] = useState(0)
-  const [fastestDelivery, setFastestDelivery] = useState(0)
-  const [slowestDelivery, setSlowestDelivery] = useState(0)
-  const [deliveryByVehicle, setDeliveryByVehicle] = useState<any[]>([])
-
-  const weekRange = useMemo(() => getCurrentWeekRange(), [])
-
   useEffect(() => {
     loadReportData()
-  }, [])
+  }, [startDate, endDate])
 
   const loadReportData = async () => {
     setIsLoading(true)
     setError(null)
     try {
-      const [orders, deliveryTime] = await Promise.all([
+      const [revenue, statusData, products, deliveryTime, orders] = await Promise.all([
+        reportsApi.getRevenueByPeriod({ startDate, endDate }).catch(() => null),
+        reportsApi.getOrdersByStatus().catch(() => null),
+        reportsApi.getTopProducts({ startDate, endDate, limit: 10 }).catch(() => null),
+        reportsApi.getAverageDeliveryTime().catch(() => null),
         ordersApi.getAll().catch(() => []),
-        reportsApi.getAverageDeliveryTime().catch(() => ({ averageMinutes: 0, totalDelivered: 0, fastestMinutes: 0, slowestMinutes: 0, byVehicleType: [] })),
       ])
 
+      setRevenueData(revenue)
+      setOrdersByStatusData(statusData)
+      setTopProductsData(products)
+      setDeliveryTimeData(deliveryTime)
       setAllOrders(Array.isArray(orders) ? orders : [])
-      setAvgDeliveryTime(deliveryTime.averageMinutes || 0)
-      setFastestDelivery(deliveryTime.fastestMinutes || 0)
-      setSlowestDelivery(deliveryTime.slowestMinutes || 0)
-      setDeliveryByVehicle(deliveryTime.byVehicleType || [])
     } catch (err) {
       setError('Erro ao carregar relatórios')
     } finally {
@@ -119,55 +116,41 @@ export default function ReportsPage() {
     }
   }
 
-  // Filter orders for current week
-  const weekOrders = useMemo(() => {
-    return allOrders.filter(order => {
-      const dateStr = order.createdAt || order.created_at
-      if (!dateStr) return false
-      const orderDate = new Date(dateStr)
-      return orderDate >= weekRange.start && orderDate <= weekRange.end
-    })
-  }, [allOrders, weekRange])
+  // Revenue metrics (reports-service first, then orders fallback)
+  const totalRevenue = revenueData?.totalRevenue ?? 
+    allOrders.filter((o: any) => o.status === 'delivered').reduce((sum: number, o: any) => sum + (o.totalAmount || o.total || 0), 0)
+  
+  const totalOrders = revenueData?.totalOrders ?? allOrders.length
+  const avgOrderValue = revenueData?.averageOrderValue ?? (totalRevenue > 0 && totalOrders > 0 ? totalRevenue / totalOrders : 0)
 
-  // Delivered orders
-  const deliveredOrders = useMemo(() => allOrders.filter((o: any) => o.status === 'delivered'), [allOrders])
-  const weekDelivered = useMemo(() => weekOrders.filter((o: any) => o.status === 'delivered'), [weekOrders])
+  // Daily revenue chart
+  const dailyRevenueChart = (revenueData?.dailyRevenue || []).map((d: any) => ({
+    date: d.date ? d.date.slice(5) : '',
+    receita: d.revenue || 0,
+    pedidos: d.orders || 0,
+  }))
 
-  // Revenue from delivered orders
-  const totalRevenue = useMemo(() => 
-    deliveredOrders.reduce((sum: number, o: any) => sum + (o.totalAmount || o.total || 0), 0)
-  , [deliveredOrders])
-
-  const weekRevenue = useMemo(() => 
-    weekDelivered.reduce((sum: number, o: any) => sum + (o.totalAmount || o.total || 0), 0)
-  , [weekDelivered])
-
-  // Average daily revenue (week revenue / days elapsed this week)
-  const avgDailyRevenue = useMemo(() => {
-    const now = new Date()
-    const dayOfWeek = now.getDay()
-    const daysElapsed = dayOfWeek === 0 ? 7 : dayOfWeek
-    return daysElapsed > 0 ? weekRevenue / daysElapsed : 0
-  }, [weekRevenue])
-
-  // Average order value
-  const avgOrderValue = useMemo(() => 
-    deliveredOrders.length > 0 ? totalRevenue / deliveredOrders.length : 0
-  , [totalRevenue, deliveredOrders])
-
-  // Orders by status (from all orders)
+  // Orders by status (reports-service first, then orders fallback)
   const ordersByStatus = useMemo(() => {
+    if (ordersByStatusData?.data?.length > 0) {
+      return ordersByStatusData.data.filter((s: any) => s.count > 0)
+    }
+    // Fallback: calculate from orders
     const counts: Record<string, number> = {}
-    allOrders.forEach((o: any) => {
-      counts[o.status] = (counts[o.status] || 0) + 1
-    })
+    allOrders.forEach((o: any) => { counts[o.status] = (counts[o.status] || 0) + 1 })
     return Object.entries(counts).map(([status, count]) => ({ status, count }))
-  }, [allOrders])
+  }, [ordersByStatusData, allOrders])
 
-  // Top products (by quantity in delivered orders)
+  const totalOrdersFromStatus = ordersByStatusData?.total ?? allOrders.length
+
+  // Top products (reports-service first, then orders fallback)
   const topProducts = useMemo(() => {
+    if (topProductsData?.data?.length > 0) {
+      return topProductsData.data
+    }
+    // Fallback: calculate from delivered orders
     const productCounts: Record<string, { name: string; qty: number; revenue: number }> = {}
-    deliveredOrders.forEach((order: any) => {
+    allOrders.filter((o: any) => o.status === 'delivered').forEach((order: any) => {
       if (order.items) {
         order.items.forEach((item: any) => {
           const id = item.productId || item.product_id || item.id
@@ -180,38 +163,29 @@ export default function ReportsPage() {
     })
     return Object.values(productCounts)
       .sort((a, b) => b.qty - a.qty)
-      .slice(0, 5)
-  }, [deliveredOrders])
+      .slice(0, 10)
+      .map(p => ({ productName: p.name, totalQuantity: p.qty, totalRevenue: p.revenue }))
+  }, [topProductsData, allOrders])
 
-  // Daily revenue for the week
-  const dailyRevenueChart = useMemo(() => {
-    const days = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom']
-    const dailyData = days.map((label, i) => {
-      const dayDate = new Date(weekRange.start)
-      dayDate.setDate(weekRange.start.getDate() + i)
-      const dayStr = dayDate.toISOString().split('T')[0]
-      
-      const dayOrders = allOrders.filter(o => {
-        const dateStr = o.createdAt || o.created_at
-        return dateStr?.startsWith(dayStr) && o.status === 'delivered'
-      })
-      const revenue = dayOrders.reduce((sum: number, o: any) => sum + (o.totalAmount || o.total || 0), 0)
-      const count = dayOrders.length
-
-      return { name: label, receita: revenue, pedidos: count }
-    })
-    return dailyData
-  }, [allOrders, weekRange])
+  // Delivery time
+  const avgDeliveryTime = deliveryTimeData?.averageMinutes ?? 0
+  const fastestDelivery = deliveryTimeData?.fastestMinutes ?? 0
+  const slowestDelivery = deliveryTimeData?.slowestMinutes ?? 0
+  const totalDelivered = deliveryTimeData?.totalDelivered ?? allOrders.filter((o: any) => o.status === 'delivered').length
+  const deliveryByVehicle = (deliveryTimeData?.byVehicleType || []).filter((v: any) => v.vehicleType !== 'unknown')
 
   // Chart data
-  const statusChartData = ordersByStatus.map(item => ({
+  const statusChartData = ordersByStatus.map((item: any) => ({
     name: STATUS_LABELS[item.status] || item.status,
     value: item.count,
     color: STATUS_COLORS[item.status] || '#6b7280',
   }))
 
   const vehicleChart = deliveryByVehicle.map((v: any) => ({
-    name: v.vehicleType === 'motorcycle' ? 'Moto' : v.vehicleType === 'bicycle' ? 'Bicicleta' : v.vehicleType === 'car' ? 'Carro' : v.vehicleType,
+    name: v.vehicleType === 'motorcycle' ? '🏍️ Moto' 
+      : v.vehicleType === 'bicycle' ? '🚲 Bicicleta' 
+      : v.vehicleType === 'car' ? '🚗 Carro' 
+      : v.vehicleType,
     tempo: Math.round(v.averageMinutes || 0),
     entregas: v.count || 0,
   }))
@@ -223,8 +197,6 @@ export default function ReportsPage() {
   const loadAIInsights = async () => {
     setIsLoadingAI(true)
     try {
-      const startDate = weekRange.start.toISOString().split('T')[0]
-      const endDate = weekRange.end.toISOString().split('T')[0]
       const result = await reportsApi.getAIInsights({ startDate, endDate })
       setAiInsights(result)
       sonnerToast.success('Insights gerados com sucesso!')
@@ -235,7 +207,9 @@ export default function ReportsPage() {
     }
   }
 
-  const weekLabel = `${weekRange.start.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })} - ${weekRange.end.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}`
+  // Data source indicator
+  const revenueSource = revenueData?.totalRevenue !== undefined ? 'reports-service' : 'orders-service'
+  const statusSource = ordersByStatusData?.data?.length > 0 ? 'reports-service' : 'orders-service'
 
   if (error) {
     return (
@@ -256,22 +230,40 @@ export default function ReportsPage() {
         <div>
           <h1 className="text-2xl font-bold text-foreground">Relatórios</h1>
           <p className="text-muted-foreground">
-            Semana atual: {weekLabel} • {allOrders.length} pedidos no total
+            Analytics e insights do seu negócio • {totalOrdersFromStatus} pedidos no total
           </p>
         </div>
-        <Button variant="outline" size="sm" onClick={loadReportData}>
-          <RefreshCcw className="mr-2 h-4 w-4" />
-          Atualizar
-        </Button>
+        
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="flex items-center gap-2">
+            <Calendar className="h-4 w-4 text-muted-foreground" />
+            <Input
+              type="date"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              className="w-[140px] bg-background"
+            />
+            <span className="text-muted-foreground">até</span>
+            <Input
+              type="date"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+              className="w-[140px] bg-background"
+            />
+          </div>
+          <Button variant="outline" size="sm" onClick={loadReportData}>
+            <RefreshCcw className="mr-2 h-4 w-4" />
+            Atualizar
+          </Button>
+        </div>
       </div>
 
-      {/* Summary Stats with Animated Numbers */}
+      {/* Summary Stats */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         {isLoading ? (
           <><StatCardSkeleton /><StatCardSkeleton /><StatCardSkeleton /><StatCardSkeleton /></>
         ) : (
           <>
-            {/* Revenue */}
             <Card className="p-6 gold-gradient border-0 text-primary-foreground hover:shadow-lg transition-all">
               <div className="flex items-start justify-between mb-4">
                 <span className="text-sm font-medium text-primary-foreground/80">Receita Total</span>
@@ -287,7 +279,6 @@ export default function ReportsPage() {
               </span>
             </Card>
 
-            {/* Orders */}
             <Card className="p-6 bg-card border-border hover:shadow-lg transition-all">
               <div className="flex items-start justify-between mb-4">
                 <span className="text-sm font-medium text-muted-foreground">Total de Pedidos</span>
@@ -296,14 +287,13 @@ export default function ReportsPage() {
                 </div>
               </div>
               <h3 className="text-3xl font-bold tracking-tight text-foreground">
-                <AnimatedNumber value={allOrders.length} duration={1500} />
+                <AnimatedNumber value={totalOrders} duration={1500} />
               </h3>
               <span className="text-sm text-muted-foreground">
-                Esta semana: <AnimatedNumber value={weekOrders.length} duration={1000} delay={200} />
+                {totalOrdersFromStatus} no período selecionado
               </span>
             </Card>
 
-            {/* Deliveries */}
             <Card className="p-6 bg-card border-border hover:shadow-lg transition-all">
               <div className="flex items-start justify-between mb-4">
                 <span className="text-sm font-medium text-muted-foreground">Entregas Realizadas</span>
@@ -312,14 +302,11 @@ export default function ReportsPage() {
                 </div>
               </div>
               <h3 className="text-3xl font-bold tracking-tight text-foreground">
-                <AnimatedNumber value={deliveredOrders.length} duration={1500} delay={100} />
+                <AnimatedNumber value={totalDelivered} duration={1500} delay={100} />
               </h3>
-              <span className="text-sm text-muted-foreground">
-                Esta semana: <AnimatedNumber value={weekDelivered.length} duration={1000} delay={300} />
-              </span>
+              <span className="text-sm text-muted-foreground">pedidos entregues</span>
             </Card>
 
-            {/* Avg Delivery Time */}
             <Card className={cn(
               "p-6 border hover:shadow-lg transition-all",
               avgDeliveryTime > 30 ? "bg-amber-500/5 border-amber-500/20" : "bg-card border-border"
@@ -366,6 +353,7 @@ export default function ReportsPage() {
               <Card className="bg-card border-border">
                 <CardHeader>
                   <CardTitle className="text-lg">Pedidos por Status</CardTitle>
+                  <CardDescription>Distribuição dos pedidos no período</CardDescription>
                 </CardHeader>
                 <CardContent>
                   {statusChartData.length > 0 ? (
@@ -382,7 +370,7 @@ export default function ReportsPage() {
                               cursor={{ fill: 'rgba(255,255,255,0.05)' }}
                             />
                             <Bar dataKey="value" radius={[6, 6, 0, 0]} animationDuration={1500} animationBegin={300}>
-                              {statusChartData.map((entry, index) => (
+                              {statusChartData.map((entry: any, index: number) => (
                                 <Cell key={`cell-${index}`} fill={entry.color} />
                               ))}
                             </Bar>
@@ -390,7 +378,7 @@ export default function ReportsPage() {
                         </ResponsiveContainer>
                       </div>
                       <div className="flex flex-wrap items-center justify-center gap-4 mt-4">
-                        {statusChartData.map((entry, index) => (
+                        {statusChartData.map((entry: any, index: number) => (
                           <div key={index} className="flex items-center gap-2">
                             <div className="w-3 h-3 rounded-full" style={{ backgroundColor: entry.color }} />
                             <span className="text-xs text-muted-foreground">{entry.name} ({entry.value})</span>
@@ -411,30 +399,37 @@ export default function ReportsPage() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-lg">
                     <TrendingUp className="h-5 w-5 text-amber-400" />
-                    Receita Diária Média
+                    Receita Diária
                   </CardTitle>
                   <CardDescription>
-                    Média diária: {formatCurrency(avgDailyRevenue)} • Semana: {weekLabel}
+                    {dailyRevenueChart.length > 0
+                      ? `${dailyRevenueChart.length} dias com movimentação`
+                      : 'Nenhuma receita no período'}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="h-64">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={dailyRevenueChart}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#333" vertical={false} />
-                        <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#a1a1aa', fontSize: 12 }} />
-                        <YAxis axisLine={false} tickLine={false} tick={{ fill: '#a1a1aa', fontSize: 11 }} />
-                        <Tooltip
-                          contentStyle={{ backgroundColor: '#1a1a1a', border: '1px solid #333', borderRadius: '8px', color: '#fff' }}
-                          formatter={(value: number, name: string) => [
-                            name === 'receita' ? formatCurrency(value) : `${value} pedidos`,
-                            name === 'receita' ? 'Receita' : 'Pedidos entregues'
-                          ]}
-                        />
-                        <Bar dataKey="receita" fill="#f97316" radius={[6, 6, 0, 0]} name="receita" animationDuration={1500} animationBegin={500} />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </div>
+                  {dailyRevenueChart.length > 0 ? (
+                    <div className="h-64">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={dailyRevenueChart}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="#333" vertical={false} />
+                          <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fill: '#a1a1aa', fontSize: 11 }} />
+                          <YAxis axisLine={false} tickLine={false} tick={{ fill: '#a1a1aa', fontSize: 11 }} />
+                          <Tooltip
+                            contentStyle={{ backgroundColor: '#1a1a1a', border: '1px solid #333', borderRadius: '8px', color: '#fff' }}
+                            formatter={(value: number, name: string) => [
+                              name === 'receita' ? formatCurrency(value) : `${value} pedidos`,
+                              name === 'receita' ? 'Receita' : 'Pedidos'
+                            ]}
+                          />
+                          <Bar dataKey="receita" fill="#f97316" radius={[6, 6, 0, 0]} name="receita" animationDuration={1500} animationBegin={500} />
+                          <Bar dataKey="pedidos" fill="#3b82f6" radius={[6, 6, 0, 0]} name="pedidos" animationDuration={1500} animationBegin={700} />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  ) : (
+                    <div className="h-64 flex items-center justify-center text-muted-foreground">Nenhum dado disponível</div>
+                  )}
                 </CardContent>
               </Card>
             )}
@@ -448,13 +443,17 @@ export default function ReportsPage() {
                   <Target className="h-5 w-5 text-amber-400" />
                   Produtos Mais Vendidos
                 </CardTitle>
-                <CardDescription>Ranking por quantidade em pedidos entregues</CardDescription>
+                <CardDescription>Ranking por quantidade vendida no período</CardDescription>
               </CardHeader>
               <CardContent>
                 {topProducts.length > 0 ? (
                   <div className="space-y-4">
-                    {topProducts.map((product, index) => {
-                      const maxQty = Math.max(...topProducts.map(p => p.qty))
+                    {topProducts.map((product: any, index: number) => {
+                      const name = product.productName || product.product_name || product.name || 'Produto'
+                      const qty = product.totalQuantity || product.quantity_sold || product.qty || 0
+                      const rev = product.totalRevenue || product.revenue || 0
+                      const maxQty = Math.max(...topProducts.map((p: any) => p.totalQuantity || p.quantity_sold || p.qty || 0))
+
                       return (
                         <div key={index} className="flex items-center gap-4">
                           <div className={cn(
@@ -468,18 +467,18 @@ export default function ReportsPage() {
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center justify-between mb-1">
-                              <p className="font-medium text-foreground truncate">{product.name}</p>
-                              <p className="font-medium text-amber-400 flex-shrink-0 ml-2">{formatCurrency(product.revenue)}</p>
+                              <p className="font-medium text-foreground truncate">{name}</p>
+                              <p className="font-medium text-amber-400 flex-shrink-0 ml-2">{formatCurrency(rev)}</p>
                             </div>
                             <div className="flex items-center gap-2">
                               <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
                                 <div
                                   className="h-full bg-amber-500/60 rounded-full transition-all duration-1000"
-                                  style={{ width: `${maxQty > 0 ? (product.qty / maxQty) * 100 : 0}%` }}
+                                  style={{ width: `${maxQty > 0 ? (qty / maxQty) * 100 : 0}%` }}
                                 />
                               </div>
                               <span className="text-xs text-muted-foreground flex-shrink-0">
-                                <AnimatedNumber value={product.qty} duration={1000} delay={index * 150} /> vendas
+                                <AnimatedNumber value={qty} duration={1000} delay={index * 150} /> vendas
                               </span>
                             </div>
                           </div>
@@ -499,15 +498,27 @@ export default function ReportsPage() {
         <TabsContent value="delivery" className="space-y-6">
           <div className="grid gap-4 sm:grid-cols-3">
             <Card className="p-4 bg-card/50 border-border/50 text-center">
-              <p className="text-3xl font-bold text-foreground"><AnimatedNumber value={Math.round(avgDeliveryTime)} duration={1200} /> min</p>
+              <h3 className="text-3xl font-bold tracking-tight text-foreground">
+                {avgDeliveryTime >= 1
+                  ? <><AnimatedNumber value={Math.round(avgDeliveryTime)} duration={1200} delay={200} /> <span className="text-lg font-normal">min</span></>
+                  : <><AnimatedNumber value={Math.round(avgDeliveryTime * 60)} duration={1200} delay={200} /> <span className="text-lg font-normal">seg</span></>
+                }
+              </h3>
               <p className="text-sm text-muted-foreground">Tempo médio</p>
             </Card>
             <Card className="p-4 bg-card/50 border-border/50 text-center">
-              <p className="text-3xl font-bold text-emerald-400"><AnimatedNumber value={Math.round(fastestDelivery)} duration={1000} delay={100} /> min</p>
+              <p className="text-3xl font-bold text-emerald-400">
+                {fastestDelivery >= 1
+                  ? <><AnimatedNumber value={Math.round(fastestDelivery)} duration={1000} delay={100} /> min</>
+                  : <><AnimatedNumber value={Math.round(fastestDelivery * 60)} duration={1000} delay={100} /> seg</>
+                }
+              </p>
               <p className="text-sm text-muted-foreground">Mais rápido</p>
             </Card>
             <Card className="p-4 bg-card/50 border-border/50 text-center">
-              <p className="text-3xl font-bold text-amber-400"><AnimatedNumber value={Math.round(slowestDelivery)} duration={1000} delay={200} /> min</p>
+              <p className="text-3xl font-bold text-amber-400">
+                <AnimatedNumber value={Math.round(slowestDelivery)} duration={1000} delay={200} /> min
+              </p>
               <p className="text-sm text-muted-foreground">Mais lento</p>
             </Card>
           </div>
@@ -517,6 +528,7 @@ export default function ReportsPage() {
               <Card className="bg-card border-border">
                 <CardHeader>
                   <CardTitle className="text-lg">Tempo de Entrega por Veículo</CardTitle>
+                  <CardDescription>Comparativo de performance por tipo de veículo</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="h-64">
@@ -526,7 +538,7 @@ export default function ReportsPage() {
                         <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#a1a1aa', fontSize: 12 }} />
                         <YAxis axisLine={false} tickLine={false} tick={{ fill: '#a1a1aa', fontSize: 12 }} />
                         <Tooltip contentStyle={{ backgroundColor: '#1a1a1a', border: '1px solid #333', borderRadius: '8px', color: '#fff' }} />
-                        <Legend formatter={(value) => <span style={{ color: '#a1a1aa', fontSize: 12 }}>{value === 'tempo' ? 'Tempo médio (min)' : 'Total entregas'}</span>} />
+                        <Legend formatter={(value: string) => <span style={{ color: '#a1a1aa', fontSize: 12 }}>{value === 'tempo' ? 'Tempo médio (min)' : 'Total entregas'}</span>} />
                         <Bar dataKey="tempo" fill="#22c55e" radius={[4, 4, 0, 0]} name="tempo" animationDuration={1500} />
                         <Bar dataKey="entregas" fill="#3b82f6" radius={[4, 4, 0, 0]} name="entregas" animationDuration={1500} />
                       </BarChart>
@@ -550,7 +562,12 @@ export default function ReportsPage() {
                       </div>
                       <div className="flex items-center justify-between">
                         <span className="text-sm text-muted-foreground">Tempo médio</span>
-                        <span className="font-semibold"><AnimatedNumber value={Math.round(v.averageMinutes)} duration={1000} delay={i * 200} /> min</span>
+                        <span className="font-semibold">
+                          {v.averageMinutes >= 1
+                            ? <><AnimatedNumber value={Math.round(v.averageMinutes)} duration={1000} delay={i * 200} /> min</>
+                            : <><AnimatedNumber value={Math.round(v.averageMinutes * 60)} duration={1000} delay={i * 200} /> seg</>
+                          }
+                        </span>
                       </div>
                     </Card>
                   )
@@ -558,13 +575,17 @@ export default function ReportsPage() {
               </div>
             </>
           )}
+
+          {vehicleChart.length === 0 && !isLoading && (
+            <div className="py-8 text-center text-muted-foreground">Nenhum dado de entrega disponível</div>
+          )}
         </TabsContent>
 
         {/* AI Insights Tab */}
         <TabsContent value="insights" className="space-y-6">
           <div className="flex flex-col items-center gap-4 py-4">
             <p className="text-sm text-muted-foreground text-center max-w-md">
-              Gere insights inteligentes sobre a semana atual usando inteligência artificial (AWS Bedrock — Claude).
+              Gere insights inteligentes sobre o período selecionado usando inteligência artificial (AWS Bedrock — Claude).
             </p>
             <Button
               size="lg"
