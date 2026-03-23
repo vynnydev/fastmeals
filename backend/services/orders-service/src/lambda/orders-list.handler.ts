@@ -21,7 +21,7 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
       page: query.page ? parseInt(query.page) : 1,
       limit: query.limit ? parseInt(query.limit) : 20,
       status: query.status,
-      sortBy: query.sortBy || 'createdAt',
+      sortBy: (query.sortBy as 'createdAt' | 'totalAmount') || 'createdAt',
       sortOrder: (query.sortOrder as 'asc' | 'desc') || 'desc',
     });
 
