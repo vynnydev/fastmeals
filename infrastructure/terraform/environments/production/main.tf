@@ -1,7 +1,3 @@
-# ============================================
-# FastMeals — Production Environment
-# ============================================
-
 terraform {
   required_version = ">= 1.5"
   required_providers {
@@ -24,6 +20,26 @@ provider "aws" {
   }
 }
 
+# --- Secrets ---
+module "secrets" {
+  source = "../../modules/secrets"
+
+  project_name = var.project_name
+  aws_region   = var.aws_region
+
+  rds_master_password  = var.rds_master_password
+  auth_db_password     = var.auth_db_password
+  products_db_password = var.products_db_password
+  orders_db_password   = var.orders_db_password
+  delivery_db_password = var.delivery_db_password
+  reports_db_password  = var.reports_db_password
+
+  jwt_access_secret  = var.jwt_access_secret
+  jwt_refresh_secret = var.jwt_refresh_secret
+
+  mq_password = var.mq_password
+}
+
 # --- Networking ---
 module "networking" {
   source = "../../modules/networking"
@@ -32,32 +48,46 @@ module "networking" {
   vpc_cidr     = var.vpc_cidr
 }
 
-# --- Database (próximo módulo) ---
-# module "database" {
-#   source = "../../modules/database"
-#   ...
-# }
+# --- Database ---
+module "database" {
+  source = "../../modules/database"
 
-# --- Cache (próximo módulo) ---
-# module "cache" {
-#   source = "../../modules/cache"
-#   ...
-# }
+  project_name          = var.project_name
+  private_subnet_ids    = module.networking.private_subnet_ids
+  rds_security_group_id = module.networking.rds_security_group_id
 
-# --- Messaging (próximo módulo) ---
-# module "messaging" {
-#   source = "../../modules/messaging"
-#   ...
-# }
+  instance_class        = var.rds_instance_class
+  allocated_storage     = var.rds_allocated_storage
+  max_allocated_storage = var.rds_max_allocated_storage
 
-# --- Lambda (próximo módulo) ---
-# module "lambda" {
-#   source = "../../modules/lambda"
-#   ...
-# }
+  master_password = var.rds_master_password
+  service_passwords = {
+    auth     = var.auth_db_password
+    products = var.products_db_password
+    orders   = var.orders_db_password
+    delivery = var.delivery_db_password
+    reports  = var.reports_db_password
+  }
+}
 
-# --- Frontend (próximo módulo) ---
-# module "frontend" {
-#   source = "../../modules/frontend"
-#   ...
-# }
+# --- Cache ---
+module "cache" {
+  source = "../../modules/cache"
+
+  project_name            = var.project_name
+  private_subnet_ids      = module.networking.private_subnet_ids
+  redis_security_group_id = module.networking.redis_security_group_id
+
+  node_type = var.redis_node_type
+}
+
+# --- Messaging ---
+module "messaging" {
+  source = "../../modules/messaging"
+
+  project_name         = var.project_name
+  private_subnet_ids   = module.networking.private_subnet_ids
+  mq_security_group_id = module.networking.mq_security_group_id
+
+  mq_password = var.mq_password
+}
