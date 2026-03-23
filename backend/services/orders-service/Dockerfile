@@ -30,6 +30,8 @@ COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/generated ./generated
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 COPY package.json ./
+COPY entrypoint.sh ./entrypoint.sh
+RUN chmod +x ./entrypoint.sh
 
 USER ordersservice
 
@@ -37,11 +39,5 @@ EXPOSE 3003
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
   CMD wget --no-verbose --tries=1 --spider http://localhost:3003/health || exit 1
-
-COPY entrypoint.sh ./entrypoint.sh
-
-USER root
-RUN chmod +x ./entrypoint.sh
-USER reportsservice
 
 CMD ["./entrypoint.sh"]
