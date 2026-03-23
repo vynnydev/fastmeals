@@ -38,3 +38,21 @@ output "mq_amqp_endpoint" {
 output "secret_names" {
   value = module.secrets.secret_names
 }
+
+# --- Lambda ---
+output "api_gateway_url" {
+  value = module.lambda.api_gateway_url
+}
+
+output "lambda_function_names" {
+  value = module.lambda.function_names
+}
+
+# --- Frontend ---
+output "amplify_url" {
+  value = module.frontend.amplify_branch_url
+}
+
+output "amplify_default_domain" {
+  value = module.frontend.amplify_default_domain
+}

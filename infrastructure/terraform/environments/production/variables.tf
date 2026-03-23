@@ -84,3 +84,33 @@ variable "jwt_refresh_secret" {
   type      = string
   sensitive = true
 }
+
+# --- Lambda ---
+variable "bedrock_model_id" {
+  type    = string
+  default = "anthropic.claude-sonnet-4-5-20250514"
+}
+
+# --- Frontend ---
+variable "github_repository" {
+  description = "URL do repositório GitHub"
+  type        = string
+}
+
+variable "github_access_token" {
+  description = "GitHub PAT para Amplify"
+  type        = string
+  sensitive   = true
+}
+
+variable "amplify_branch" {
+  description = "Branch para deploy"
+  type        = string
+  default     = "development"
+}
+
+variable "domain_name" {
+  description = "Domínio customizado"
+  type        = string
+  default     = "fastmeals.com.br"
+}

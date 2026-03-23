@@ -69,6 +69,7 @@ infrastructure/terraform/**/*.tfstate.backup
 infrastructure/terraform/**/tfplan
 infrastructure/terraform/**/*.tfplan
 infrastructure/terraform/**/.terraform.lock.hcl
+infrastructure/terraform/**/secrets.tfvars
 infrastructure/terraform/crash.log
 
 # === AWS ===

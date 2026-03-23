@@ -91,3 +91,38 @@ module "messaging" {
 
   mq_password = var.mq_password
 }
+
+# --- Lambda + API Gateway ---
+module "lambda" {
+  source = "../../modules/lambda"
+
+  project_name             = var.project_name
+  aws_region               = var.aws_region
+  private_subnet_ids       = module.networking.private_subnet_ids
+  lambda_security_group_id = module.networking.lambda_security_group_id
+
+  rds_endpoint  = module.database.rds_endpoint
+  redis_url     = module.cache.redis_url
+  rabbitmq_url  = module.messaging.rabbitmq_url
+  database_urls = module.database.database_urls
+
+  jwt_secret_arn = module.secrets.jwt_secret_arn
+  secret_arns    = module.secrets.all_secret_arns
+
+  cors_origin    = "https://${var.domain_name}"
+  domain_name    = var.domain_name
+  bedrock_model_id = var.bedrock_model_id
+}
+
+# --- Frontend ---
+module "frontend" {
+  source = "../../modules/frontend"
+
+  project_name        = var.project_name
+  github_repository   = var.github_repository
+  github_access_token = var.github_access_token
+  branch_name         = var.amplify_branch
+
+  api_gateway_url = module.lambda.api_gateway_url
+  domain_name     = var.domain_name
+}
