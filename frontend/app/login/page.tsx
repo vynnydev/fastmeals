@@ -178,7 +178,7 @@ export default function LoginPage() {
           </form>
 
           {/* Demo Credentials */}
-          <div className="rounded-lg border border-border bg-card/50 p-4">
+          {/* <div className="rounded-lg border border-border bg-card/50 p-4">
             <p className="text-sm text-muted-foreground text-center mb-3">
               Credenciais de demonstracao:
             </p>
@@ -194,7 +194,7 @@ export default function LoginPage() {
                 <p className="text-foreground font-mono">Viewer@123</p>
               </div>
             </div>
-          </div>
+          </div> */}
 
           {/* Footer */}
           <p className="text-center text-sm text-muted-foreground">
