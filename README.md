@@ -14,6 +14,14 @@
 ![Tests](https://img.shields.io/badge/Tests-180+-22c55e?logo=checkmarx&logoColor=white)
 ![Terraform](https://img.shields.io/badge/Terraform-1.7-844FBA?logo=terraform&logoColor=white)
 ![AWS](https://img.shields.io/badge/AWS-Cloud-FF9900?logo=amazon-aws&logoColor=white)
+![Express](https://img.shields.io/badge/Express-4.21-000000?logo=express&logoColor=white)
+![Zustand](https://img.shields.io/badge/Zustand-5-433e38?logo=react&logoColor=white)
+![Lambda](https://img.shields.io/badge/AWS_Lambda-20_Functions-FF9900?logo=awslambda&logoColor=white)
+![ECS](https://img.shields.io/badge/ECS_Fargate-Frontend-FF9900?logo=amazonecs&logoColor=white)
+![GitHub Actions](https://img.shields.io/badge/GitHub_Actions-CI/CD-2088FF?logo=githubactions&logoColor=white)
+![Clean Architecture](https://img.shields.io/badge/Clean_Architecture-SOLID-4CAF50?logo=architect&logoColor=white)
+
+> 🌐 **Live:** [https://fastmeals.com.br](https://fastmeals.com.br) | **API:** [https://t2fwiydcrc.execute-api.us-east-1.amazonaws.com](https://t2fwiydcrc.execute-api.us-east-1.amazonaws.com/api/products)
 
 # 🍔 FastMeals — Sistema de Gerenciamento de Pedidos e Entregas
 
@@ -44,7 +52,7 @@ Plataforma fullstack de gerenciamento de delivery com **6 microserviços**, **da
 <!-- GIF de apresentação da aplicação -->
 <!-- ![FastMeals Demo](docs/screenshots/demo.gif) -->
 
-> 🎥 **Demo em vídeo:** Em breve
+![FastMeals Demo](docs/fastmeals.gif)
 
 ---
 
