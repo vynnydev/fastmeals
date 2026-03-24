@@ -23,7 +23,7 @@ const config: runtime.GetPrismaClientConfig = {
       "value": "prisma-client"
     },
     "output": {
-      "value": "/Users/vynnydev/Desktop/fresh/fastmeals/backend/services/auth-service/generated/prisma",
+      "value": "/Users/vynnydev/Desktop/work-projects/repositories/fresh/fastmeals/backend/services/auth-service/generated/prisma",
       "fromEnvVar": null
     },
     "config": {
@@ -34,10 +34,14 @@ const config: runtime.GetPrismaClientConfig = {
         "fromEnvVar": null,
         "value": "darwin-arm64",
         "native": true
+      },
+      {
+        "fromEnvVar": null,
+        "value": "rhel-openssl-3.0.x"
       }
     ],
     "previewFeatures": [],
-    "sourceFilePath": "/Users/vynnydev/Desktop/fresh/fastmeals/backend/services/auth-service/prisma/schema.prisma",
+    "sourceFilePath": "/Users/vynnydev/Desktop/work-projects/repositories/fresh/fastmeals/backend/services/auth-service/prisma/schema.prisma",
     "isCustomOutput": true
   },
   "relativePath": "../../prisma",
@@ -56,8 +60,8 @@ const config: runtime.GetPrismaClientConfig = {
       }
     }
   },
-  "inlineSchema": "generator client {\n  provider = \"prisma-client\"\n  output   = \"../generated/prisma\"\n}\n\ndatasource db {\n  provider = \"postgresql\"\n  url      = env(\"DATABASE_URL\")\n}\n\nenum UserRole {\n  admin\n  viewer\n}\n\nmodel User {\n  id        String   @id @default(uuid()) @db.Uuid\n  email     String   @unique @db.VarChar(255)\n  password  String   @db.VarChar(255)\n  role      UserRole\n  createdAt DateTime @default(now()) @map(\"created_at\") @db.Timestamptz\n  updatedAt DateTime @default(now()) @updatedAt @map(\"updated_at\") @db.Timestamptz\n\n  @@index([email])\n  @@map(\"users\")\n}\n",
-  "inlineSchemaHash": "a86f0c80da117f3a166e80fb18d0a3820af44b2884637a8b62e32e92f6671974",
+  "inlineSchema": "generator client {\n  provider      = \"prisma-client\"\n  binaryTargets = [\"native\", \"rhel-openssl-3.0.x\"]\n  output        = \"../generated/prisma\"\n}\n\ndatasource db {\n  provider = \"postgresql\"\n  url      = env(\"DATABASE_URL\")\n}\n\nenum UserRole {\n  admin\n  viewer\n}\n\nmodel User {\n  id        String   @id @default(uuid()) @db.Uuid\n  email     String   @unique @db.VarChar(255)\n  password  String   @db.VarChar(255)\n  role      UserRole\n  createdAt DateTime @default(now()) @map(\"created_at\") @db.Timestamptz\n  updatedAt DateTime @default(now()) @updatedAt @map(\"updated_at\") @db.Timestamptz\n\n  @@index([email])\n  @@map(\"users\")\n}\n",
+  "inlineSchemaHash": "1248742ffda1bfd1070087bcd481310c8bb081fa8129c5a6065b763dbe462791",
   "copyEngine": true,
   "runtimeDataModel": {
     "models": {},

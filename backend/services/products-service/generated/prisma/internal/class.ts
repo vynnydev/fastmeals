@@ -23,7 +23,7 @@ const config: runtime.GetPrismaClientConfig = {
       "value": "prisma-client"
     },
     "output": {
-      "value": "/Users/vynnydev/Desktop/fresh/fastmeals/backend/services/products-service/generated/prisma",
+      "value": "/Users/vynnydev/Desktop/work-projects/repositories/fresh/fastmeals/backend/services/products-service/generated/prisma",
       "fromEnvVar": null
     },
     "config": {
@@ -34,10 +34,14 @@ const config: runtime.GetPrismaClientConfig = {
         "fromEnvVar": null,
         "value": "darwin-arm64",
         "native": true
+      },
+      {
+        "fromEnvVar": null,
+        "value": "rhel-openssl-3.0.x"
       }
     ],
     "previewFeatures": [],
-    "sourceFilePath": "/Users/vynnydev/Desktop/fresh/fastmeals/backend/services/products-service/prisma/schema.prisma",
+    "sourceFilePath": "/Users/vynnydev/Desktop/work-projects/repositories/fresh/fastmeals/backend/services/products-service/prisma/schema.prisma",
     "isCustomOutput": true
   },
   "relativePath": "../../prisma",
@@ -56,8 +60,8 @@ const config: runtime.GetPrismaClientConfig = {
       }
     }
   },
-  "inlineSchema": "generator client {\n  provider = \"prisma-client\"\n  output   = \"../generated/prisma\"\n}\n\ndatasource db {\n  provider = \"postgresql\"\n  url      = env(\"DATABASE_URL\")\n}\n\nenum ProductCategory {\n  meal\n  drink\n  dessert\n  side\n}\n\nmodel Product {\n  id              String          @id @default(uuid()) @db.Uuid\n  name            String          @db.VarChar(120)\n  description     String          @db.VarChar(500)\n  price           Decimal         @db.Decimal(10, 2)\n  category        ProductCategory\n  imageUrl        String?         @map(\"image_url\") @db.VarChar(500)\n  isAvailable     Boolean         @default(true) @map(\"is_available\")\n  preparationTime Int             @map(\"preparation_time\") @db.Integer\n  createdAt       DateTime        @default(now()) @map(\"created_at\") @db.Timestamptz\n  updatedAt       DateTime        @default(now()) @updatedAt @map(\"updated_at\") @db.Timestamptz\n\n  @@index([category])\n  @@index([isAvailable])\n  @@index([name])\n  @@index([createdAt(sort: Desc)])\n  @@map(\"products\")\n}\n",
-  "inlineSchemaHash": "f9567a5e326aea1f65fb6fa9f401d1264a13b306a67ab9305cd80e189c9dd64b",
+  "inlineSchema": "generator client {\n  provider      = \"prisma-client\"\n  binaryTargets = [\"native\", \"rhel-openssl-3.0.x\"]\n  output        = \"../generated/prisma\"\n}\n\ndatasource db {\n  provider = \"postgresql\"\n  url      = env(\"DATABASE_URL\")\n}\n\nenum ProductCategory {\n  meal\n  drink\n  dessert\n  side\n}\n\nmodel Product {\n  id              String          @id @default(uuid()) @db.Uuid\n  name            String          @db.VarChar(120)\n  description     String          @db.VarChar(500)\n  price           Decimal         @db.Decimal(10, 2)\n  category        ProductCategory\n  imageUrl        String?         @map(\"image_url\") @db.VarChar(500)\n  isAvailable     Boolean         @default(true) @map(\"is_available\")\n  preparationTime Int             @map(\"preparation_time\") @db.Integer\n  createdAt       DateTime        @default(now()) @map(\"created_at\") @db.Timestamptz\n  updatedAt       DateTime        @default(now()) @updatedAt @map(\"updated_at\") @db.Timestamptz\n\n  @@index([category])\n  @@index([isAvailable])\n  @@index([name])\n  @@index([createdAt(sort: Desc)])\n  @@map(\"products\")\n}\n",
+  "inlineSchemaHash": "9d51a7a2c71ad6674b8eddbe0e12179a20ed1b74129ec250d73f9e0848c89e86",
   "copyEngine": true,
   "runtimeDataModel": {
     "models": {},

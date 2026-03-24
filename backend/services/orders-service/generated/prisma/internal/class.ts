@@ -23,7 +23,7 @@ const config: runtime.GetPrismaClientConfig = {
       "value": "prisma-client"
     },
     "output": {
-      "value": "/Users/vynnydev/Desktop/fresh/fastmeals/backend/services/orders-service/generated/prisma",
+      "value": "/Users/vynnydev/Desktop/work-projects/repositories/fresh/fastmeals/backend/services/orders-service/generated/prisma",
       "fromEnvVar": null
     },
     "config": {
@@ -34,10 +34,14 @@ const config: runtime.GetPrismaClientConfig = {
         "fromEnvVar": null,
         "value": "darwin-arm64",
         "native": true
+      },
+      {
+        "fromEnvVar": null,
+        "value": "rhel-openssl-3.0.x"
       }
     ],
     "previewFeatures": [],
-    "sourceFilePath": "/Users/vynnydev/Desktop/fresh/fastmeals/backend/services/orders-service/prisma/schema.prisma",
+    "sourceFilePath": "/Users/vynnydev/Desktop/work-projects/repositories/fresh/fastmeals/backend/services/orders-service/prisma/schema.prisma",
     "isCustomOutput": true
   },
   "relativePath": "../../prisma",
@@ -56,8 +60,8 @@ const config: runtime.GetPrismaClientConfig = {
       }
     }
   },
-  "inlineSchema": "generator client {\n  provider = \"prisma-client\"\n  output   = \"../generated/prisma\"\n}\n\ndatasource db {\n  provider = \"postgresql\"\n  url      = env(\"DATABASE_URL\")\n}\n\nenum OrderStatus {\n  pending\n  preparing\n  ready\n  delivering\n  delivered\n  cancelled\n}\n\nmodel Order {\n  id               String      @id @default(uuid()) @db.Uuid\n  customerName     String      @map(\"customer_name\") @db.VarChar(100)\n  customerPhone    String      @map(\"customer_phone\") @db.VarChar(20)\n  deliveryAddress  String      @map(\"delivery_address\") @db.VarChar(300)\n  latitude         Decimal     @db.Decimal(10, 8)\n  longitude        Decimal     @db.Decimal(11, 8)\n  status           OrderStatus @default(pending)\n  totalAmount      Decimal     @map(\"total_amount\") @db.Decimal(10, 2)\n  deliveryPersonId String?     @map(\"delivery_person_id\") @db.Uuid\n  createdAt        DateTime    @default(now()) @map(\"created_at\") @db.Timestamptz\n  updatedAt        DateTime    @default(now()) @updatedAt @map(\"updated_at\") @db.Timestamptz\n\n  items OrderItem[]\n\n  @@index([status])\n  @@index([createdAt(sort: Desc)])\n  @@index([deliveryPersonId])\n  @@index([status, createdAt])\n  @@map(\"orders\")\n}\n\nmodel OrderItem {\n  id        String   @id @default(uuid()) @db.Uuid\n  orderId   String   @map(\"order_id\") @db.Uuid\n  productId String   @map(\"product_id\") @db.Uuid\n  quantity  Int      @db.Integer\n  unitPrice Decimal  @map(\"unit_price\") @db.Decimal(10, 2)\n  createdAt DateTime @default(now()) @map(\"created_at\") @db.Timestamptz\n\n  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)\n\n  @@index([orderId])\n  @@index([productId])\n  @@map(\"order_items\")\n}\n",
-  "inlineSchemaHash": "4fad57c4681359b8f38649a3d9297e68863111180c150569c6b602b46b4b5c2f",
+  "inlineSchema": "generator client {\n  provider      = \"prisma-client\"\n  binaryTargets = [\"native\", \"rhel-openssl-3.0.x\"]\n  output        = \"../generated/prisma\"\n}\n\ndatasource db {\n  provider = \"postgresql\"\n  url      = env(\"DATABASE_URL\")\n}\n\nenum OrderStatus {\n  pending\n  preparing\n  ready\n  delivering\n  delivered\n  cancelled\n}\n\nmodel Order {\n  id               String      @id @default(uuid()) @db.Uuid\n  customerName     String      @map(\"customer_name\") @db.VarChar(100)\n  customerPhone    String      @map(\"customer_phone\") @db.VarChar(20)\n  deliveryAddress  String      @map(\"delivery_address\") @db.VarChar(300)\n  latitude         Decimal     @db.Decimal(10, 8)\n  longitude        Decimal     @db.Decimal(11, 8)\n  status           OrderStatus @default(pending)\n  totalAmount      Decimal     @map(\"total_amount\") @db.Decimal(10, 2)\n  deliveryPersonId String?     @map(\"delivery_person_id\") @db.Uuid\n  createdAt        DateTime    @default(now()) @map(\"created_at\") @db.Timestamptz\n  updatedAt        DateTime    @default(now()) @updatedAt @map(\"updated_at\") @db.Timestamptz\n\n  items OrderItem[]\n\n  @@index([status])\n  @@index([createdAt(sort: Desc)])\n  @@index([deliveryPersonId])\n  @@index([status, createdAt])\n  @@map(\"orders\")\n}\n\nmodel OrderItem {\n  id        String   @id @default(uuid()) @db.Uuid\n  orderId   String   @map(\"order_id\") @db.Uuid\n  productId String   @map(\"product_id\") @db.Uuid\n  quantity  Int      @db.Integer\n  unitPrice Decimal  @map(\"unit_price\") @db.Decimal(10, 2)\n  createdAt DateTime @default(now()) @map(\"created_at\") @db.Timestamptz\n\n  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)\n\n  @@index([orderId])\n  @@index([productId])\n  @@map(\"order_items\")\n}\n",
+  "inlineSchemaHash": "b66b002a64562a992df6914a6bc031c423d88677c4c32426b543c2595ab269a6",
   "copyEngine": true,
   "runtimeDataModel": {
     "models": {},

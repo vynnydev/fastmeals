@@ -11,11 +11,11 @@ output "rds_port" {
 output "database_urls" {
   description = "Connection strings por serviço"
   value = {
-    auth     = "postgresql://auth_user:${var.service_passwords.auth}@${aws_db_instance.main.address}:${aws_db_instance.main.port}/auth_db"
-    products = "postgresql://products_user:${var.service_passwords.products}@${aws_db_instance.main.address}:${aws_db_instance.main.port}/products_db"
-    orders   = "postgresql://orders_user:${var.service_passwords.orders}@${aws_db_instance.main.address}:${aws_db_instance.main.port}/orders_db"
-    delivery = "postgresql://delivery_user:${var.service_passwords.delivery}@${aws_db_instance.main.address}:${aws_db_instance.main.port}/delivery_db"
-    reports  = "postgresql://reports_user:${var.service_passwords.reports}@${aws_db_instance.main.address}:${aws_db_instance.main.port}/reports_db"
+    auth     = "postgresql://auth_user:${var.service_passwords.auth}@${aws_db_instance.main.address}:${aws_db_instance.main.port}/auth_db?sslmode=no-verify"
+    products = "postgresql://products_user:${var.service_passwords.products}@${aws_db_instance.main.address}:${aws_db_instance.main.port}/products_db?sslmode=no-verify"
+    orders   = "postgresql://orders_user:${var.service_passwords.orders}@${aws_db_instance.main.address}:${aws_db_instance.main.port}/orders_db?sslmode=no-verify"
+    delivery = "postgresql://delivery_user:${var.service_passwords.delivery}@${aws_db_instance.main.address}:${aws_db_instance.main.port}/delivery_db?sslmode=no-verify"
+    reports  = "postgresql://reports_user:${var.service_passwords.reports}@${aws_db_instance.main.address}:${aws_db_instance.main.port}/reports_db?sslmode=no-verify"
   }
   sensitive = true
 }
