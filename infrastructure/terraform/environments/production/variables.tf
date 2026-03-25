@@ -120,3 +120,9 @@ variable "domain_name" {
   type        = string
   default     = "fastmeals.com.br"
 }
+
+variable "api_gateway_url" {
+  description = "URL do API Gateway para inter-service communication"
+  type        = string
+  default     = "https://t2fwiydcrc.execute-api.us-east-1.amazonaws.com"
+}

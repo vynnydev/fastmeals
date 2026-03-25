@@ -105,11 +105,15 @@ module "lambda" {
   rabbitmq_url  = module.messaging.rabbitmq_url
   database_urls = module.database.database_urls
 
-  jwt_secret_arn = module.secrets.jwt_secret_arn
-  secret_arns    = module.secrets.all_secret_arns
+  jwt_access_secret  = var.jwt_access_secret
+  jwt_refresh_secret = var.jwt_refresh_secret
+  secret_arns        = module.secrets.all_secret_arns
 
   cors_origin      = "https://${var.domain_name}"
   bedrock_model_id = var.bedrock_model_id
+
+  # URL fixa — não depende do module.api_gateway
+  api_gateway_url = var.api_gateway_url
 }
 
 # --- API Gateway ---

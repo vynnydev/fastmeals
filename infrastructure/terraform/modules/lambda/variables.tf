@@ -35,8 +35,14 @@ variable "database_urls" {
   sensitive = true
 }
 
-variable "jwt_secret_arn" {
-  type = string
+variable "jwt_access_secret" {
+  type      = string
+  sensitive = true
+}
+
+variable "jwt_refresh_secret" {
+  type      = string
+  sensitive = true
 }
 
 variable "secret_arns" {
@@ -45,10 +51,15 @@ variable "secret_arns" {
 
 variable "cors_origin" {
   type    = string
-  default = "http://localhost:3000"
+  default = "https://fastmeals.com.br"
 }
 
 variable "bedrock_model_id" {
   type    = string
-  default = "anthropic.claude-sonnet-4-5-20250514"
+  default = "amazon.nova-pro-v1:0"
+}
+
+variable "api_gateway_url" {
+  description = "URL do API Gateway (para inter-service communication)"
+  type        = string
 }

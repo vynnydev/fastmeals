@@ -57,41 +57,201 @@ resource "aws_iam_role_policy" "lambda_bedrock" {
 
 # --- Function Definitions ---
 locals {
+  # Common env vars for all functions
+  common_env = {
+    NODE_ENV          = "production"
+    CORS_ORIGIN       = var.cors_origin
+    JWT_ACCESS_SECRET = var.jwt_access_secret
+  }
+
   functions = {
     # Auth Service
-    "auth-login"           = { handler = "dist/src/lambda/auth-login.handler.handler",          env = { DATABASE_URL = var.database_urls.auth, REDIS_URL = var.redis_url, SERVICE_NAME = "auth-service" } }
-    "auth-refresh_token"   = { handler = "dist/src/lambda/auth-refresh-token.handler.handler",  env = { DATABASE_URL = var.database_urls.auth, REDIS_URL = var.redis_url, SERVICE_NAME = "auth-service" } }
+    "auth-login" = {
+      handler = "auth-login-handler.handler"
+      env = merge(local.common_env, {
+        DATABASE_URL       = var.database_urls.auth
+        REDIS_URL          = var.redis_url
+        JWT_REFRESH_SECRET = var.jwt_refresh_secret
+        SERVICE_NAME       = "auth-service"
+      })
+    }
+    "auth-refresh_token" = {
+      handler = "auth-refresh_token-handler.handler"
+      env = merge(local.common_env, {
+        DATABASE_URL       = var.database_urls.auth
+        REDIS_URL          = var.redis_url
+        JWT_REFRESH_SECRET = var.jwt_refresh_secret
+        SERVICE_NAME       = "auth-service"
+      })
+    }
 
     # Products Service
-    "products-list"   = { handler = "dist/src/lambda/products-list.handler.handler",   env = { DATABASE_URL = var.database_urls.products, SERVICE_NAME = "products-service" } }
-    "products-get"    = { handler = "dist/src/lambda/products-get.handler.handler",    env = { DATABASE_URL = var.database_urls.products, SERVICE_NAME = "products-service" } }
-    "products-create" = { handler = "dist/src/lambda/products-create.handler.handler", env = { DATABASE_URL = var.database_urls.products, SERVICE_NAME = "products-service" } }
-    "products-update" = { handler = "dist/src/lambda/products-update.handler.handler", env = { DATABASE_URL = var.database_urls.products, SERVICE_NAME = "products-service" } }
-    "products-delete" = { handler = "dist/src/lambda/products-delete.handler.handler", env = { DATABASE_URL = var.database_urls.products, SERVICE_NAME = "products-service" } }
+    "products-list" = {
+      handler = "products-list-handler.handler"
+      env = merge(local.common_env, {
+        DATABASE_URL = var.database_urls.products
+        SERVICE_NAME = "products-service"
+      })
+    }
+    "products-get" = {
+      handler = "products-get-handler.handler"
+      env = merge(local.common_env, {
+        DATABASE_URL = var.database_urls.products
+        SERVICE_NAME = "products-service"
+      })
+    }
+    "products-create" = {
+      handler = "products-create-handler.handler"
+      env = merge(local.common_env, {
+        DATABASE_URL = var.database_urls.products
+        SERVICE_NAME = "products-service"
+      })
+    }
+    "products-update" = {
+      handler = "products-update-handler.handler"
+      env = merge(local.common_env, {
+        DATABASE_URL = var.database_urls.products
+        SERVICE_NAME = "products-service"
+      })
+    }
+    "products-delete" = {
+      handler = "products-delete-handler.handler"
+      env = merge(local.common_env, {
+        DATABASE_URL = var.database_urls.products
+        SERVICE_NAME = "products-service"
+      })
+    }
 
     # Orders Service
-    "orders-list"          = { handler = "dist/src/lambda/orders-list.handler.handler",              env = { DATABASE_URL = var.database_urls.orders, RABBITMQ_URL = var.rabbitmq_url, SERVICE_NAME = "orders-service" } }
-    "orders-get"           = { handler = "dist/src/lambda/orders-get.handler.handler",               env = { DATABASE_URL = var.database_urls.orders, SERVICE_NAME = "orders-service" } }
-    "orders-create"        = { handler = "dist/src/lambda/orders-create.handler.handler",            env = { DATABASE_URL = var.database_urls.orders, RABBITMQ_URL = var.rabbitmq_url, SERVICE_NAME = "orders-service" } }
-    "orders-update_status" = { handler = "dist/src/lambda/orders-update-status.handler.handler",     env = { DATABASE_URL = var.database_urls.orders, RABBITMQ_URL = var.rabbitmq_url, SERVICE_NAME = "orders-service" } }
-    "orders-assign"        = { handler = "dist/src/lambda/orders-assign-delivery.handler.handler",   env = { DATABASE_URL = var.database_urls.orders, SERVICE_NAME = "orders-service" } }
+    "orders-list" = {
+      handler = "orders-list-handler.handler"
+      env = merge(local.common_env, {
+        DATABASE_URL         = var.database_urls.orders
+        RABBITMQ_URL         = var.rabbitmq_url
+        PRODUCTS_SERVICE_URL = var.api_gateway_url
+        DELIVERY_SERVICE_URL = var.api_gateway_url
+        SERVICE_NAME         = "orders-service"
+      })
+    }
+    "orders-get" = {
+      handler = "orders-get-handler.handler"
+      env = merge(local.common_env, {
+        DATABASE_URL = var.database_urls.orders
+        SERVICE_NAME = "orders-service"
+      })
+    }
+    "orders-create" = {
+      handler = "orders-create-handler.handler"
+      env = merge(local.common_env, {
+        DATABASE_URL         = var.database_urls.orders
+        RABBITMQ_URL         = var.rabbitmq_url
+        PRODUCTS_SERVICE_URL = var.api_gateway_url
+        DELIVERY_SERVICE_URL = var.api_gateway_url
+        SERVICE_NAME         = "orders-service"
+      })
+    }
+    "orders-update_status" = {
+      handler = "orders-update_status-handler.handler"
+      env = merge(local.common_env, {
+        DATABASE_URL         = var.database_urls.orders
+        RABBITMQ_URL         = var.rabbitmq_url
+        SERVICE_NAME         = "orders-service"
+      })
+    }
+    "orders-assign" = {
+      handler = "orders-assign-handler.handler"
+      env = merge(local.common_env, {
+        DATABASE_URL         = var.database_urls.orders
+        DELIVERY_SERVICE_URL = var.api_gateway_url
+        SERVICE_NAME         = "orders-service"
+      })
+    }
 
     # Delivery Service
-    "delivery-list"   = { handler = "dist/src/lambda/delivery-list.handler.handler",   env = { DATABASE_URL = var.database_urls.delivery, RABBITMQ_URL = var.rabbitmq_url, SERVICE_NAME = "delivery-service" } }
-    "delivery-get"    = { handler = "dist/src/lambda/delivery-get.handler.handler",    env = { DATABASE_URL = var.database_urls.delivery, SERVICE_NAME = "delivery-service" } }
-    "delivery-create" = { handler = "dist/src/lambda/delivery-create.handler.handler", env = { DATABASE_URL = var.database_urls.delivery, SERVICE_NAME = "delivery-service" } }
-    "delivery-update" = { handler = "dist/src/lambda/delivery-update.handler.handler", env = { DATABASE_URL = var.database_urls.delivery, SERVICE_NAME = "delivery-service" } }
-    "delivery-delete" = { handler = "dist/src/lambda/delivery-delete.handler.handler", env = { DATABASE_URL = var.database_urls.delivery, SERVICE_NAME = "delivery-service" } }
+    "delivery-list" = {
+      handler = "delivery-list-handler.handler"
+      env = merge(local.common_env, {
+        DATABASE_URL = var.database_urls.delivery
+        RABBITMQ_URL = var.rabbitmq_url
+        SERVICE_NAME = "delivery-service"
+      })
+    }
+    "delivery-get" = {
+      handler = "delivery-get-handler.handler"
+      env = merge(local.common_env, {
+        DATABASE_URL = var.database_urls.delivery
+        SERVICE_NAME = "delivery-service"
+      })
+    }
+    "delivery-create" = {
+      handler = "delivery-create-handler.handler"
+      env = merge(local.common_env, {
+        DATABASE_URL = var.database_urls.delivery
+        SERVICE_NAME = "delivery-service"
+      })
+    }
+    "delivery-update" = {
+      handler = "delivery-update-handler.handler"
+      env = merge(local.common_env, {
+        DATABASE_URL = var.database_urls.delivery
+        SERVICE_NAME = "delivery-service"
+      })
+    }
+    "delivery-delete" = {
+      handler = "delivery-delete-handler.handler"
+      env = merge(local.common_env, {
+        DATABASE_URL = var.database_urls.delivery
+        SERVICE_NAME = "delivery-service"
+      })
+    }
 
     # Optimization Service (stateless)
-    "optimization-execute" = { handler = "dist/src/lambda/optimization-execute.handler.handler", env = { SERVICE_NAME = "optimization-service" } }
+    "optimization-execute" = {
+      handler = "optimization-execute-handler.handler"
+      env = merge(local.common_env, {
+        ORDERS_SERVICE_URL   = var.api_gateway_url
+        DELIVERY_SERVICE_URL = var.api_gateway_url
+        SERVICE_NAME         = "optimization-service"
+      })
+    }
 
     # Reports Service
-    "reports-revenue"       = { handler = "dist/src/lambda/reports-revenue.handler.handler",           env = { DATABASE_URL = var.database_urls.reports, SERVICE_NAME = "reports-service" } }
-    "reports-orders_status" = { handler = "dist/src/lambda/reports-orders-by-status.handler.handler",  env = { DATABASE_URL = var.database_urls.reports, SERVICE_NAME = "reports-service" } }
-    "reports-top_products"  = { handler = "dist/src/lambda/reports-top-products.handler.handler",      env = { DATABASE_URL = var.database_urls.reports, SERVICE_NAME = "reports-service" } }
-    "reports-delivery_time" = { handler = "dist/src/lambda/reports-avg-delivery.handler.handler",      env = { DATABASE_URL = var.database_urls.reports, SERVICE_NAME = "reports-service" } }
-    "reports-ai_insights"   = { handler = "dist/src/lambda/reports-ai-insights.handler.handler",       env = { DATABASE_URL = var.database_urls.reports, BEDROCK_MODEL_ID = var.bedrock_model_id, SERVICE_NAME = "reports-service" } }
+    "reports-revenue" = {
+      handler = "reports-revenue-handler.handler"
+      env = merge(local.common_env, {
+        DATABASE_URL = var.database_urls.reports
+        SERVICE_NAME = "reports-service"
+      })
+    }
+    "reports-orders_status" = {
+      handler = "reports-orders_status-handler.handler"
+      env = merge(local.common_env, {
+        DATABASE_URL = var.database_urls.reports
+        SERVICE_NAME = "reports-service"
+      })
+    }
+    "reports-top_products" = {
+      handler = "reports-top_products-handler.handler"
+      env = merge(local.common_env, {
+        DATABASE_URL = var.database_urls.reports
+        SERVICE_NAME = "reports-service"
+      })
+    }
+    "reports-delivery_time" = {
+      handler = "reports-delivery_time-handler.handler"
+      env = merge(local.common_env, {
+        DATABASE_URL = var.database_urls.reports
+        SERVICE_NAME = "reports-service"
+      })
+    }
+    "reports-ai_insights" = {
+      handler = "reports-ai_insights-handler.handler"
+      env = merge(local.common_env, {
+        DATABASE_URL     = var.database_urls.reports
+        BEDROCK_MODEL_ID = var.bedrock_model_id
+        SERVICE_NAME     = "reports-service"
+      })
+    }
   }
 }
 
@@ -120,7 +280,7 @@ resource "aws_lambda_function" "handlers" {
 
   function_name = "${var.project_name}-${each.key}"
   role          = aws_iam_role.lambda_exec.arn
-  handler       = "dist/src/lambda/${each.value.handler}"
+  handler       = each.value.handler
   runtime       = "nodejs20.x"
   timeout       = 30
   memory_size   = 256
@@ -134,15 +294,15 @@ resource "aws_lambda_function" "handlers" {
   }
 
   environment {
-    variables = merge(
-      {
-        NODE_ENV          = "production"
-        AWS_REGION_CUSTOM = var.aws_region
-        CORS_ORIGIN       = var.cors_origin
-        JWT_SECRET_ARN    = var.jwt_secret_arn
-      },
-      each.value.env
-    )
+    variables = each.value.env
+  }
+
+  # Ignore code changes (managed by deploy script, not Terraform)
+  lifecycle {
+    ignore_changes = [
+      filename,
+      source_code_hash,
+    ]
   }
 
   depends_on = [

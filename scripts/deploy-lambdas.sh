@@ -2,18 +2,22 @@
 set -e
 
 # ============================================
-# FastMeals — Deploy All Lambda Functions
-# Handles: index.js wrapper, Prisma Linux engine,
-#          S3 upload, correct handler paths
+# FastMeals — Deploy Lambda Functions v3
+# Usage:
+#   ./scripts/deploy-lambdas.sh              # Interactive menu
+#   ./scripts/deploy-lambdas.sh all          # Deploy all
+#   ./scripts/deploy-lambdas.sh auth         # Deploy auth only
+#   ./scripts/deploy-lambdas.sh products     # Deploy products only
+#   ./scripts/deploy-lambdas.sh orders       # Deploy orders only
+#   ./scripts/deploy-lambdas.sh delivery     # Deploy delivery only
+#   ./scripts/deploy-lambdas.sh optimization # Deploy optimization only
+#   ./scripts/deploy-lambdas.sh reports      # Deploy reports only
+#   ./scripts/deploy-lambdas.sh auth orders  # Deploy multiple
 # ============================================
 
 REGION="us-east-1"
 PROJECT="fastmeals"
 BUCKET="fastmeals-terraform-state-us-east-1"
-
-echo "🚀 FastMeals — Deploy All Lambda Functions"
-echo "============================================"
-echo ""
 
 TOTAL=0
 SUCCESS=0
@@ -28,46 +32,37 @@ deploy_service() {
   echo "📦 [$SERVICE] Installing + Building..."
   cd backend/services/$SERVICE
 
-  # Install
   npm ci --silent 2>/dev/null
 
-  # Generate Prisma if exists
   if [ -f prisma/schema.prisma ]; then
     DATABASE_URL="postgresql://dummy:dummy@localhost:5432/dummy" npx prisma generate --no-hints 2>/dev/null
   fi
 
-  # Build
   npm run build 2>/dev/null
 
-  # Package
   echo "  📁 Packaging..."
   rm -rf lambda-package lambda-package.zip
   mkdir -p lambda-package
 
-  # Copy compiled code
   cp -r dist lambda-package/
   cp package.json lambda-package/
   cp package-lock.json lambda-package/ 2>/dev/null || true
 
-  # Install production deps only
   cd lambda-package
   npm ci --omit=dev --silent 2>/dev/null
 
-  # Copy Prisma engine for Lambda (Linux)
   if [ -d ../generated ]; then
     cp -r ../generated .
-    # Copy Linux engine to dist/generated/prisma/ (where Prisma looks at runtime)
     if [ -d dist/generated/prisma ]; then
       find ../generated -name "libquery_engine-rhel-openssl-3.0.x.so.node" -exec cp {} dist/generated/prisma/ \; 2>/dev/null
     fi
+    if [ -d dist/src/generated/prisma ]; then
+      find ../generated -name "libquery_engine-rhel-openssl-3.0.x.so.node" -exec cp {} dist/src/generated/prisma/ \; 2>/dev/null
+    fi
   fi
 
-  # Remove Mac/Windows engines (save space)
   find . -name "libquery_engine-darwin*" -delete 2>/dev/null || true
   find . -name "libquery_engine-windows*" -delete 2>/dev/null || true
-  find . -name "query_engine-windows*" -delete 2>/dev/null || true
-
-  # Remove unnecessary files (save space)
   find . -name "*.d.ts" -delete 2>/dev/null || true
   find . -name "*.d.ts.map" -delete 2>/dev/null || true
   find . -name "*.js.map" -delete 2>/dev/null || true
@@ -75,16 +70,12 @@ deploy_service() {
   find . -name "LICENSE" -delete 2>/dev/null || true
   find . -name "README.md" -delete 2>/dev/null || true
 
-  # Create index.js wrappers for each function
+  local LAMBDA_PATH="dist/src/lambda"
+  if [ ! -d "$LAMBDA_PATH" ] && [ -d "dist/lambda" ]; then
+    LAMBDA_PATH="dist/lambda"
+  fi
+
   for FN in "${FUNCTIONS[@]}"; do
-    # Convert function name to file name
-    # auth-login -> auth-login
-    # auth-refresh_token -> auth-refresh-token
-    # orders-update_status -> orders-update-status
-    # orders-assign -> orders-assign-delivery
-    # reports-orders_status -> reports-orders-by-status
-    # reports-delivery_time -> reports-avg-delivery
-    # reports-ai_insights -> reports-ai-insights
     local FILE_NAME=""
     case "$FN" in
       "auth-login")            FILE_NAME="auth-login" ;;
@@ -114,29 +105,25 @@ deploy_service() {
     esac
 
     cat > "${FN}-handler.js" << WRAPPER
-const { handler } = require('./dist/src/lambda/${FILE_NAME}.handler');
+const { handler } = require('./${LAMBDA_PATH}/${FILE_NAME}.handler');
 module.exports = { handler };
 WRAPPER
   done
 
-  # Zip
   zip -r ../lambda-package.zip . -x "*.ts" "*.map" > /dev/null
   cd ..
 
   local SIZE=$(du -sh lambda-package.zip | cut -f1)
   echo "  📦 Size: $SIZE"
 
-  # Upload to S3
   local S3_KEY="lambda-packages/${SERVICE}.zip"
   echo "  ☁️  Uploading to S3..."
   aws s3 cp lambda-package.zip "s3://${BUCKET}/${S3_KEY}" --region $REGION > /dev/null
 
-  # Deploy each function
   for FN in "${FUNCTIONS[@]}"; do
     TOTAL=$((TOTAL + 1))
     echo "  🚀 Deploying ${PROJECT}-${FN}..."
 
-    # Update code from S3
     aws lambda update-function-code \
       --function-name "${PROJECT}-${FN}" \
       --s3-bucket "${BUCKET}" \
@@ -144,24 +131,20 @@ WRAPPER
       --region "$REGION" \
       --no-cli-pager > /dev/null 2>&1
 
-    # Wait for code update
     aws lambda wait function-updated \
       --function-name "${PROJECT}-${FN}" \
       --region "$REGION" 2>/dev/null
 
-    # Update handler to use wrapper
     aws lambda update-function-configuration \
       --function-name "${PROJECT}-${FN}" \
       --handler "${FN}-handler.handler" \
       --region "$REGION" \
       --no-cli-pager > /dev/null 2>&1
 
-    # Wait for config update
     aws lambda wait function-updated \
       --function-name "${PROJECT}-${FN}" \
       --region "$REGION" 2>/dev/null
 
-    # Verify
     local STATUS=$(aws lambda get-function-configuration \
       --function-name "${PROJECT}-${FN}" \
       --query "LastUpdateStatus" \
@@ -177,32 +160,90 @@ WRAPPER
     fi
   done
 
-  # Cleanup
   rm -rf lambda-package lambda-package.zip
   cd ../../..
 }
 
 # ============================================
-# Deploy all services
+# Service definitions
 # ============================================
 
-deploy_service "auth-service" \
-  "auth-login" "auth-refresh_token"
+deploy_auth()         { deploy_service "auth-service" "auth-login" "auth-refresh_token"; }
+deploy_products()     { deploy_service "products-service" "products-list" "products-get" "products-create" "products-update" "products-delete"; }
+deploy_orders()       { deploy_service "orders-service" "orders-list" "orders-get" "orders-create" "orders-update_status" "orders-assign"; }
+deploy_delivery()     { deploy_service "delivery-service" "delivery-list" "delivery-get" "delivery-create" "delivery-update" "delivery-delete"; }
+deploy_optimization() { deploy_service "optimization-service" "optimization-execute"; }
+deploy_reports()      { deploy_service "reports-service" "reports-revenue" "reports-orders_status" "reports-top_products" "reports-delivery_time" "reports-ai_insights"; }
 
-deploy_service "products-service" \
-  "products-list" "products-get" "products-create" "products-update" "products-delete"
+deploy_all() {
+  deploy_auth
+  deploy_products
+  deploy_orders
+  deploy_delivery
+  deploy_optimization
+  deploy_reports
+}
 
-deploy_service "orders-service" \
-  "orders-list" "orders-get" "orders-create" "orders-update_status" "orders-assign"
+# ============================================
+# Interactive menu or CLI arguments
+# ============================================
 
-deploy_service "delivery-service" \
-  "delivery-list" "delivery-get" "delivery-create" "delivery-update" "delivery-delete"
+show_menu() {
+  echo "🚀 FastMeals — Deploy Lambda Functions"
+  echo "======================================="
+  echo ""
+  echo "Qual serviço deseja deployar?"
+  echo ""
+  echo "  1) auth-service        (2 functions)"
+  echo "  2) products-service    (5 functions)"
+  echo "  3) orders-service      (5 functions)"
+  echo "  4) delivery-service    (5 functions)"
+  echo "  5) optimization-service (1 function)"
+  echo "  6) reports-service     (5 functions)"
+  echo "  7) Todos               (23 functions)"
+  echo "  0) Sair"
+  echo ""
+  read -p "Escolha (0-7, ou múltiplos separados por espaço): " CHOICES
 
-deploy_service "optimization-service" \
-  "optimization-execute"
+  for choice in $CHOICES; do
+    case $choice in
+      1) deploy_auth ;;
+      2) deploy_products ;;
+      3) deploy_orders ;;
+      4) deploy_delivery ;;
+      5) deploy_optimization ;;
+      6) deploy_reports ;;
+      7) deploy_all ;;
+      0) echo "👋 Bye!"; exit 0 ;;
+      *) echo "❌ Opção inválida: $choice" ;;
+    esac
+  done
+}
 
-deploy_service "reports-service" \
-  "reports-revenue" "reports-orders_status" "reports-top_products" "reports-delivery_time" "reports-ai_insights"
+# ============================================
+# Main
+# ============================================
+
+if [ $# -eq 0 ]; then
+  # No arguments — show interactive menu
+  show_menu
+else
+  echo "🚀 FastMeals — Deploy Lambda Functions"
+  echo "======================================="
+
+  for arg in "$@"; do
+    case $arg in
+      all)          deploy_all ;;
+      auth)         deploy_auth ;;
+      products)     deploy_products ;;
+      orders)       deploy_orders ;;
+      delivery)     deploy_delivery ;;
+      optimization) deploy_optimization ;;
+      reports)      deploy_reports ;;
+      *)            echo "❌ Serviço desconhecido: $arg. Use: auth|products|orders|delivery|optimization|reports|all" ;;
+    esac
+  done
+fi
 
 echo ""
 echo "============================================"
@@ -212,11 +253,7 @@ echo "   Success: $SUCCESS"
 echo "   Failed:  $FAILED"
 echo "============================================"
 
-if [ $FAILED -eq 0 ]; then
+if [ $FAILED -eq 0 ] && [ $TOTAL -gt 0 ]; then
   echo ""
-  echo "🎉 All functions deployed successfully!"
-  echo ""
-  echo "Test with:"
-  echo "  curl https://j7193c8hbe.execute-api.us-east-1.amazonaws.com/api/products"
-  echo "  curl -X POST https://j7193c8hbe.execute-api.us-east-1.amazonaws.com/api/auth/login -H 'Content-Type: application/json' -d '{\"email\":\"admin@fastmeals.com\",\"password\":\"Admin@123\"}'"
+  echo "🎉 Deploy complete!"
 fi
