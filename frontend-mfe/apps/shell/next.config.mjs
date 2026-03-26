@@ -1,4 +1,8 @@
 import { NextFederationPlugin } from '@module-federation/nextjs-mf';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const ORDERS_URL = process.env.ORDERS_URL || 'http://localhost:3001';
 const PRODUCTS_URL = process.env.PRODUCTS_URL || 'http://localhost:3002';
@@ -8,6 +12,8 @@ const REPORTS_URL = process.env.REPORTS_URL || 'http://localhost:3004';
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  output: 'standalone',
+  outputFileTracingRoot: path.join(__dirname, '../../'),
   transpilePackages: ['@fastmeals/ui', '@fastmeals/shared'],
   webpack(config, options) {
     const { isServer } = options;
