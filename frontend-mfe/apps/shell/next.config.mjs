@@ -13,7 +13,9 @@ const REPORTS_URL = process.env.REPORTS_URL || 'http://localhost:3004';
 const nextConfig = {
   reactStrictMode: true,
   output: 'standalone',
-  outputFileTracingRoot: path.join(__dirname, '../../'),
+  experimental: {
+    outputFileTracingRoot: path.join(__dirname, '../../'),
+  },
   transpilePackages: ['@fastmeals/ui', '@fastmeals/shared'],
   webpack(config, options) {
     const { isServer } = options;
