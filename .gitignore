@@ -87,3 +87,4 @@ backend/services/*/*.zip
 tmp/
 temp/
 *.tgz
+**/lambda-package/

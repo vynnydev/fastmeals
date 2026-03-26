@@ -8,7 +8,7 @@ locals {
   mfe_apps = {
     shell = {
       name      = "${var.project_name}-mfe-shell"
-      app_root  = "frontend-mfe/shell"
+      app_root  = "frontend/microfrontends/shell"
       port      = 5000
       subdomain = "mfe"
       env_vars = {
@@ -21,7 +21,7 @@ locals {
     }
     orders = {
       name      = "${var.project_name}-mfe-orders"
-      app_root  = "frontend-mfe/remote-orders"
+      app_root  = "frontend/microfrontends/remote-orders"
       port      = 5001
       subdomain = "orders-mfe"
       env_vars = {
@@ -30,7 +30,7 @@ locals {
     }
     products = {
       name      = "${var.project_name}-mfe-products"
-      app_root  = "frontend-mfe/remote-products"
+      app_root  = "frontend/microfrontends/remote-products"
       port      = 5002
       subdomain = "products-mfe"
       env_vars = {
@@ -39,7 +39,7 @@ locals {
     }
     delivery = {
       name      = "${var.project_name}-mfe-delivery"
-      app_root  = "frontend-mfe/remote-delivery"
+      app_root  = "frontend/microfrontends/remote-delivery"
       port      = 5003
       subdomain = "delivery-mfe"
       env_vars = {
@@ -48,7 +48,7 @@ locals {
     }
     reports = {
       name      = "${var.project_name}-mfe-reports"
-      app_root  = "frontend-mfe/remote-reports"
+      app_root  = "frontend/microfrontends/remote-reports"
       port      = 5004
       subdomain = "reports-mfe"
       env_vars = {
@@ -69,18 +69,29 @@ resource "aws_amplify_app" "mfe" {
 
   platform = "WEB"
 
+  # CORS headers para os remotes
+  custom_headers = <<-HEADERS
+    customHeaders:
+      - pattern: '**/*'
+        headers:
+          - key: 'Access-Control-Allow-Origin'
+            value: '*'
+          - key: 'Access-Control-Allow-Methods'
+            value: 'GET, OPTIONS'
+          - key: 'Access-Control-Allow-Headers'
+            value: 'Content-Type'
+  HEADERS
+
   build_spec = <<-YAML
     version: 1
     frontend:
       phases:
         preBuild:
           commands:
-            - cd ${each.value.app_root}
-            - npm install
+            - cd $CODEBUILD_SRC_DIR/fastmeals/${each.value.app_root} && npm install
         build:
           commands:
-            - cd ${each.value.app_root}
-            - npm run build
+            - cd $CODEBUILD_SRC_DIR/fastmeals/${each.value.app_root} && npm run build
       artifacts:
         baseDirectory: ${each.value.app_root}/dist
         files:
@@ -92,7 +103,6 @@ resource "aws_amplify_app" "mfe" {
 
   environment_variables = each.value.env_vars
 
-  # SPA: redireciona todas as rotas para index.html
   custom_rule {
     source = "</^[^.]+$|\\.(?!(css|gif|ico|jpg|js|png|txt|svg|woff|woff2|ttf|map|json)$)([^.]+$)/>"
     status = "200"
