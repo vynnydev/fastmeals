@@ -155,3 +155,15 @@ module "dns" {
   alb_dns_name = module.frontend.alb_dns_name
   alb_zone_id  = module.frontend.alb_zone_id
 }
+
+module "amplify_mfe" {
+  source = "../../modules/amplify-mfe"
+
+  project_name        = var.project_name
+  environment         = "production"
+  repository_url      = "https://github.com/vynnydev/fastmeals"
+  github_access_token = var.github_access_token
+  branch_name         = "improvements"
+  api_gateway_url     = var.api_gateway_url
+  domain_name         = var.domain_name
+}

@@ -126,3 +126,8 @@ variable "api_gateway_url" {
   type        = string
   default     = "https://t2fwiydcrc.execute-api.us-east-1.amazonaws.com"
 }
+
+variable "github_access_token" {
+  type      = string
+  sensitive = true
+}

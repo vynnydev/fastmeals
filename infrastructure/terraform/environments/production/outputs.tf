@@ -78,3 +78,12 @@ output "domain_url" {
 output "certificate_status" {
   value = module.dns.certificate_status
 }
+
+# Amplify MFE
+output "mfe_shell_url" {
+  value = module.amplify_mfe.shell_url
+}
+
+output "mfe_remote_urls" {
+  value = module.amplify_mfe.remote_entry_urls
+}
