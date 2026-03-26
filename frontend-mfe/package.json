@@ -1,0 +1,29 @@
+{
+  "name": "fastmeals-mfe",
+  "private": true,
+  "packageManager": "pnpm@9.15.0",
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "dev:shell": "turbo run dev --filter=shell",
+    "dev:orders": "turbo run dev --filter=orders",
+    "dev:products": "turbo run dev --filter=products",
+    "dev:delivery": "turbo run dev --filter=delivery",
+    "dev:reports": "turbo run dev --filter=reports",
+    "build:shell": "turbo run build --filter=shell",
+    "clean": "turbo run clean && rm -rf node_modules"
+  },
+  "devDependencies": {
+    "turbo": "^2.5.0",
+    "typescript": "^5.7.0"
+  },
+    "pnpm": {
+    "overrides": {
+      "react": "18.3.1",
+      "react-dom": "18.3.1",
+      "@types/react": "18.3.12",
+      "@types/react-dom": "18.3.1"
+    }
+  }
+}
