@@ -121,7 +121,7 @@ module "api_gateway" {
   source = "../../modules/api-gateway"
 
   project_name     = var.project_name
-  cors_origins     = ["https://${var.domain_name}", "http://localhost:3000"]
+  cors_origins = ["https://${var.domain_name}", "https://mfe.${var.domain_name}", "http://localhost:5000", "http://localhost:3000"]
   lambda_functions = module.lambda.functions_for_api_gw
 }
 
