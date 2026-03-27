@@ -1,5 +1,3 @@
-import { useMemo } from 'react'
-
 interface User {
   id: string
   name?: string
@@ -9,16 +7,25 @@ interface User {
 
 function getUser(): User | null {
   try {
+    // Tenta ler do localStorage direto (se o shell salvar)
     const raw = localStorage.getItem('fastmeals_user')
-    if (!raw) return null
-    return JSON.parse(raw)
+    if (raw) return JSON.parse(raw)
+
+    // Fallback: lê do Zustand persist do shell
+    const persisted = localStorage.getItem('fastmeals-auth')
+    if (persisted) {
+      const parsed = JSON.parse(persisted)
+      if (parsed.state?.user) return parsed.state.user
+    }
+
+    return null
   } catch {
     return null
   }
 }
 
 export function useAuth() {
-  const user = useMemo(() => getUser(), [])
+  const user = getUser()
   return { user, isAuthenticated: !!user }
 }
 

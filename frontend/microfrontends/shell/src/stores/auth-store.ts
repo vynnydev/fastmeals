@@ -34,6 +34,7 @@ export const useAuthStore = create<AuthState>()(
           const token = response.accessToken
 
           localStorage.setItem('fastmeals_token', token)
+          localStorage.setItem('fastmeals_user', JSON.stringify(response.user))
 
           set({
             user: response.user,
@@ -57,6 +58,7 @@ export const useAuthStore = create<AuthState>()(
 
       logout: async () => {
         localStorage.removeItem('fastmeals_token')
+        localStorage.removeItem('fastmeals_user')
         localStorage.removeItem('fastmeals-auth')
         set({
           user: null,
