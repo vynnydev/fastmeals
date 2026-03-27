@@ -11,6 +11,7 @@ import { cn } from './lib/utils'
 
 // Remote que já foi migrado
 const OrdersPage = React.lazy(() => import('remoteOrders/OrdersPage'))
+const ProductsPage = React.lazy(() => import('remoteProducts/ProductsPage'))
 
 // Remotes ainda não migrados — placeholder local
 function ComingSoon({ name }: { name: string }) {
@@ -22,7 +23,6 @@ function ComingSoon({ name }: { name: string }) {
   )
 }
 
-const ProductsPage = () => <ComingSoon name="Produtos" />
 const DeliveryPage = () => <ComingSoon name="Entregadores" />
 const ReportsPage = () => <ComingSoon name="Relatórios" />
 
@@ -88,7 +88,7 @@ function AuthenticatedLayout() {
             <Routes>
               <Route path="/" element={<Dashboard />} />
               <Route path="/orders" element={<RemotePage name="Orders"><OrdersPage /></RemotePage>} />
-              <Route path="/products" element={<ProductsPage />} />
+              <Route path="/products" element={<RemotePage name="Products"><ProductsPage /></RemotePage>} />
               <Route path="/delivery" element={<DeliveryPage />} />
               <Route path="/reports" element={<ReportsPage />} />
             </Routes>

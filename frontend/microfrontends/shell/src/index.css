@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @source "../../remote-orders/src";
+@source "../../remote-products/src";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 @import "@fontsource-variable/geist";
