@@ -3,7 +3,7 @@ import type { Order, Product, DeliveryPerson, ApiError } from '@/types'
 
 // Em dev, o Vite proxy redireciona /api/* para o API Gateway
 // Em prod, usa a URL direta do API Gateway
-const API_BASE_URL = import.meta.env.VITE_API_URL || ''
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://t2fwiydcrc.execute-api.us-east-1.amazonaws.com'
 
 const api: AxiosInstance = axios.create({
   baseURL: API_BASE_URL,

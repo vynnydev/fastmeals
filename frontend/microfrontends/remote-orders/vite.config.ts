@@ -7,7 +7,6 @@ import path from 'path'
 export default defineConfig({
   plugins: [
     react() as any,
-    tailwindcss() as any,
     federation({
       name: 'remoteOrders',
       filename: 'remoteEntry.js',
