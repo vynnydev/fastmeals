@@ -94,11 +94,11 @@ export default function ReportsPage() {
   }
 
   // Revenue metrics (reports-service first, then orders fallback)
-  const totalRevenue = revenueData?.totalRevenue ??
-    allOrders.filter((o: any) => o.status === 'delivered').reduce((sum: number, o: any) => sum + (o.totalAmount || o.total || 0), 0)
+  const fallbackRevenue = allOrders.filter((o: any) => o.status === 'delivered').reduce((sum: number, o: any) => sum + (o.totalAmount || o.total || 0), 0)
+  const totalRevenue = (revenueData?.totalRevenue > 0 ? revenueData.totalRevenue : null) ?? fallbackRevenue
 
-  const totalOrders = revenueData?.totalOrders ?? allOrders.length
-  const avgOrderValue = revenueData?.averageOrderValue ?? (totalRevenue > 0 && totalOrders > 0 ? totalRevenue / totalOrders : 0)
+  const totalOrders = (revenueData?.totalOrders > 0 ? revenueData.totalOrders : null) ?? allOrders.length
+  const avgOrderValue = totalRevenue > 0 && totalOrders > 0 ? totalRevenue / totalOrders : 0
 
   // Daily revenue chart
   const dailyRevenueChart = (revenueData?.dailyRevenue || []).map((d: any) => ({
@@ -109,7 +109,8 @@ export default function ReportsPage() {
 
   // Orders by status
   const ordersByStatus = useMemo(() => {
-    if (ordersByStatusData?.data?.length > 0) {
+    const hasReportData = ordersByStatusData?.data?.some((s: any) => s.count > 0)
+    if (hasReportData) {
       return ordersByStatusData.data.filter((s: any) => s.count > 0)
     }
     const counts: Record<string, number> = {}
@@ -117,7 +118,7 @@ export default function ReportsPage() {
     return Object.entries(counts).map(([status, count]) => ({ status, count }))
   }, [ordersByStatusData, allOrders])
 
-  const totalOrdersFromStatus = ordersByStatusData?.total ?? allOrders.length
+  const totalOrdersFromStatus = (ordersByStatusData?.total > 0 ? ordersByStatusData.total : null) ?? allOrders.length
 
   // Top products
   const topProducts = useMemo(() => {
