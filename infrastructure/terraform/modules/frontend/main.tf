@@ -1,68 +1,14 @@
 # ============================================
 # FastMeals — Frontend Module (Amplify MFE)
-# 5 independent SPA apps (shell + 4 remotes)
-# Replaces ECS Fargate + ALB
+# Single Amplify app that builds all 5 microfrontends
+# Shell + 4 remotes consolidated in one build
+# ============================================
+# NOTE: When Amplify quota is increased (>25 apps),
+# this can be split into 5 independent apps.
 # ============================================
 
-locals {
-  mfe_apps = {
-    shell = {
-      name      = "${var.project_name}-mfe-shell"
-      app_root  = "frontend/microfrontends/shell"
-      port      = 5000
-      subdomain = ""  # root domain: fastmeals.com.br
-      env_vars = {
-        VITE_API_URL      = var.api_gateway_url
-        VITE_ORDERS_URL   = var.domain_name != "" ? "https://orders-mfe.${var.domain_name}/assets/remoteEntry.js" : ""
-        # VITE_PRODUCTS_URL = var.domain_name != "" ? "https://products-mfe.${var.domain_name}/assets/remoteEntry.js" : ""
-        # VITE_DELIVERY_URL = var.domain_name != "" ? "https://delivery-mfe.${var.domain_name}/assets/remoteEntry.js" : ""
-        # VITE_REPORTS_URL  = var.domain_name != "" ? "https://reports-mfe.${var.domain_name}/assets/remoteEntry.js" : ""
-      }
-    }
-    orders = {
-      name      = "${var.project_name}-mfe-orders"
-      app_root  = "frontend/microfrontends/remote-orders"
-      port      = 5001
-      subdomain = "orders-mfe"
-      env_vars = {
-        VITE_API_URL = var.api_gateway_url
-      }
-    }
-    # products = {
-    #   name      = "${var.project_name}-mfe-products"
-    #   app_root  = "frontend/microfrontends/remote-products"
-    #   port      = 5002
-    #   subdomain = "products-mfe"
-    #   env_vars = {
-    #     VITE_API_URL = var.api_gateway_url
-    #   }
-    # }
-    # delivery = {
-    #   name      = "${var.project_name}-mfe-delivery"
-    #   app_root  = "frontend/microfrontends/remote-delivery"
-    #   port      = 5003
-    #   subdomain = "delivery-mfe"
-    #   env_vars = {
-    #     VITE_API_URL = var.api_gateway_url
-    #   }
-    # }
-    # reports = {
-    #   name      = "${var.project_name}-mfe-reports"
-    #   app_root  = "frontend/microfrontends/remote-reports"
-    #   port      = 5004
-    #   subdomain = "reports-mfe"
-    #   env_vars = {
-    #     VITE_API_URL = var.api_gateway_url
-    #   }
-    # }
-  }
-}
-
-# --- Amplify Apps (one per microfrontend) ---
-resource "aws_amplify_app" "mfe" {
-  for_each = local.mfe_apps
-
-  name       = each.value.name
+resource "aws_amplify_app" "frontend" {
+  name       = "${var.project_name}-mfe-shell"
   repository = var.repository_url
 
   access_token = var.github_access_token
@@ -81,26 +27,54 @@ resource "aws_amplify_app" "mfe" {
             value: 'Content-Type'
   HEADERS
 
+  # Consolidated build: builds all 4 remotes + shell,
+  # then copies remote assets into shell/dist/remotes/
   build_spec = <<-YAML
     version: 1
     frontend:
       phases:
         preBuild:
           commands:
-            - cd ${each.value.app_root} && npm install
+            - cd $CODEBUILD_SRC_DIR/fastmeals/frontend/microfrontends/remote-orders && npm install
+            - cd $CODEBUILD_SRC_DIR/fastmeals/frontend/microfrontends/remote-products && npm install
+            - cd $CODEBUILD_SRC_DIR/fastmeals/frontend/microfrontends/remote-delivery && npm install
+            - cd $CODEBUILD_SRC_DIR/fastmeals/frontend/microfrontends/remote-reports && npm install
+            - cd $CODEBUILD_SRC_DIR/fastmeals/frontend/microfrontends/shell && npm install
         build:
           commands:
-            - cd ${each.value.app_root} && npm run build
+            - cd $CODEBUILD_SRC_DIR/fastmeals/frontend/microfrontends/remote-orders && npm run build
+            - cd $CODEBUILD_SRC_DIR/fastmeals/frontend/microfrontends/remote-products && npm run build
+            - cd $CODEBUILD_SRC_DIR/fastmeals/frontend/microfrontends/remote-delivery && npm run build
+            - cd $CODEBUILD_SRC_DIR/fastmeals/frontend/microfrontends/remote-reports && npm run build
+            - cd $CODEBUILD_SRC_DIR/fastmeals/frontend/microfrontends/shell && npm run build
+            - mkdir -p $CODEBUILD_SRC_DIR/fastmeals/frontend/microfrontends/shell/dist/remotes/orders/assets
+            - mkdir -p $CODEBUILD_SRC_DIR/fastmeals/frontend/microfrontends/shell/dist/remotes/products/assets
+            - mkdir -p $CODEBUILD_SRC_DIR/fastmeals/frontend/microfrontends/shell/dist/remotes/delivery/assets
+            - mkdir -p $CODEBUILD_SRC_DIR/fastmeals/frontend/microfrontends/shell/dist/remotes/reports/assets
+            - cp -r $CODEBUILD_SRC_DIR/fastmeals/frontend/microfrontends/remote-orders/dist/assets/* $CODEBUILD_SRC_DIR/fastmeals/frontend/microfrontends/shell/dist/remotes/orders/assets/
+            - cp -r $CODEBUILD_SRC_DIR/fastmeals/frontend/microfrontends/remote-products/dist/assets/* $CODEBUILD_SRC_DIR/fastmeals/frontend/microfrontends/shell/dist/remotes/products/assets/
+            - cp -r $CODEBUILD_SRC_DIR/fastmeals/frontend/microfrontends/remote-delivery/dist/assets/* $CODEBUILD_SRC_DIR/fastmeals/frontend/microfrontends/shell/dist/remotes/delivery/assets/
+            - cp -r $CODEBUILD_SRC_DIR/fastmeals/frontend/microfrontends/remote-reports/dist/assets/* $CODEBUILD_SRC_DIR/fastmeals/frontend/microfrontends/shell/dist/remotes/reports/assets/
       artifacts:
-        baseDirectory: ${each.value.app_root}/dist
+        baseDirectory: frontend/microfrontends/shell/dist
         files:
           - '**/*'
       cache:
         paths:
-          - ${each.value.app_root}/node_modules/**/*
+          - frontend/microfrontends/shell/node_modules/**/*
+          - frontend/microfrontends/remote-orders/node_modules/**/*
+          - frontend/microfrontends/remote-products/node_modules/**/*
+          - frontend/microfrontends/remote-delivery/node_modules/**/*
+          - frontend/microfrontends/remote-reports/node_modules/**/*
   YAML
 
-  environment_variables = each.value.env_vars
+  environment_variables = {
+    VITE_API_URL      = var.api_gateway_url
+    VITE_ORDERS_URL   = "/remotes/orders/assets/remoteEntry.js"
+    VITE_PRODUCTS_URL = "/remotes/products/assets/remoteEntry.js"
+    VITE_DELIVERY_URL = "/remotes/delivery/assets/remoteEntry.js"
+    VITE_REPORTS_URL  = "/remotes/reports/assets/remoteEntry.js"
+  }
 
   custom_rule {
     source = "</^[^.]+$|\\.(?!(css|gif|ico|jpg|js|png|txt|svg|woff|woff2|ttf|map|json)$)([^.]+$)/>"
@@ -109,43 +83,45 @@ resource "aws_amplify_app" "mfe" {
   }
 
   tags = {
-    Name        = each.value.name
+    Name        = "${var.project_name}-mfe-shell"
     Environment = var.environment
     ManagedBy   = "terraform"
-    MFERole     = each.key == "shell" ? "host" : "remote"
+    MFERole     = "consolidated-host"
   }
 }
 
 # --- Branch deployment ---
-resource "aws_amplify_branch" "mfe" {
-  for_each = local.mfe_apps
-
-  app_id      = aws_amplify_app.mfe[each.key].id
+resource "aws_amplify_branch" "frontend" {
+  app_id      = aws_amplify_app.frontend.id
   branch_name = var.branch_name
 
   framework = "React"
   stage     = var.branch_name == "main" ? "PRODUCTION" : "DEVELOPMENT"
 
-  environment_variables = each.value.env_vars
+  environment_variables = {
+    VITE_API_URL      = var.api_gateway_url
+    VITE_ORDERS_URL   = "/remotes/orders/assets/remoteEntry.js"
+    VITE_PRODUCTS_URL = "/remotes/products/assets/remoteEntry.js"
+    VITE_DELIVERY_URL = "/remotes/delivery/assets/remoteEntry.js"
+    VITE_REPORTS_URL  = "/remotes/reports/assets/remoteEntry.js"
+  }
 
   tags = {
-    Name   = "${each.value.name}-${var.branch_name}"
+    Name   = "${var.project_name}-mfe-${var.branch_name}"
     Branch = var.branch_name
   }
 }
 
 # --- Domain Association ---
-# Shell gets root domain (fastmeals.com.br)
-# Remotes get subdomains (orders-mfe.fastmeals.com.br, etc.)
-resource "aws_amplify_domain_association" "mfe" {
-  for_each = var.domain_name != "" ? local.mfe_apps : {}
+resource "aws_amplify_domain_association" "frontend" {
+  count = var.domain_name != "" ? 1 : 0
 
-  app_id      = aws_amplify_app.mfe[each.key].id
+  app_id      = aws_amplify_app.frontend.id
   domain_name = var.domain_name
 
   sub_domain {
-    branch_name = aws_amplify_branch.mfe[each.key].branch_name
-    prefix      = each.value.subdomain
+    branch_name = aws_amplify_branch.frontend.branch_name
+    prefix      = ""
   }
 
   wait_for_verification = false

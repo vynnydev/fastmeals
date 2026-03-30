@@ -4,19 +4,14 @@ output "shell_url" {
   value       = module.frontend.shell_url
 }
 
-output "amplify_app_ids" {
-  description = "Amplify App IDs"
-  value       = module.frontend.amplify_app_ids
+output "amplify_app_id" {
+  description = "Amplify App ID"
+  value       = module.frontend.amplify_app_id
 }
 
-output "amplify_custom_domains" {
-  description = "Custom domain URLs"
-  value       = module.frontend.amplify_custom_domains
-}
-
-output "remote_entry_urls" {
-  description = "Remote entry URLs for Module Federation"
-  value       = module.frontend.remote_entry_urls
+output "amplify_custom_domain" {
+  description = "Custom domain URL"
+  value       = module.frontend.amplify_custom_domain
 }
 
 # --- API ---

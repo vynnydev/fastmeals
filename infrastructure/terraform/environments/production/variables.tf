@@ -88,7 +88,7 @@ variable "jwt_refresh_secret" {
 # --- Lambda ---
 variable "bedrock_model_id" {
   type    = string
-  default = "anthropic.claude-sonnet-4-5-20250514"
+  default = "amazon.nova-pro-v1:0"
 }
 
 # --- Frontend ---

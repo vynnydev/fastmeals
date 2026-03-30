@@ -1,6 +1,6 @@
 # ============================================
 # FastMeals — DNS Module
-# Route53 + ACM Certificate
+# Route53 + ACM Certificate + Amplify DNS
 # ============================================
 
 # --- Route53 Hosted Zone ---
@@ -56,7 +56,37 @@ resource "aws_acm_certificate_validation" "main" {
   }
 }
 
-# --- A Record: api.fastmeals.com.br → API Gateway ---
+# --- Amplify Certificate Verification ---
+resource "aws_route53_record" "amplify_cert" {
+  count = var.amplify_cert_record_name != "" ? 1 : 0
+
+  zone_id         = aws_route53_zone.main.zone_id
+  name            = var.amplify_cert_record_name
+  type            = "CNAME"
+  ttl             = 300
+  records         = [var.amplify_cert_record_value]
+  allow_overwrite = true
+}
+
+# --- Root Domain → Amplify CloudFront ---
+# NOTE: O A record ALIAS para o root domain (fastmeals.com.br)
+# é gerenciado automaticamente pelo Amplify Domain Association.
+# NÃO criar CNAME aqui — CNAME não é permitido no apex.
+# O Amplify cria um A record ALIAS para o CloudFront distribution.
+
+# --- Root Domain → Amplify CloudFront ---
+# resource "aws_route53_record" "root" {
+#   count = var.amplify_cloudfront_domain != "" ? 1 : 0
+
+#   zone_id         = aws_route53_zone.main.zone_id
+#   name            = var.domain_name
+#   type            = "CNAME"
+#   ttl             = 300
+#   records         = [var.amplify_cloudfront_domain]
+#   allow_overwrite = true
+# }
+
+# --- API Gateway subdomain ---
 resource "aws_route53_record" "api" {
   count = var.api_gateway_domain_name != "" ? 1 : 0
 
@@ -66,8 +96,3 @@ resource "aws_route53_record" "api" {
   ttl     = 300
   records = [var.api_gateway_domain_name]
 }
-
-# NOTE: Os records para fastmeals.com.br, www., orders-mfe., etc.
-# são gerenciados automaticamente pelo Amplify Domain Association.
-# O Amplify cria os CNAMEs de verificação e o CloudFront distribution.
-# NÃO crie A records manuais aqui para evitar conflito.

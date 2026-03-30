@@ -147,9 +147,21 @@ module "frontend" {
 }
 
 # --- DNS + HTTPS ---
+locals {
+  # Parse Amplify cert verification record: "_xxx.domain. CNAME _yyy.aws."
+  amplify_cert_raw   = try(module.frontend.domain_association.certificate_verification_dns_record, "")
+  amplify_cert_parts = length(local.amplify_cert_raw) > 0 ? split(" CNAME ", local.amplify_cert_raw) : ["", ""]
+  amplify_cert_name  = length(local.amplify_cert_parts) > 1 ? trimspace(trimsuffix(local.amplify_cert_parts[0], ".")) : ""
+  amplify_cert_value = length(local.amplify_cert_parts) > 1 ? trimspace(local.amplify_cert_parts[1]) : ""
+}
+
 module "dns" {
   source = "../../modules/dns"
 
   project_name = var.project_name
   domain_name  = var.domain_name
+
+  # Dynamic Amplify DNS records
+  amplify_cert_record_name  = local.amplify_cert_name
+  amplify_cert_record_value = local.amplify_cert_value
 }
