@@ -1,8 +1,0 @@
-# =============================================================================
-# FastMeals Frontend - Docker Ignore
-# ==
-node_modules
-.next
-.git
-*.md
-.env*

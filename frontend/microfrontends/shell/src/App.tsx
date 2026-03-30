@@ -13,18 +13,17 @@ import { cn } from './lib/utils'
 const OrdersPage = React.lazy(() => import('remoteOrders/OrdersPage'))
 const ProductsPage = React.lazy(() => import('remoteProducts/ProductsPage'))
 const DeliveryPage = React.lazy(() => import('remoteDelivery/DeliveryPage'))
+const ReportsPage = React.lazy(() => import('remoteReports/ReportsPage'))
 
 // Remotes ainda não migrados — placeholder local
-function ComingSoon({ name }: { name: string }) {
-  return (
-    <div className="flex flex-col items-center justify-center py-20 text-center">
-      <p className="text-lg font-semibold text-foreground mb-2">{name}</p>
-      <p className="text-muted-foreground">Módulo em migração para microfrontend.</p>
-    </div>
-  )
-}
-
-const ReportsPage = () => <ComingSoon name="Relatórios" />
+// function ComingSoon({ name }: { name: string }) {
+//   return (
+//     <div className="flex flex-col items-center justify-center py-20 text-center">
+//       <p className="text-lg font-semibold text-foreground mb-2">{name}</p>
+//       <p className="text-muted-foreground">Módulo em migração para microfrontend.</p>
+//     </div>
+//   )
+// }
 
 function LoadingFallback() {
   return (
@@ -90,7 +89,7 @@ function AuthenticatedLayout() {
               <Route path="/orders" element={<RemotePage name="Orders"><OrdersPage /></RemotePage>} />
               <Route path="/products" element={<RemotePage name="Products"><ProductsPage /></RemotePage>} />
               <Route path="/delivery" element={<RemotePage name="Delivery"><DeliveryPage /></RemotePage>} />
-              <Route path="/reports" element={<ReportsPage />} />
+              <Route path="/reports" element={<RemotePage name="Reports"><ReportsPage /></RemotePage>} />
             </Routes>
           </main>
         </div>

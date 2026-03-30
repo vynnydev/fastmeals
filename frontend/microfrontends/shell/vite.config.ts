@@ -16,7 +16,7 @@ export default defineConfig({
         remoteDelivery: process.env.VITE_DELIVERY_URL || 'http://localhost:5003/assets/remoteEntry.js',
         remoteReports: process.env.VITE_REPORTS_URL || 'http://localhost:5004/assets/remoteEntry.js',
       },
-      shared: ['react', 'react-dom', 'react-router-dom'],
+      shared: ['react', 'react-dom', 'react-router-dom', 'recharts'],
     }),
   ],
   resolve: {

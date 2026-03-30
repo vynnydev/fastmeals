@@ -1,23 +1,21 @@
-import { defineConfig } from 'vite';
-import react from '@vitejs/plugin-react';
-import federation from '@originjs/vite-plugin-federation';
-import tailwindcss from '@tailwindcss/vite'
+import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react'
+import federation from '@originjs/vite-plugin-federation'
 import path from 'path'
 
 export default defineConfig({
   plugins: [
     react() as any,
-    tailwindcss() as any,
     federation({
       name: 'remoteReports',
       filename: 'remoteEntry.js',
       exposes: {
-        './ReportsPage': './src/components/ReportsPage',
+        './ReportsPage': './src/pages/ReportsPage',
       },
-      shared: ['react', 'react-dom', 'react-router-dom'],
+      shared: ['react', 'react-dom', 'react-router-dom', 'recharts'],
     }),
   ],
-    resolve: {
+  resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
     },
@@ -46,4 +44,4 @@ export default defineConfig({
     cors: true,
     headers: { 'Access-Control-Allow-Origin': '*' },
   },
-});
+})

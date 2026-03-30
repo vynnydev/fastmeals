@@ -1,7 +1,8 @@
 @import "tailwindcss";
-@source "../../remote-orders/src";
-@source "../../remote-products/src";
-@source "../../remote-delivery/src";
+@source "../../remote-orders/src/**/*.tsx";
+@source "../../remote-products/src/**/*.tsx";
+@source "../../remote-delivery/src/**/*.tsx";
+@source "../../remote-reports/src/**/*.tsx";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 @import "@fontsource-variable/geist";
