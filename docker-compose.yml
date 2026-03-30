@@ -2,7 +2,8 @@
 # FastMeals — Docker Compose (Full Platform)
 # ============================================
 # Usage: docker-compose up --build
-# Access: http://localhost (via Nginx)
+# Access: http://localhost:5000 (Shell MFE)
+# API Gateway: http://localhost (Nginx)
 # RabbitMQ UI: http://localhost:15672 (guest/guest)
 # ============================================
 
@@ -166,7 +167,7 @@ services:
       JWT_REFRESH_EXPIRATION: 7d
       RATE_LIMIT_WINDOW_MS: 60000
       RATE_LIMIT_MAX_REQUESTS: 100
-      CORS_ORIGIN: http://localhost:3000
+      CORS_ORIGIN: http://localhost:5000
       SERVICE_NAME: auth-service
     depends_on:
       auth-db:
@@ -190,7 +191,7 @@ services:
       JWT_ACCESS_SECRET: dev-access-secret-fastmeals-2026
       RATE_LIMIT_WINDOW_MS: 60000
       RATE_LIMIT_MAX_REQUESTS: 100
-      CORS_ORIGIN: http://localhost:3000
+      CORS_ORIGIN: http://localhost:5000
       SERVICE_NAME: products-service
     depends_on:
       products-db:
@@ -212,7 +213,7 @@ services:
       JWT_ACCESS_SECRET: dev-access-secret-fastmeals-2026
       RATE_LIMIT_WINDOW_MS: 60000
       RATE_LIMIT_MAX_REQUESTS: 100
-      CORS_ORIGIN: http://localhost:3000
+      CORS_ORIGIN: http://localhost:5000
       PRODUCTS_SERVICE_URL: http://products-service:3002
       DELIVERY_SERVICE_URL: http://delivery-service:3004
       RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
@@ -243,7 +244,7 @@ services:
       JWT_ACCESS_SECRET: dev-access-secret-fastmeals-2026
       RATE_LIMIT_WINDOW_MS: 60000
       RATE_LIMIT_MAX_REQUESTS: 100
-      CORS_ORIGIN: http://localhost:3000
+      CORS_ORIGIN: http://localhost:5000
       ORDERS_SERVICE_URL: http://orders-service:3003
       RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
       SERVICE_NAME: delivery-service
@@ -268,7 +269,7 @@ services:
       JWT_ACCESS_SECRET: dev-access-secret-fastmeals-2026
       RATE_LIMIT_WINDOW_MS: 60000
       RATE_LIMIT_MAX_REQUESTS: 100
-      CORS_ORIGIN: http://localhost:3000
+      CORS_ORIGIN: http://localhost:5000
       ORDERS_SERVICE_URL: http://orders-service:3003
       DELIVERY_SERVICE_URL: http://delivery-service:3004
       SERVICE_NAME: optimization-service
@@ -294,7 +295,7 @@ services:
       JWT_ACCESS_SECRET: dev-access-secret-fastmeals-2026
       RATE_LIMIT_WINDOW_MS: 60000
       RATE_LIMIT_MAX_REQUESTS: 100
-      CORS_ORIGIN: http://localhost:3000
+      CORS_ORIGIN: http://localhost:5000
       AWS_REGION: ${AWS_REGION:-us-east-1}
       AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
       AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
@@ -306,29 +307,97 @@ services:
     networks:
       - fastmeals-network
 
-# ═══════════════════════════════════════════
-# FRONTEND
-# ═══════════════════════════════════════════
+  # ═══════════════════════════════════════════
+  # FRONTEND — Microfrontends (Vite + Module Federation)
+  # ═══════════════════════════════════════════
+  # Shell = host que carrega os remotes em runtime
+  # Remotes = SPAs independentes servidas via preview
+  #
+  # Workflow: cada remote faz build → serve estático
+  # Shell consome os remoteEntry.js dos remotes
+  # ═══════════════════════════════════════════
 
-  frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-      args:
-        - NEXT_PUBLIC_API_URL=http://localhost
-    container_name: fastmeals-frontend
+  mfe-remote-orders:
+    image: node:20-alpine
+    container_name: fastmeals-mfe-orders
+    working_dir: /app
     ports:
-      - "3000:3000"
+      - "5001:5001"
+    volumes:
+      - ./frontend/microfrontends/remote-orders:/app
+      - mfe_orders_modules:/app/node_modules
+    command: sh -c "npm install && npm run build && npm run preview"
     environment:
-      NODE_ENV: production
-      NEXT_PUBLIC_API_URL: http://localhost
+      VITE_API_URL: http://localhost
+    networks:
+      - fastmeals-network
+
+  mfe-remote-products:
+    image: node:20-alpine
+    container_name: fastmeals-mfe-products
+    working_dir: /app
+    ports:
+      - "5002:5002"
+    volumes:
+      - ./frontend/microfrontends/remote-products:/app
+      - mfe_products_modules:/app/node_modules
+    command: sh -c "npm install && npm run build && npm run preview"
+    environment:
+      VITE_API_URL: http://localhost
+    networks:
+      - fastmeals-network
+
+  mfe-remote-delivery:
+    image: node:20-alpine
+    container_name: fastmeals-mfe-delivery
+    working_dir: /app
+    ports:
+      - "5003:5003"
+    volumes:
+      - ./frontend/microfrontends/remote-delivery:/app
+      - mfe_delivery_modules:/app/node_modules
+    command: sh -c "npm install && npm run build && npm run preview"
+    environment:
+      VITE_API_URL: http://localhost
+    networks:
+      - fastmeals-network
+
+  mfe-remote-reports:
+    image: node:20-alpine
+    container_name: fastmeals-mfe-reports
+    working_dir: /app
+    ports:
+      - "5004:5004"
+    volumes:
+      - ./frontend/microfrontends/remote-reports:/app
+      - mfe_reports_modules:/app/node_modules
+    command: sh -c "npm install && npm run build && npm run preview"
+    environment:
+      VITE_API_URL: http://localhost
+    networks:
+      - fastmeals-network
+
+  mfe-shell:
+    image: node:20-alpine
+    container_name: fastmeals-mfe-shell
+    working_dir: /app
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./frontend/microfrontends/shell:/app
+      - ./frontend/microfrontends/remote-orders/src:/remote-orders-src:ro
+      - ./frontend/microfrontends/remote-products/src:/remote-products-src:ro
+      - ./frontend/microfrontends/remote-delivery/src:/remote-delivery-src:ro
+      - ./frontend/microfrontends/remote-reports/src:/remote-reports-src:ro
+      - mfe_shell_modules:/app/node_modules
+    command: sh -c "npm install && npm run build && npm run preview"
+    environment:
+      VITE_API_URL: http://localhost
     depends_on:
-      auth-service:
-        condition: service_started
-      products-service:
-        condition: service_started
-      orders-service:
-        condition: service_started
+      - mfe-remote-orders
+      - mfe-remote-products
+      - mfe-remote-delivery
+      - mfe-remote-reports
     networks:
       - fastmeals-network
 
@@ -365,6 +434,11 @@ volumes:
   reports_db_data:
   redis_data:
   rabbitmq_data:
+  mfe_shell_modules:
+  mfe_orders_modules:
+  mfe_products_modules:
+  mfe_delivery_modules:
+  mfe_reports_modules:
 
 # ═══════════════════════════════════════════
 # NETWORK

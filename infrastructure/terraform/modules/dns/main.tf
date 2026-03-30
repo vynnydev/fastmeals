@@ -1,6 +1,6 @@
 # ============================================
 # FastMeals — DNS Module
-# Route53 + ACM Certificate + HTTPS
+# Route53 + ACM Certificate
 # ============================================
 
 # --- Route53 Hosted Zone ---
@@ -56,32 +56,6 @@ resource "aws_acm_certificate_validation" "main" {
   }
 }
 
-# --- A Record: fastmeals.com.br → ALB ---
-resource "aws_route53_record" "root" {
-  zone_id = aws_route53_zone.main.zone_id
-  name    = var.domain_name
-  type    = "A"
-
-  alias {
-    name                   = var.alb_dns_name
-    zone_id                = var.alb_zone_id
-    evaluate_target_health = true
-  }
-}
-
-# --- A Record: www.fastmeals.com.br → ALB ---
-resource "aws_route53_record" "www" {
-  zone_id = aws_route53_zone.main.zone_id
-  name    = "www.${var.domain_name}"
-  type    = "A"
-
-  alias {
-    name                   = var.alb_dns_name
-    zone_id                = var.alb_zone_id
-    evaluate_target_health = true
-  }
-}
-
 # --- A Record: api.fastmeals.com.br → API Gateway ---
 resource "aws_route53_record" "api" {
   count = var.api_gateway_domain_name != "" ? 1 : 0
@@ -92,3 +66,8 @@ resource "aws_route53_record" "api" {
   ttl     = 300
   records = [var.api_gateway_domain_name]
 }
+
+# NOTE: Os records para fastmeals.com.br, www., orders-mfe., etc.
+# são gerenciados automaticamente pelo Amplify Domain Association.
+# O Amplify cria os CNAMEs de verificação e o CloudFront distribution.
+# NÃO crie A records manuais aqui para evitar conflito.

@@ -1,39 +1,38 @@
-output "alb_dns_name" {
-  description = "DNS name do ALB (URL para acessar o frontend)"
-  value       = aws_lb.frontend.dns_name
+output "amplify_app_ids" {
+  description = "Amplify App IDs"
+  value = {
+    for key, app in aws_amplify_app.mfe : key => app.id
+  }
 }
 
-output "alb_zone_id" {
-  description = "Zone ID do ALB (para Route53 alias)"
-  value       = aws_lb.frontend.zone_id
+output "amplify_default_domains" {
+  description = "Amplify default domains"
+  value = {
+    for key, app in aws_amplify_app.mfe : key => "https://${aws_amplify_branch.mfe[key].branch_name}.${app.default_domain}"
+  }
 }
 
-output "alb_arn" {
-  description = "ARN do ALB"
-  value       = aws_lb.frontend.arn
+output "amplify_custom_domains" {
+  description = "Custom domain URLs"
+  value = var.domain_name != "" ? {
+    for key, app in local.mfe_apps : key => key == "shell" ? "https://${var.domain_name}" : "https://${app.subdomain}.${var.domain_name}"
+  } : {}
 }
 
-output "ecr_repository_url" {
-  description = "URL do ECR repository"
-  value       = aws_ecr_repository.frontend.repository_url
+output "shell_url" {
+  description = "Shell (Host) URL"
+  value = var.domain_name != "" ? "https://${var.domain_name}" : "https://${aws_amplify_branch.mfe["shell"].branch_name}.${aws_amplify_app.mfe["shell"].default_domain}"
 }
 
-output "ecr_repository_name" {
-  description = "Nome do ECR repository"
-  value       = aws_ecr_repository.frontend.name
-}
-
-output "ecs_cluster_name" {
-  description = "Nome do ECS cluster"
-  value       = aws_ecs_cluster.main.name
-}
-
-output "ecs_service_name" {
-  description = "Nome do ECS service"
-  value       = aws_ecs_service.frontend.name
-}
-
-output "frontend_url" {
-  description = "URL do frontend"
-  value       = "http://${aws_lb.frontend.dns_name}"
+output "remote_entry_urls" {
+  description = "Remote entry URLs for Module Federation"
+  value = var.domain_name != "" ? {
+    orders   = "https://orders-mfe.${var.domain_name}/assets/remoteEntry.js"
+    products = "https://products-mfe.${var.domain_name}/assets/remoteEntry.js"
+    delivery = "https://delivery-mfe.${var.domain_name}/assets/remoteEntry.js"
+    reports  = "https://reports-mfe.${var.domain_name}/assets/remoteEntry.js"
+  } : {
+    for key, app in aws_amplify_app.mfe : key => "https://${aws_amplify_branch.mfe[key].branch_name}.${app.default_domain}/assets/remoteEntry.js"
+    if key != "shell"
+  }
 }

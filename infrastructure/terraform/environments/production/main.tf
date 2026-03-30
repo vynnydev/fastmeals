@@ -112,7 +112,6 @@ module "lambda" {
   cors_origin      = "https://${var.domain_name}"
   bedrock_model_id = var.bedrock_model_id
 
-  # URL fixa — não depende do module.api_gateway
   api_gateway_url = var.api_gateway_url
 }
 
@@ -120,44 +119,23 @@ module "lambda" {
 module "api_gateway" {
   source = "../../modules/api-gateway"
 
-  project_name     = var.project_name
-  cors_origins = ["https://${var.domain_name}", "https://mfe.${var.domain_name}", "http://localhost:5000", "http://localhost:3000"]
+  project_name = var.project_name
+  cors_origins = [
+    "https://${var.domain_name}",
+    "https://mfe.${var.domain_name}",
+    "https://orders-mfe.${var.domain_name}",
+    "https://products-mfe.${var.domain_name}",
+    "https://delivery-mfe.${var.domain_name}",
+    "https://reports-mfe.${var.domain_name}",
+    "http://localhost:5000",
+    "http://localhost:3000",
+  ]
   lambda_functions = module.lambda.functions_for_api_gw
 }
 
-# --- Frontend (ECS Fargate) ---
+# --- Frontend (Amplify Microfrontends) ---
 module "frontend" {
   source = "../../modules/frontend"
-
-  project_name       = var.project_name
-  aws_region         = var.aws_region
-  vpc_id             = module.networking.vpc_id
-  public_subnet_ids  = module.networking.public_subnet_ids
-  private_subnet_ids = module.networking.private_subnet_ids
-
-  api_gateway_url = module.api_gateway.api_url
-  certificate_arn = module.dns.certificate_arn
-  enable_https    = true
-
-  task_cpu      = 256
-  task_memory   = 512
-  desired_count = 1
-  max_count     = 3
-}
-
-# --- DNS + HTTPS ---
-module "dns" {
-  source = "../../modules/dns"
-
-  project_name = var.project_name
-  domain_name  = var.domain_name
-
-  alb_dns_name = module.frontend.alb_dns_name
-  alb_zone_id  = module.frontend.alb_zone_id
-}
-
-module "amplify_mfe" {
-  source = "../../modules/amplify-mfe"
 
   project_name        = var.project_name
   environment         = "production"
@@ -166,4 +144,12 @@ module "amplify_mfe" {
   branch_name         = "improvements"
   api_gateway_url     = var.api_gateway_url
   domain_name         = var.domain_name
+}
+
+# --- DNS + HTTPS ---
+module "dns" {
+  source = "../../modules/dns"
+
+  project_name = var.project_name
+  domain_name  = var.domain_name
 }
