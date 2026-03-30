@@ -93,19 +93,48 @@ export default function ReportsPage() {
     }
   }
 
+  // Helper: filter orders by date range
+  const filteredOrders = useMemo(() => {
+    return allOrders.filter((o: any) => {
+      const orderDate = new Date(o.createdAt || o.created_at)
+      const start = new Date(startDate)
+      const end = new Date(endDate)
+      end.setHours(23, 59, 59, 999)
+      return orderDate >= start && orderDate <= end
+    })
+  }, [allOrders, startDate, endDate])
+
   // Revenue metrics (reports-service first, then orders fallback)
-  const fallbackRevenue = allOrders.filter((o: any) => o.status === 'delivered').reduce((sum: number, o: any) => sum + (o.totalAmount || o.total || 0), 0)
+  const fallbackRevenue = filteredOrders
+    .filter((o: any) => o.status === 'delivered')
+    .reduce((sum: number, o: any) => sum + (o.totalAmount || o.total || 0), 0)
   const totalRevenue = (revenueData?.totalRevenue > 0 ? revenueData.totalRevenue : null) ?? fallbackRevenue
 
-  const totalOrders = (revenueData?.totalOrders > 0 ? revenueData.totalOrders : null) ?? allOrders.length
+  const totalOrders = (revenueData?.totalOrders > 0 ? revenueData.totalOrders : null) ?? filteredOrders.length
   const avgOrderValue = totalRevenue > 0 && totalOrders > 0 ? totalRevenue / totalOrders : 0
 
   // Daily revenue chart
-  const dailyRevenueChart = (revenueData?.dailyRevenue || []).map((d: any) => ({
-    date: d.date ? d.date.slice(5) : '',
-    receita: d.revenue || 0,
-    pedidos: d.orders || 0,
-  }))
+  const dailyRevenueChart = useMemo(() => {
+    if (revenueData?.dailyRevenue?.length > 0) {
+      return revenueData.dailyRevenue.map((d: any) => ({
+        date: d.date ? d.date.slice(5) : '',
+        receita: d.revenue || 0,
+        pedidos: d.orders || 0,
+      }))
+    }
+    // Fallback: aggregate from filtered orders
+    const dailyMap: Record<string, { receita: number; pedidos: number }> = {}
+    filteredOrders.forEach((o: any) => {
+      const date = (o.createdAt || o.created_at || '').slice(0, 10)
+      if (!date) return
+      if (!dailyMap[date]) dailyMap[date] = { receita: 0, pedidos: 0 }
+      dailyMap[date].pedidos += 1
+      if (o.status === 'delivered') dailyMap[date].receita += o.totalAmount || o.total || 0
+    })
+    return Object.entries(dailyMap)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([date, data]) => ({ date: date.slice(5), ...data }))
+  }, [revenueData, filteredOrders])
 
   // Orders by status
   const ordersByStatus = useMemo(() => {
@@ -114,17 +143,17 @@ export default function ReportsPage() {
       return ordersByStatusData.data.filter((s: any) => s.count > 0)
     }
     const counts: Record<string, number> = {}
-    allOrders.forEach((o: any) => { counts[o.status] = (counts[o.status] || 0) + 1 })
+    filteredOrders.forEach((o: any) => { counts[o.status] = (counts[o.status] || 0) + 1 })
     return Object.entries(counts).map(([status, count]) => ({ status, count }))
-  }, [ordersByStatusData, allOrders])
+  }, [ordersByStatusData, filteredOrders])
 
-  const totalOrdersFromStatus = (ordersByStatusData?.total > 0 ? ordersByStatusData.total : null) ?? allOrders.length
+  const totalOrdersFromStatus = (ordersByStatusData?.total > 0 ? ordersByStatusData.total : null) ?? filteredOrders.length
 
   // Top products
   const topProducts = useMemo(() => {
     if (topProductsData?.data?.length > 0) return topProductsData.data
     const productCounts: Record<string, { name: string; qty: number; revenue: number }> = {}
-    allOrders.filter((o: any) => o.status === 'delivered').forEach((order: any) => {
+    filteredOrders.filter((o: any) => o.status === 'delivered').forEach((order: any) => {
       if (order.items) {
         order.items.forEach((item: any) => {
           const id = item.productId || item.product_id || item.id
@@ -139,13 +168,14 @@ export default function ReportsPage() {
       .sort((a, b) => b.qty - a.qty)
       .slice(0, 10)
       .map(p => ({ productName: p.name, totalQuantity: p.qty, totalRevenue: p.revenue }))
-  }, [topProductsData, allOrders])
+  }, [topProductsData, filteredOrders])
 
   // Delivery time
   const avgDeliveryTime = deliveryTimeData?.averageMinutes ?? 0
   const fastestDelivery = deliveryTimeData?.fastestMinutes ?? 0
   const slowestDelivery = deliveryTimeData?.slowestMinutes ?? 0
-  const totalDelivered = deliveryTimeData?.totalDelivered ?? allOrders.filter((o: any) => o.status === 'delivered').length
+  const totalDelivered = (deliveryTimeData?.totalDelivered > 0 ? deliveryTimeData.totalDelivered : null) 
+    ?? filteredOrders.filter((o: any) => o.status === 'delivered').length
   const deliveryByVehicle = (deliveryTimeData?.byVehicleType || []).filter((v: any) => v.vehicleType !== 'unknown')
 
   // Chart data
@@ -169,7 +199,37 @@ export default function ReportsPage() {
     setIsLoadingAI(true)
     try {
       const result = await reportsApi.getAIInsights({ startDate, endDate })
-      setAiInsights(result)
+      
+      // Se a IA retornou dados vazios (reports-service sem dados), gera fallback local
+      const hasRealData = result?.summary && !result.summary.includes('R$ 0.00') && !result.summary.includes('0 pedidos')
+      if (hasRealData) {
+        setAiInsights(result)
+      } else {
+        // Fallback: gera resumo local com dados reais dos orders
+        const deliveredOrders = filteredOrders.filter((o: any) => o.status === 'delivered')
+        setAiInsights({
+          summary: `Período analisado: ${startDate} a ${endDate}. Receita total: ${formatCurrency(fallbackRevenue)} com ${filteredOrders.length} pedidos (${deliveredOrders.length} entregues, ${filteredOrders.filter((o: any) => o.status === 'cancelled').length} cancelados). Ticket médio: ${formatCurrency(avgOrderValue)}.`,
+          recommendations: [
+            filteredOrders.filter((o: any) => o.status === 'cancelled').length > 2
+              ? 'Alto índice de cancelamentos — considere investigar os motivos e melhorar a comunicação com o cliente.'
+              : 'Taxa de cancelamento saudável — mantenha o padrão de atendimento.',
+            deliveredOrders.length > 0
+              ? `${deliveredOrders.length} pedidos entregues com sucesso no período — bom desempenho operacional.`
+              : 'Nenhuma entrega concluída no período — verifique a operação de entrega.',
+            filteredOrders.filter((o: any) => o.status === 'ready').length > 0
+              ? `${filteredOrders.filter((o: any) => o.status === 'ready').length} pedidos aguardando entregador — considere executar a otimização Hungarian.`
+              : 'Todos os pedidos prontos foram atribuídos.',
+          ],
+          highlights: [
+            `Receita: ${formatCurrency(fallbackRevenue)}`,
+            `Pedidos: ${filteredOrders.length} total`,
+            `Ticket médio: ${formatCurrency(avgOrderValue)}`,
+            `Taxa de entrega: ${filteredOrders.length > 0 ? Math.round((deliveredOrders.length / filteredOrders.length) * 100) : 0}%`,
+          ],
+          model: 'fallback-local',
+          generatedAt: new Date().toISOString(),
+        })
+      }
       toast.success('Insights gerados com sucesso!')
     } catch {
       toast.error('Erro ao gerar insights de IA. Verifique se o AWS Bedrock está configurado.')
