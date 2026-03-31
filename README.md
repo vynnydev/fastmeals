@@ -8,7 +8,7 @@
 ![RabbitMQ](https://img.shields.io/badge/RabbitMQ-3.13-FF6600?logo=rabbitmq&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-28-2496ED?logo=docker&logoColor=white)
 ![Nginx](https://img.shields.io/badge/Nginx-Alpine-009639?logo=nginx&logoColor=white)
-![AWS Bedrock](https://img.shields.io/badge/AWS_Bedrock-Claude-232F3E?logo=amazon-aws&logoColor=white)
+![AWS Bedrock](https://img.shields.io/badge/AWS_Bedrock-Amazon_Nova-232F3E?logo=amazon-aws&logoColor=white)
 ![Tailwind](https://img.shields.io/badge/Tailwind_CSS-4-06B6D4?logo=tailwindcss&logoColor=white)
 ![Prisma](https://img.shields.io/badge/Prisma-6.19-2D3748?logo=prisma&logoColor=white)
 ![Vitest](https://img.shields.io/badge/Vitest-3.0-6E9F18?logo=vitest&logoColor=white)
@@ -20,13 +20,15 @@
 ![Lambda](https://img.shields.io/badge/AWS_Lambda-23_Functions-FF9900?logo=awslambda&logoColor=white)
 ![Amplify](https://img.shields.io/badge/AWS_Amplify-Microfrontends-FF9900?logo=awsamplify&logoColor=white)
 ![GitHub Actions](https://img.shields.io/badge/GitHub_Actions-CI/CD-2088FF?logo=githubactions&logoColor=white)
+![SonarCloud](https://img.shields.io/badge/SonarCloud-Quality_Gate-F3702A?logo=sonarcloud&logoColor=white)
+![Datadog](https://img.shields.io/badge/Datadog-Observability-632CA6?logo=datadog&logoColor=white)
 ![Clean Architecture](https://img.shields.io/badge/Clean_Architecture-SOLID-4CAF50?logo=architect&logoColor=white)
 
 > 🌐 **Live:** [https://fastmeals.com.br](https://fastmeals.com.br) | **API:** [https://t2fwiydcrc.execute-api.us-east-1.amazonaws.com](https://t2fwiydcrc.execute-api.us-east-1.amazonaws.com/api/products)
 
 # 🍔 FastMeals — Sistema de Gerenciamento de Pedidos e Entregas
 
-Plataforma fullstack de gerenciamento de delivery com **6 microserviços**, **5 microfrontends**, **dashboard analítico**, **algoritmo de otimização Hungarian** e **AI Insights com AWS Bedrock**.
+Plataforma fullstack de gerenciamento de delivery com **6 microserviços**, **5 microfrontends**, **dashboard analítico**, **algoritmo de otimização Hungarian**, **AI Insights com AWS Bedrock** e **observabilidade com Datadog**.
 
 ---
 
@@ -40,18 +42,21 @@ Plataforma fullstack de gerenciamento de delivery com **6 microserviços**, **5 
 6. [Microserviços](#-microserviços)
 7. [Frontend — Microfrontends](#-frontend--microfrontends)
 8. [Algoritmo de Otimização](#-algoritmo-de-otimização)
-9. [Infraestrutura AWS](#-infraestrutura-aws)
-10. [Banco de Dados](#-banco-de-dados)
+9. [Infraestrutura AWS](#️-infraestrutura-aws)
+10. [Banco de Dados](#️-banco-de-dados)
 11. [Bastion Host — Acesso ao RDS](#-bastion-host--acesso-ao-rds)
-12. [CI/CD Pipeline](#-cicd-pipeline)
-13. [Testes](#-testes)
-14. [Estrutura do Projeto](#-estrutura-do-projeto)
-15. [Documentação](#-documentação)
-16. [Variáveis de Ambiente](#-variáveis-de-ambiente)
-17. [Docker](#-docker)
-18. [Autor](#-autor)
+12. [Observabilidade — Datadog](#-observabilidade--datadog)
+13. [CI/CD Pipeline](#-cicd-pipeline)
+14. [Testes](#-testes)
+15. [Estrutura do Projeto](#-estrutura-do-projeto)
+16. [Documentação](#-documentação)
+17. [Variáveis de Ambiente](#-variáveis-de-ambiente)
+18. [Docker](#-docker)
+19. [Autor](#-autor)
 
 ---
+
+## 🎬 Demo
 
 <!-- GIF de apresentação da aplicação -->
 
@@ -199,7 +204,7 @@ cd backend/services/reports-service && npm test       # 18 testes
 | Swagger | 5.0 | Documentação OpenAPI (`/docs`) |
 | bcrypt | — | Hash de senhas (10 salt rounds) |
 | JWT | — | Access token (15min) + Refresh token (7d) |
-| AWS Bedrock | Claude | AI Insights no reports-service |
+| AWS Bedrock | Amazon Nova | AI Insights no reports-service |
 | Vitest | 3.0 | Framework de testes |
 | Nginx | Alpine | API Gateway / reverse proxy |
 
@@ -219,6 +224,18 @@ cd backend/services/reports-service && npm test       # 18 testes
 | Recharts | 3 | Gráficos e visualizações (remote-reports) |
 | Axios | 1.13 | HTTP client com interceptors |
 | Sonner | 2 | Toast notifications |
+
+### DevOps & Observabilidade
+
+| Tecnologia | Uso |
+|-----------|-----|
+| Terraform | IaC — 9 módulos gerenciando toda a infraestrutura AWS |
+| GitHub Actions | CI/CD — 6 workflows (CI, deploy, quality, IaC) |
+| SonarCloud | Qualidade de código, cobertura, Quality Gate |
+| Datadog | Observabilidade — métricas Lambda, logs, cold starts |
+| AWS Amplify | Deploy frontend com CDN global e SSL automático |
+| AWS Lambda | 23 funções serverless (Node.js 20) |
+| AWS API Gateway | HTTP API com CORS e logging |
 
 ---
 
@@ -317,7 +334,7 @@ O frontend foi construído com arquitetura de **microfrontends** usando **Vite +
 
 **Entregadores e Otimização (remote-delivery)** — Cards e Kanban de entregadores (Disponíveis / Em Entrega / Inativos), CRUD completo, e aba de **Otimização** com algoritmo Hungarian mostrando atribuições sugeridas, distâncias calculadas (Haversine) e comparação greedy vs. ótimo.
 
-**Relatórios e AI Insights (remote-reports)** — Receita diária, pedidos por status, ranking de top produtos, tempo de entrega por veículo (Moto / Bicicleta / Carro), filtro por período, e **Insights com IA** via AWS Bedrock (Claude) gerando resumo, recomendações e destaques.
+**Relatórios e AI Insights (remote-reports)** — Receita diária, pedidos por status, ranking de top produtos, tempo de entrega por veículo (Moto / Bicicleta / Carro), filtro por período, e **Insights com IA** via AWS Bedrock (Amazon Nova) gerando resumo, recomendações e destaques.
 
 ### Destaques de UX
 
@@ -383,7 +400,7 @@ Retorna `assignments` (pedido → entregador com distância), `unassigned` (pedi
 
 ## ☁️ Infraestrutura AWS
 
-Toda a infraestrutura é gerenciada por **Terraform** com 8 módulos, estado remoto no S3 e locking com DynamoDB.
+Toda a infraestrutura é gerenciada por **Terraform** com **9 módulos**, estado remoto no S3 e locking com DynamoDB.
 
 ![AWS Infrastructure](docs/diagrams/images/06-aws-infrastructure.drawio.png)
 
@@ -392,11 +409,13 @@ Toda a infraestrutura é gerenciada por **Terraform** com 8 módulos, estado rem
 | Banco de dados | RDS PostgreSQL 16 | db.t3.micro, 5 databases, encrypted |
 | Cache | ElastiCache Redis 7.1 | cache.t3.micro, token store |
 | Mensageria | Amazon MQ RabbitMQ 3.13 | mq.t3.micro, AMQPS |
-| Backend | 23 Lambda Functions | Node.js 20, 256MB, VPC |
+| Backend | 23 Lambda Functions | Node.js 20, 256MB, VPC, Datadog Extension |
 | API | API Gateway HTTP | 23 routes, CORS, logs |
-| Frontend | AWS Amplify | 5 apps (shell + 4 remotes), CDN global |
+| Frontend | AWS Amplify | 1 app consolidado (shell + 4 remotes), CDN global |
 | DNS | Route53 + ACM | fastmeals.com.br, wildcard HTTPS |
 | Secrets | Secrets Manager | 9 secrets (DB, JWT, MQ, Bedrock) |
+| Bastion | EC2 t3.micro | SSH tunnel para RDS e Redis |
+| Observabilidade | Datadog | Métricas Lambda, logs, cold starts |
 | Logs | CloudWatch | 14 dias retention |
 | State | S3 + DynamoDB | Terraform remote state |
 
@@ -410,10 +429,11 @@ infrastructure/terraform/
 │   ├── database/        # RDS PostgreSQL (5 databases)
 │   ├── cache/           # ElastiCache Redis
 │   ├── messaging/       # Amazon MQ RabbitMQ
-│   ├── lambda/          # 23 Lambda functions + IAM
+│   ├── lambda/          # 23 Lambda functions + IAM + Datadog
 │   ├── api-gateway/     # API Gateway HTTP + routes
-│   ├── frontend/        # Amplify (5 microfrontend apps)
+│   ├── frontend/        # Amplify (consolidated MFE app)
 │   ├── dns/             # Route53 + ACM certificate
+│   ├── bastion/         # EC2 bastion host (SSH tunnel)
 │   └── secrets/         # Secrets Manager
 └── environments/
     └── production/      # Entry point (main.tf)
@@ -421,19 +441,64 @@ infrastructure/terraform/
 
 ---
 
+## 📊 Observabilidade — Datadog
+
+Todas as **23 Lambda functions** são instrumentadas com o **Datadog Extension Layer**, enviando métricas, logs e dados de invocação em tempo real para o dashboard do Datadog.
+
+### Serverless Overview
+
+![Datadog Serverless Overview](docs/images/observability/datadog-serverless-overview.png)
+
+### Lambda Detail — Invocações e Cold Starts
+
+![Datadog Lambda Detail](docs/images/observability/datadog-lambda-detail.png)
+
+### O que é monitorado
+
+| Métrica | Descrição |
+|---------|-----------|
+| **Invocations** | Número de invocações por função |
+| **Duration** | Tempo de execução (avg, p50, p95, p99, max) |
+| **Cold Starts** | Frequência e duração de cold starts |
+| **Errors** | Taxa de erros por função |
+| **Memory** | Consumo de memória por invocação |
+| **Cost** | Custo estimado por função |
+| **Logs** | Logs estruturados encaminhados automaticamente |
+
+### Configuração via Terraform
+
+A instrumentação é feita via Terraform no módulo Lambda, sem necessidade de alterar código:
+
+```hcl
+# Habilitado via flag no módulo Lambda
+datadog_enabled = true
+datadog_site    = "us5.datadoghq.com"
+```
+
+O Terraform adiciona automaticamente a **Datadog Extension Layer** e as environment variables (`DD_API_KEY`, `DD_SITE`, `DD_TRACE_ENABLED`, etc.) em todas as 23 funções Lambda.
+
+### Acesso ao Dashboard
+
+O dashboard do Datadog está disponível em: https://us5.datadoghq.com/functions
+
+Funcionalidades disponíveis no dashboard: visão geral serverless com todas as funções, detalhamento por função individual (invocações, logs, cold starts), agrupamento por serviço (auth, products, orders, delivery, optimization, reports), filtragem por período, região, runtime e environment, e alertas configuráveis para erros, latência e cold start rate.
+
+---
+
 ## 🔄 CI/CD Pipeline
 
-5 workflows no GitHub Actions com deploy automático.
+6 workflows no GitHub Actions com deploy automático e quality gate.
 
 ![CI/CD Pipeline](docs/diagrams/images/07-cicd-pipeline.drawio.png)
 
 | Pipeline | Trigger | O que faz |
 |----------|---------|-----------|
-| CI Backend | push development/main | Testa 6 serviços em paralelo (153+ testes) |
-| CI Frontend | push development/main | Type check + build de todos os microfrontends |
+| CI Backend | push development/main/improvements | Testa 6 serviços em paralelo (180+ testes) |
+| CI Frontend | push development/main/improvements | Type check + build de todos os 5 microfrontends |
+| SonarCloud | push + PR | Qualidade de código, cobertura, Quality Gate |
 | Deploy Lambdas | merge to main | Build + zip + upload 23 Lambda functions |
-| Deploy Frontend | merge to main | Amplify auto-deploy via GitHub webhook |
-| Terraform | PR (plan) / merge (apply) | Infra as Code com review |
+| Deploy Frontend | merge to main | Amplify auto-deploy via webhook |
+| Terraform | PR (plan) / merge (apply) | Infra as Code com review (9 módulos) |
 
 ---
 
@@ -465,8 +530,9 @@ infrastructure/terraform/
 fastmeals/
 ├── DECISIONS.md                       # 16 Architecture Decision Records
 ├── README.md                          # Este arquivo
-├── docker-compose.yml                 # Orquestração (14 containers)
-├── .github/workflows/                 # 5 CI/CD pipelines
+├── sonar-project.properties           # Configuração SonarCloud
+├── docker-compose.yml                 # Orquestração (19 containers)
+├── .github/workflows/                 # 6 CI/CD pipelines
 ├── nginx/
 │   └── nginx.conf                     # API Gateway routing (local)
 ├── scripts/
@@ -490,20 +556,20 @@ fastmeals/
 │       ├── remote-delivery/           # 🚴 Entregadores + Otimização Hungarian
 │       └── remote-reports/            # 📊 Charts, Analytics, AI Insights
 ├── infrastructure/
-│   └── terraform/                     # ☁️ 8 módulos Terraform
+│   └── terraform/                     # ☁️ 9 módulos Terraform
 │       ├── bootstrap/                 # S3 + DynamoDB (state)
 │       ├── modules/                   # networking, database, cache, messaging,
-│       │                              # lambda, api-gateway, frontend, dns, secrets
+│       │                              # lambda, api-gateway, frontend, dns,
+│       │                              # bastion, secrets
 │       └── environments/production/   # Entry point
-├── docs/
-│   ├── api-spec.md                    # Especificação completa da API
-│   ├── database-schema.md             # Schema do banco de dados
-│   ├── evidences/                     # Screenshots
-│   └── diagrams/                      # 8 diagramas draw.io
-│       ├── images/                    # PNGs exportados
-│       └── xml/                       # Arquivos .drawio editáveis
-└── seed/
-    └── data.json                      # Dados de exemplo
+└── docs/
+    ├── api-spec.md                    # Especificação completa da API
+    ├── database-schema.md             # Schema do banco de dados
+    ├── images/observability/          # Screenshots Datadog
+    ├── evidences/                     # Screenshots
+    └── diagrams/                      # 9 diagramas draw.io
+        ├── images/                    # PNGs exportados
+        └── xml/                       # Arquivos .drawio editáveis
 ```
 
 ---
@@ -534,25 +600,6 @@ Cada serviço possui documentação interativa acessível em `/docs`:
 | Delivery | http://localhost:3004/docs |
 | Optimization | http://localhost:3005/docs |
 | Reports | http://localhost:3006/docs |
-
----
-
-## 🔑 Variáveis de Ambiente
-
-Todas as variáveis estão definidas no `docker-compose.yml`. Para desenvolvimento local, copie `.env.example` para `.env` em cada serviço.
-
-| Variável | Serviços | Descrição |
-|----------|----------|-----------|
-| `DATABASE_URL` | auth, products, orders, delivery, reports | Connection string PostgreSQL |
-| `JWT_ACCESS_SECRET` | Todos | Secret compartilhado para validação JWT |
-| `REDIS_URL` | auth | URL do Redis para token store |
-| `RABBITMQ_URL` | orders, delivery | URL do RabbitMQ |
-| `PRODUCTS_SERVICE_URL` | orders, optimization | HTTP client para products-service |
-| `DELIVERY_SERVICE_URL` | orders, optimization | HTTP client para delivery-service |
-| `ORDERS_SERVICE_URL` | optimization | HTTP client para orders-service |
-| `AWS_REGION` | reports | Região AWS para Bedrock |
-| `CORS_ORIGIN` | Todos | Origem permitida |
-| `VITE_API_URL` | frontend (remotes) | URL do API Gateway (vazio em dev para usar proxy) |
 
 ---
 
@@ -720,6 +767,27 @@ terraform output rds_tunnel_command
 
 ---
 
+## 🔑 Variáveis de Ambiente
+
+Todas as variáveis estão definidas no `docker-compose.yml`. Para desenvolvimento local, copie `.env.example` para `.env` em cada serviço.
+
+| Variável | Serviços | Descrição |
+|----------|----------|-----------|
+| `DATABASE_URL` | auth, products, orders, delivery, reports | Connection string PostgreSQL |
+| `JWT_ACCESS_SECRET` | Todos | Secret compartilhado para validação JWT |
+| `REDIS_URL` | auth | URL do Redis para token store |
+| `RABBITMQ_URL` | orders, delivery | URL do RabbitMQ |
+| `PRODUCTS_SERVICE_URL` | orders, optimization | HTTP client para products-service |
+| `DELIVERY_SERVICE_URL` | orders, optimization | HTTP client para delivery-service |
+| `ORDERS_SERVICE_URL` | optimization | HTTP client para orders-service |
+| `AWS_REGION` | reports | Região AWS para Bedrock |
+| `CORS_ORIGIN` | Todos | Origem permitida |
+| `VITE_API_URL` | frontend (remotes) | URL do API Gateway (vazio em dev para usar proxy) |
+| `DD_API_KEY` | Lambda (Datadog) | API Key do Datadog |
+| `DD_SITE` | Lambda (Datadog) | Site do Datadog (us5.datadoghq.com) |
+
+---
+
 ## 🐳 Docker
 
 O `docker-compose.yml` orquestra **19 containers** (7 infra + 6 backend + 5 frontend + 1 gateway):
@@ -750,7 +818,7 @@ O `docker-compose.yml` orquestra **19 containers** (7 infra + 6 backend + 5 fron
 
 ## 👨‍💻 Autor
 
-**Vinicius Prudencio** — VynnyTech
+**Vinicius Prudencio** — Full Stack & DevOps Engineer
 
 [![GitHub](https://img.shields.io/badge/GitHub-vynnydev-181717?logo=github&logoColor=white)](https://github.com/vynnydev)
 [![LinkedIn](https://img.shields.io/badge/LinkedIn-vynnydev-0A66C2?logo=linkedin&logoColor=white)](https://linkedin.com/in/vynnydev)

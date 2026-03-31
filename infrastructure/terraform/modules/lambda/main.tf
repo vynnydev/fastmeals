@@ -58,7 +58,6 @@ resource "aws_iam_role_policy" "lambda_bedrock" {
 # --- Datadog Lambda Layers ---
 locals {
   datadog_layers = var.datadog_enabled ? [
-    "arn:aws:lambda:${var.aws_region}:464622532012:layer:Datadog-Node20-x:115",
     "arn:aws:lambda:${var.aws_region}:464622532012:layer:Datadog-Extension:65",
   ] : []
 
