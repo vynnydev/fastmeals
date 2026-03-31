@@ -63,3 +63,23 @@ variable "api_gateway_url" {
   description = "URL do API Gateway (para inter-service communication)"
   type        = string
 }
+
+# Datadog
+variable "datadog_api_key" {
+  description = "Datadog API Key for Lambda instrumentation"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "datadog_site" {
+  description = "Datadog site"
+  type        = string
+  default     = "us5.datadoghq.com"
+}
+
+variable "datadog_enabled" {
+  description = "Enable Datadog Lambda instrumentation"
+  type        = bool
+  default     = false
+}

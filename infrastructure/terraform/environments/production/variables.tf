@@ -131,3 +131,11 @@ variable "github_access_token" {
   type      = string
   sensitive = true
 }
+
+# Datadog
+variable "datadog_api_key" {
+  description = "Datadog API Key"
+  type        = string
+  default     = ""
+  sensitive   = true
+}

@@ -113,6 +113,11 @@ module "lambda" {
   bedrock_model_id = var.bedrock_model_id
 
   api_gateway_url = var.api_gateway_url
+  
+  # Datadog Observability
+  datadog_enabled = true
+  datadog_api_key = var.datadog_api_key
+  datadog_site    = "us5.datadoghq.com"
 }
 
 # --- API Gateway ---
