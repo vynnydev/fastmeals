@@ -1,146 +1,189 @@
-<mxfile host="app.diagrams.net" agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36" version="29.6.5">
+<mxfile host="app.diagrams.net" agent="FastMeals" version="29.6.5">
   <diagram name="CI/CD Pipeline" id="cicd">
-    <mxGraphModel dx="1034" dy="909" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1500" pageHeight="600" math="0" shadow="0">
+    <mxGraphModel dx="1400" dy="1000" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="800" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
-        <mxCell id="title" parent="1" style="text;html=1;fontSize=20;fontStyle=1;align=center;fillColor=none;strokeColor=none;fontColor=#1a1a2e;" value="🔄 FastMeals — CI/CD Pipeline (GitHub Actions)" vertex="1">
-          <mxGeometry height="35" width="800" x="350" y="15" as="geometry" />
+
+        <!-- Title -->
+        <mxCell id="title" value="🔄 FastMeals — CI/CD Pipeline (GitHub Actions)" style="text;html=1;fontSize=20;fontStyle=1;align=center;fillColor=none;strokeColor=none;fontColor=#1a1a2e;" vertex="1" parent="1">
+          <mxGeometry x="300" y="15" width="900" height="35" as="geometry" />
         </mxCell>
-        <mxCell id="subtitle" parent="1" style="text;html=1;fontSize=12;align=center;fillColor=none;strokeColor=none;fontColor=#666;" value="5 workflows: CI Backend • CI Frontend • Deploy Lambdas • Deploy Frontend • Terraform" vertex="1">
-          <mxGeometry height="20" width="800" x="350" y="45" as="geometry" />
+        <mxCell id="subtitle" value="6 workflows: CI Backend • CI Frontend (MFE) • SonarCloud • Deploy Lambdas • Deploy Frontend (Amplify) • Terraform" style="text;html=1;fontSize=12;align=center;fillColor=none;strokeColor=none;fontColor=#666;" vertex="1" parent="1">
+          <mxGeometry x="250" y="45" width="1000" height="20" as="geometry" />
         </mxCell>
-        <mxCell id="ci_label" parent="1" style="text;html=1;fontSize=13;fontStyle=0;fillColor=none;strokeColor=none;fontColor=#1976D2;" value="&lt;b&gt;CI — Todo push em development/main&lt;/b&gt;" vertex="1">
-          <mxGeometry height="20" width="400" x="280" y="80" as="geometry" />
+
+        <!-- ==================== -->
+        <!-- CI Section           -->
+        <!-- ==================== -->
+        <mxCell id="ci_label" value="&lt;b&gt;CI — Todo push em development/main/improvements&lt;/b&gt;" style="text;html=1;fontSize=13;fillColor=none;strokeColor=none;fontColor=#1976D2;" vertex="1" parent="1">
+          <mxGeometry x="100" y="80" width="450" height="20" as="geometry" />
         </mxCell>
-        <mxCell id="git_push" parent="1" style="rounded=1;fillColor=#F5F5F5;strokeColor=#9E9E9E;fontSize=11;shadow=1;arcSize=10;" value="git push&#xa;development ou main" vertex="1">
-          <mxGeometry height="60" width="120" x="282.5" y="130" as="geometry" />
+
+        <mxCell id="git_push" value="git push&#xa;development, main&#xa;ou improvements" style="rounded=1;fillColor=#F5F5F5;strokeColor=#9E9E9E;fontSize=11;shadow=1;arcSize=10;" vertex="1" parent="1">
+          <mxGeometry x="100" y="115" width="130" height="65" as="geometry" />
         </mxCell>
-        <mxCell id="ci_front" parent="1" style="rounded=1;fillColor=#E3F2FD;strokeColor=#1976D2;fontSize=11;shadow=1;arcSize=10;" value="CI Frontend&#xa;npm ci → tsc --noEmit&#xa;→ npm test → npm build&#xa;27 testes" vertex="1">
-          <mxGeometry height="80" width="160" x="722.5" y="120" as="geometry" />
+
+        <mxCell id="ci_back" value="CI Backend&#xa;6 serviços em paralelo&#xa;npm ci → prisma generate → npm test&#xa;180+ testes" style="rounded=1;fillColor=#FFF9C4;strokeColor=#F9A825;fontSize=11;shadow=1;arcSize=10;" vertex="1" parent="1">
+          <mxGeometry x="280" y="105" width="230" height="80" as="geometry" />
         </mxCell>
-        <mxCell id="ci_ok" parent="1" style="rounded=1;fillColor=#C8E6C9;strokeColor=#388E3C;fontSize=12;shadow=1;arcSize=15;" value="✅ CI Pass" vertex="1">
-          <mxGeometry height="55" width="90" x="922.5" y="132.5" as="geometry" />
+
+        <mxCell id="ci_front" value="CI Frontend (MFE)&#xa;5 microfrontends em paralelo&#xa;npm ci → tsc → npm run build&#xa;verifica remoteEntry.js" style="rounded=1;fillColor=#E3F2FD;strokeColor=#1976D2;fontSize=11;shadow=1;arcSize=10;" vertex="1" parent="1">
+          <mxGeometry x="560" y="105" width="220" height="80" as="geometry" />
         </mxCell>
-        <mxCell id="a_ci1" edge="1" parent="1" source="git_push" style="strokeColor=#9E9E9E;strokeWidth=1.5;" target="ci_back">
+
+        <mxCell id="sonar" value="☁️ SonarCloud&#xa;Code quality + coverage&#xa;6 backend + 5 frontend&#xa;Quality Gate check" style="rounded=1;fillColor=#FCE4EC;strokeColor=#C62828;fontSize=11;shadow=1;arcSize=10;" vertex="1" parent="1">
+          <mxGeometry x="830" y="105" width="190" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ci_ok" value="✅ CI Pass" style="rounded=1;fillColor=#C8E6C9;strokeColor=#388E3C;fontSize=12;shadow=1;arcSize=15;" vertex="1" parent="1">
+          <mxGeometry x="1070" y="120" width="90" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- CI Arrows -->
+        <mxCell id="a_ci1" edge="1" source="git_push" target="ci_back" style="strokeColor=#9E9E9E;strokeWidth=1.5;" parent="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="a_ci2" edge="1" parent="1" source="ci_back" style="strokeColor=#9E9E9E;strokeWidth=1.5;" target="ci_front">
+        <mxCell id="a_ci2" edge="1" source="ci_back" target="ci_front" style="strokeColor=#9E9E9E;strokeWidth=1.5;" parent="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="a_ci3" edge="1" parent="1" source="ci_back" style="strokeColor=#388E3C;strokeWidth=1.5;" target="ci_ok">
-          <mxGeometry relative="1" as="geometry">
-            <Array as="points">
-              <mxPoint x="712.5" y="220" />
-              <mxPoint x="902.5" y="220" />
-            </Array>
-          </mxGeometry>
-        </mxCell>
-        <mxCell id="a_ci4" edge="1" parent="1" source="ci_front" style="strokeColor=#388E3C;strokeWidth=1.5;" target="ci_ok">
+        <mxCell id="a_ci3" edge="1" source="ci_front" target="sonar" style="strokeColor=#9E9E9E;strokeWidth=1.5;" parent="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="cd_label" parent="1" style="text;html=1;fontSize=13;fontStyle=0;fillColor=none;strokeColor=none;fontColor=#F57C00;" value="&lt;b&gt;CD — Push para main ou manual dispatch&lt;/b&gt;" vertex="1">
-          <mxGeometry height="20" width="400" x="280" y="240" as="geometry" />
-        </mxCell>
-        <mxCell id="merge" parent="1" style="rounded=1;fillColor=#F5F5F5;strokeColor=#9E9E9E;fontSize=11;shadow=1;arcSize=10;" value="Merge to main&#xa;ou workflow_dispatch" vertex="1">
-          <mxGeometry height="50" width="130" x="282.5" y="325" as="geometry" />
-        </mxCell>
-        <mxCell id="lambda_build" parent="1" style="rounded=1;fillColor=#FFF9C4;strokeColor=#F9A825;fontSize=11;shadow=1;arcSize=10;" value="Build Lambdas&#xa;6 jobs em paralelo&#xa;npm ci → prisma generate&#xa;→ npm run build → zip" vertex="1">
-          <mxGeometry height="70" width="160" x="472.5" y="285" as="geometry" />
-        </mxCell>
-        <mxCell id="lambda_upload" parent="1" style="rounded=1;fillColor=#FFE0B2;strokeColor=#F57C00;fontSize=11;shadow=1;arcSize=10;" value="Upload Lambda&#xa;aws lambda&#xa;update-function-code&#xa;20 functions" vertex="1">
-          <mxGeometry height="70" width="150" x="682.5" y="280" as="geometry" />
-        </mxCell>
-        <mxCell id="docker_build" parent="1" style="rounded=1;fillColor=#E3F2FD;strokeColor=#1976D2;fontSize=11;shadow=1;arcSize=10;" value="Docker Build --platform linux/amd64&#xa;NEXT_PUBLIC_API_URL" vertex="1">
-          <mxGeometry height="70" width="190" x="462.5" y="375" as="geometry" />
-        </mxCell>
-        <mxCell id="ecr_push" parent="1" style="rounded=1;fillColor=#E3F2FD;strokeColor=#1976D2;fontSize=11;shadow=1;arcSize=10;" value="Push ECR&#xa;Tag: commit SHA + latest" vertex="1">
-          <mxGeometry height="60" width="150" x="687.5" y="380" as="geometry" />
-        </mxCell>
-        <mxCell id="ecs_deploy" parent="1" style="rounded=1;fillColor=#E3F2FD;strokeColor=#1565C0;fontSize=11;shadow=1;arcSize=10;" value="ECS Deploy&#xa;force-new-deployment&#xa;wait services-stable" vertex="1">
-          <mxGeometry height="60" width="140" x="887.5" y="380" as="geometry" />
-        </mxCell>
-        <mxCell id="a_m1" edge="1" parent="1" source="merge" style="strokeColor=#F9A825;strokeWidth=1.5;" target="lambda_build">
+        <mxCell id="a_ci4" edge="1" source="sonar" target="ci_ok" style="strokeColor=#388E3C;strokeWidth=1.5;" parent="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="a_m2" edge="1" parent="1" source="merge" style="strokeColor=#1976D2;strokeWidth=1.5;" target="docker_build">
+
+        <!-- ==================== -->
+        <!-- CD Section           -->
+        <!-- ==================== -->
+        <mxCell id="cd_label" value="&lt;b&gt;CD — Push para main ou manual dispatch&lt;/b&gt;" style="text;html=1;fontSize=13;fillColor=none;strokeColor=none;fontColor=#F57C00;" vertex="1" parent="1">
+          <mxGeometry x="100" y="210" width="400" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="merge" value="Merge to main&#xa;ou workflow_dispatch" style="rounded=1;fillColor=#F5F5F5;strokeColor=#9E9E9E;fontSize=11;shadow=1;arcSize=10;" vertex="1" parent="1">
+          <mxGeometry x="100" y="280" width="130" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- Lambda flow -->
+        <mxCell id="lambda_build" value="Build Lambdas&#xa;6 jobs em paralelo&#xa;npm ci → prisma generate&#xa;→ npm run build → zip" style="rounded=1;fillColor=#FFF9C4;strokeColor=#F9A825;fontSize=11;shadow=1;arcSize=10;" vertex="1" parent="1">
+          <mxGeometry x="300" y="240" width="200" height="75" as="geometry" />
+        </mxCell>
+
+        <mxCell id="lambda_upload" value="Upload Lambda&#xa;aws lambda&#xa;update-function-code&#xa;23 functions" style="rounded=1;fillColor=#FFE0B2;strokeColor=#F57C00;fontSize=11;shadow=1;arcSize=10;" vertex="1" parent="1">
+          <mxGeometry x="560" y="240" width="160" height="75" as="geometry" />
+        </mxCell>
+
+        <mxCell id="aws_lambda" value="⚡ AWS Lambda&#xa;23 functions updated" style="rounded=1;fillColor=#FFF3E0;strokeColor=#FF6600;fontSize=11;shadow=1;arcSize=10;" vertex="1" parent="1">
+          <mxGeometry x="780" y="250" width="160" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- Amplify flow -->
+        <mxCell id="amplify_trigger" value="Amplify Auto-Build&#xa;(webhook no push)&#xa;ou manual dispatch" style="rounded=1;fillColor=#F3E5F5;strokeColor=#7B1FA2;fontSize=11;shadow=1;arcSize=10;" vertex="1" parent="1">
+          <mxGeometry x="300" y="340" width="200" height="65" as="geometry" />
+        </mxCell>
+
+        <mxCell id="amplify_build" value="Amplify Build&#xa;4 remotes → shell&#xa;cp assets → dist/remotes/&#xa;~3 min build" style="rounded=1;fillColor=#E1BEE7;strokeColor=#7B1FA2;fontSize=11;shadow=1;arcSize=10;" vertex="1" parent="1">
+          <mxGeometry x="560" y="335" width="180" height="75" as="geometry" />
+        </mxCell>
+
+        <mxCell id="amplify_deploy" value="☁️ AWS Amplify&#xa;CloudFront CDN&#xa;SSL auto-managed" style="rounded=1;fillColor=#F3E5F5;strokeColor=#7B1FA2;fontSize=11;shadow=1;arcSize=10;" vertex="1" parent="1">
+          <mxGeometry x="800" y="345" width="160" height="55" as="geometry" />
+        </mxCell>
+
+        <!-- Live -->
+        <mxCell id="deploy_ok" value="🚀 Live!&#xa;fastmeals.com.br" style="rounded=1;fillColor=#C8E6C9;strokeColor=#388E3C;fontSize=12;shadow=1;arcSize=15;" vertex="1" parent="1">
+          <mxGeometry x="1020" y="280" width="120" height="65" as="geometry" />
+        </mxCell>
+
+        <!-- CD Arrows -->
+        <mxCell id="a_m1" edge="1" source="merge" target="lambda_build" style="strokeColor=#F9A825;strokeWidth=1.5;" parent="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="a_lb" edge="1" parent="1" source="lambda_build" style="strokeColor=#F57C00;strokeWidth=1.5;" target="lambda_upload">
+        <mxCell id="a_m2" edge="1" source="merge" target="amplify_trigger" style="strokeColor=#7B1FA2;strokeWidth=1.5;" parent="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="a_db" edge="1" parent="1" source="docker_build" style="strokeColor=#1976D2;strokeWidth=1.5;" target="ecr_push">
+        <mxCell id="a_lb" edge="1" source="lambda_build" target="lambda_upload" style="strokeColor=#F57C00;strokeWidth=1.5;" parent="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="a_ep" edge="1" parent="1" source="ecr_push" style="strokeColor=#1565C0;strokeWidth=1.5;" target="ecs_deploy">
+        <mxCell id="a_lu" edge="1" source="lambda_upload" target="aws_lambda" style="strokeColor=#FF6600;strokeWidth=1.5;" parent="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="aws_lambda" parent="1" style="rounded=1;fillColor=#FFF3E0;strokeColor=#FF6600;fontSize=11;shadow=1;arcSize=10;" value="⚡ AWS Lambda&#xa;20 functions updated" vertex="1">
-          <mxGeometry height="50" width="140" x="882.5" y="290" as="geometry" />
-        </mxCell>
-        <mxCell id="a_lu" edge="1" parent="1" source="lambda_upload" style="strokeColor=#FF6600;strokeWidth=1.5;" target="aws_lambda">
+        <mxCell id="a_at" edge="1" source="amplify_trigger" target="amplify_build" style="strokeColor=#7B1FA2;strokeWidth=1.5;" parent="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="aws_ecs" parent="1" style="rounded=1;fillColor=#E3F2FD;strokeColor=#1565C0;fontSize=11;shadow=1;arcSize=10;" value="🐳 ECS Fargate&#xa;Rolling update" vertex="1">
-          <mxGeometry height="50" width="120" x="1067.5" y="385" as="geometry" />
-        </mxCell>
-        <mxCell id="a_ed" edge="1" parent="1" source="ecs_deploy" style="strokeColor=#1565C0;strokeWidth=1.5;" target="aws_ecs">
+        <mxCell id="a_ab" edge="1" source="amplify_build" target="amplify_deploy" style="strokeColor=#7B1FA2;strokeWidth=1.5;" parent="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="deploy_ok" parent="1" style="rounded=1;fillColor=#C8E6C9;strokeColor=#388E3C;fontSize=12;shadow=1;arcSize=15;" value="🚀 Live!&#xa;fastmeals.com.br" vertex="1">
-          <mxGeometry height="65" width="100" x="1077.5" y="285" as="geometry" />
-        </mxCell>
-        <mxCell id="a_ok1" edge="1" parent="1" source="aws_lambda" style="strokeColor=#388E3C;strokeWidth=1.5;" target="deploy_ok">
+        <mxCell id="a_ok1" edge="1" source="aws_lambda" target="deploy_ok" style="strokeColor=#388E3C;strokeWidth=1.5;" parent="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="a_ok2" edge="1" parent="1" source="aws_ecs" style="strokeColor=#388E3C;strokeWidth=1.5;" target="deploy_ok">
+        <mxCell id="a_ok2" edge="1" source="amplify_deploy" target="deploy_ok" style="strokeColor=#388E3C;strokeWidth=1.5;" parent="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="tf_label" parent="1" style="text;html=1;fontSize=13;fontStyle=0;fillColor=none;strokeColor=none;fontColor=#673AB7;" value="&lt;b&gt;Terraform — Infra as Code&lt;/b&gt;" vertex="1">
-          <mxGeometry height="20" width="400" x="120" y="480" as="geometry" />
+
+        <!-- ==================== -->
+        <!-- Terraform Section    -->
+        <!-- ==================== -->
+        <mxCell id="tf_label" value="&lt;b&gt;Terraform — Infra as Code&lt;/b&gt;" style="text;html=1;fontSize=13;fillColor=none;strokeColor=none;fontColor=#673AB7;" vertex="1" parent="1">
+          <mxGeometry x="100" y="440" width="400" height="20" as="geometry" />
         </mxCell>
-        <mxCell id="pr" parent="1" style="rounded=1;fillColor=#F5F5F5;strokeColor=#9E9E9E;fontSize=11;shadow=1;arcSize=10;" value="PR para main &#xa;Infra/**" vertex="1">
-          <mxGeometry height="45" width="110" x="120" y="530" as="geometry" />
+
+        <mxCell id="pr" value="PR para main&#xa;Infra/**" style="rounded=1;fillColor=#F5F5F5;strokeColor=#9E9E9E;fontSize=11;shadow=1;arcSize=10;" vertex="1" parent="1">
+          <mxGeometry x="100" y="480" width="110" height="45" as="geometry" />
         </mxCell>
-        <mxCell id="tf_plan" parent="1" style="rounded=1;fillColor=#EDE7F6;strokeColor=#673AB7;fontSize=11;shadow=1;arcSize=10;" value="terraform plan&#xa;Review changes no PR comment" vertex="1">
-          <mxGeometry height="70" width="190" x="270" y="517.5" as="geometry" />
+
+        <mxCell id="tf_plan" value="terraform plan&#xa;Review changes" style="rounded=1;fillColor=#EDE7F6;strokeColor=#673AB7;fontSize=11;shadow=1;arcSize=10;" vertex="1" parent="1">
+          <mxGeometry x="270" y="472" width="160" height="60" as="geometry" />
         </mxCell>
-        <mxCell id="tf_approve" parent="1" style="rounded=1;fillColor=#C8E6C9;strokeColor=#388E3C;fontSize=11;shadow=1;arcSize=10;" value="Merge -&gt; Approved" vertex="1">
-          <mxGeometry height="50" width="120" x="515" y="525" as="geometry" />
+
+        <mxCell id="tf_approve" value="Merge → Approved" style="rounded=1;fillColor=#C8E6C9;strokeColor=#388E3C;fontSize=11;shadow=1;arcSize=10;" vertex="1" parent="1">
+          <mxGeometry x="490" y="480" width="130" height="45" as="geometry" />
         </mxCell>
-        <mxCell id="tf_apply" parent="1" style="rounded=1;fillColor=#EDE7F6;strokeColor=#673AB7;fontSize=11;shadow=1;arcSize=10;" value="terraform apply -auto-approve&#xa;S3 remote state" vertex="1">
-          <mxGeometry height="55" width="180" x="680" y="522.5" as="geometry" />
+
+        <mxCell id="tf_apply" value="terraform apply&#xa;-auto-approve&#xa;S3 remote state" style="rounded=1;fillColor=#EDE7F6;strokeColor=#673AB7;fontSize=11;shadow=1;arcSize=10;" vertex="1" parent="1">
+          <mxGeometry x="680" y="472" width="160" height="60" as="geometry" />
         </mxCell>
-        <mxCell id="aws_infra" parent="1" style="rounded=1;fillColor=#E8F5E9;strokeColor=#388E3C;fontSize=11;shadow=1;arcSize=10;" value="☁️ AWS Updated&#xa;8 modules applied" vertex="1">
-          <mxGeometry height="45" width="130" x="895" y="527.5" as="geometry" />
+
+        <mxCell id="aws_infra" value="☁️ AWS Updated&#xa;9 modules applied" style="rounded=1;fillColor=#E8F5E9;strokeColor=#388E3C;fontSize=11;shadow=1;arcSize=10;" vertex="1" parent="1">
+          <mxGeometry x="900" y="480" width="140" height="45" as="geometry" />
         </mxCell>
-        <mxCell id="a_tf1" edge="1" parent="1" source="pr" style="strokeColor=#673AB7;strokeWidth=1.5;" target="tf_plan">
+
+        <!-- Terraform Arrows -->
+        <mxCell id="a_tf1" edge="1" source="pr" target="tf_plan" style="strokeColor=#673AB7;strokeWidth=1.5;" parent="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="a_tf2" edge="1" parent="1" source="tf_plan" style="strokeColor=#388E3C;strokeWidth=1.5;" target="tf_approve">
+        <mxCell id="a_tf2" edge="1" source="tf_plan" target="tf_approve" style="strokeColor=#388E3C;strokeWidth=1.5;" parent="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="a_tf3" edge="1" parent="1" source="tf_approve" style="strokeColor=#673AB7;strokeWidth=1.5;" target="tf_apply">
+        <mxCell id="a_tf3" edge="1" source="tf_approve" target="tf_apply" style="strokeColor=#673AB7;strokeWidth=1.5;" parent="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="a_tf4" edge="1" parent="1" source="tf_apply" style="strokeColor=#388E3C;strokeWidth=1.5;" target="aws_infra">
+        <mxCell id="a_tf4" edge="1" source="tf_apply" target="aws_infra" style="strokeColor=#388E3C;strokeWidth=1.5;" parent="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="secrets_box" parent="1" style="rounded=1;fillColor=#F5F5F5;strokeColor=#9E9E9E;fontSize=10;shadow=0;arcSize=8;" value="🔑 GitHub Secrets (13)&#xa;AWS_ACCESS_KEY_ID • AWS_SECRET_ACCESS_KEY&#xa;API_GATEWAY_URL • DB passwords (6)&#xa;MQ_PASSWORD • JWT secrets • DOMAIN_NAME" vertex="1">
-          <mxGeometry height="75" width="300" x="1060" y="502.5" as="geometry" />
+
+        <!-- ==================== -->
+        <!-- Secrets Box          -->
+        <!-- ==================== -->
+        <mxCell id="secrets_box" value="🔑 GitHub Secrets (15)&#xa;AWS_ACCESS_KEY_ID • AWS_SECRET_ACCESS_KEY&#xa;SONAR_TOKEN • GH_ACCESS_TOKEN&#xa;API_GATEWAY_URL • DB passwords (6)&#xa;MQ_PASSWORD • JWT secrets • DOMAIN_NAME" style="rounded=1;fillColor=#F5F5F5;strokeColor=#9E9E9E;fontSize=10;shadow=0;arcSize=8;" vertex="1" parent="1">
+          <mxGeometry x="1090" y="455" width="310" height="85" as="geometry" />
         </mxCell>
-        <mxCell id="summary" parent="1" style="text;html=1;fontSize=11;align=center;fillColor=none;strokeColor=none;fontColor=#666;fontStyle=2;" value="&lt;font style=&quot;font-size: 14px;&quot;&gt;📊 CI: 180+ testes a cada push • CD: Deploy automático no merge para main • IaC: Terraform plan/apply protegido&lt;/font&gt;" vertex="1">
-          <mxGeometry height="20" width="900" x="300" y="620" as="geometry" />
+
+        <!-- ==================== -->
+        <!-- Modules List         -->
+        <!-- ==================== -->
+        <mxCell id="modules_box" value="📦 Terraform Modules (9)&#xa;networking • database • cache • messaging&#xa;lambda (23 fns) • api-gateway • frontend (Amplify)&#xa;dns • secrets • bastion" style="rounded=1;fillColor=#EDE7F6;strokeColor=#9575CD;fontSize=10;shadow=0;arcSize=8;" vertex="1" parent="1">
+          <mxGeometry x="1090" y="555" width="310" height="70" as="geometry" />
         </mxCell>
-        <mxCell id="DAHqc5wVadOVFJbL_xnh-1" edge="1" parent="1" source="git_push" style="strokeColor=#9E9E9E;strokeWidth=1.5;" target="ci_back" value="">
-          <mxGeometry relative="1" as="geometry">
-            <mxPoint x="372.5" y="160" as="sourcePoint" />
-            <mxPoint x="632.5" y="160" as="targetPoint" />
-          </mxGeometry>
+
+        <!-- ==================== -->
+        <!-- Summary              -->
+        <!-- ==================== -->
+        <mxCell id="summary" value="&lt;font style=&quot;font-size:14px;&quot;&gt;📊 CI: 180+ testes a cada push • SonarCloud: Quality Gate em cada PR • CD: Deploy automático (Lambda + Amplify) • IaC: 9 módulos Terraform&lt;/font&gt;" style="text;html=1;fontSize=11;align=center;fillColor=none;strokeColor=none;fontColor=#666;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="200" y="650" width="1100" height="25" as="geometry" />
         </mxCell>
-        <mxCell id="ci_back" parent="1" style="rounded=1;fillColor=#FFF9C4;strokeColor=#F9A825;fontSize=11;shadow=1;arcSize=10;" value="CI Backend&#xa;6 serviços em paralelo&#xa;npm ci → prisma generate → npm test&#xa;153+ testes" vertex="1">
-          <mxGeometry height="80" width="230" x="442.5" y="120" as="geometry" />
-        </mxCell>
+
       </root>
     </mxGraphModel>
   </diagram>

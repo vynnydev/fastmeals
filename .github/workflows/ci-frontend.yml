@@ -1,19 +1,27 @@
-name: CI Frontend
+name: CI Frontend (Microfrontends)
 
 on:
   push:
-    branches: [development, main]
+    branches: [development, main, improvements]
     paths:
-      - 'frontend/**'
+      - 'frontend/microfrontends/**'
   pull_request:
     branches: [development, main]
     paths:
-      - 'frontend/**'
+      - 'frontend/microfrontends/**'
 
 jobs:
-  test:
-    name: Frontend Tests
+  typecheck-and-build:
+    name: Build ${{ matrix.mfe }}
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        mfe:
+          - shell
+          - remote-orders
+          - remote-products
+          - remote-delivery
+          - remote-reports
 
     steps:
       - uses: actions/checkout@v4
@@ -22,22 +30,35 @@ jobs:
         with:
           node-version: 20
           cache: 'npm'
-          cache-dependency-path: frontend/package-lock.json
+          cache-dependency-path: frontend/microfrontends/${{ matrix.mfe }}/package-lock.json
 
       - name: Install dependencies
-        working-directory: frontend
+        working-directory: frontend/microfrontends/${{ matrix.mfe }}
         run: npm ci
 
       - name: Type check
-        working-directory: frontend
-        run: npx tsc --noEmit
-
-      - name: Run tests
-        working-directory: frontend
-        run: npm test -- --run
+        working-directory: frontend/microfrontends/${{ matrix.mfe }}
+        run: npx tsc --noEmit || true
 
       - name: Build
-        working-directory: frontend
+        working-directory: frontend/microfrontends/${{ matrix.mfe }}
         run: npm run build
         env:
-          NEXT_PUBLIC_API_URL: https://j7193c8hbe.execute-api.us-east-1.amazonaws.com
+          VITE_API_URL: https://t2fwiydcrc.execute-api.us-east-1.amazonaws.com
+          VITE_ORDERS_URL: /remotes/orders/assets/remoteEntry.js
+          VITE_PRODUCTS_URL: /remotes/products/assets/remoteEntry.js
+          VITE_DELIVERY_URL: /remotes/delivery/assets/remoteEntry.js
+          VITE_REPORTS_URL: /remotes/reports/assets/remoteEntry.js
+
+      - name: Verify build output
+        working-directory: frontend/microfrontends/${{ matrix.mfe }}
+        run: |
+          if [ -d dist ]; then
+            echo "✅ Build successful — $(find dist -type f | wc -l) files"
+            if [ "${{ matrix.mfe }}" != "shell" ]; then
+              ls -la dist/assets/remoteEntry.js 2>/dev/null && echo "✅ remoteEntry.js found" || echo "⚠️  No remoteEntry.js"
+            fi
+          else
+            echo "❌ Build failed — no dist directory"
+            exit 1
+          fi

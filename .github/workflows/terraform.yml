@@ -57,7 +57,8 @@ jobs:
             -var="mq_password=${{ secrets.MQ_PASSWORD }}" \
             -var="jwt_access_secret=${{ secrets.JWT_ACCESS_SECRET }}" \
             -var="jwt_refresh_secret=${{ secrets.JWT_REFRESH_SECRET }}" \
-            -var="domain_name=${{ secrets.DOMAIN_NAME }}"
+            -var="domain_name=${{ secrets.DOMAIN_NAME }}" \
+            -var="github_access_token=${{ secrets.GH_ACCESS_TOKEN }}"
         continue-on-error: true
 
   apply:
@@ -96,4 +97,5 @@ jobs:
             -var="mq_password=${{ secrets.MQ_PASSWORD }}" \
             -var="jwt_access_secret=${{ secrets.JWT_ACCESS_SECRET }}" \
             -var="jwt_refresh_secret=${{ secrets.JWT_REFRESH_SECRET }}" \
-            -var="domain_name=${{ secrets.DOMAIN_NAME }}"
+            -var="domain_name=${{ secrets.DOMAIN_NAME }}" \
+            -var="github_access_token=${{ secrets.GH_ACCESS_TOKEN }}"

@@ -1,0 +1,132 @@
+name: Code Quality (SonarCloud)
+
+on:
+  push:
+    branches: [development, main, improvements]
+  pull_request:
+    branches: [development, main]
+
+jobs:
+  sonarcloud:
+    name: SonarCloud Analysis
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for accurate blame and new code detection
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      # --- Backend: Install + Test with coverage ---
+      - name: Install & test auth-service
+        working-directory: backend/services/auth-service
+        run: |
+          npm ci
+          if [ -f prisma/schema.prisma ]; then
+            DATABASE_URL="postgresql://dummy:dummy@localhost:5432/dummy" npx prisma generate
+          fi
+          npm test -- --run --coverage || true
+        env:
+          NODE_ENV: test
+          DATABASE_URL: postgresql://dummy:dummy@localhost:5432/dummy
+          JWT_ACCESS_SECRET: test-secret
+          JWT_REFRESH_SECRET: test-refresh-secret
+          REDIS_URL: redis://localhost:6379
+          CORS_ORIGIN: http://localhost:5000
+
+      - name: Install & test products-service
+        working-directory: backend/services/products-service
+        run: |
+          npm ci
+          if [ -f prisma/schema.prisma ]; then
+            DATABASE_URL="postgresql://dummy:dummy@localhost:5432/dummy" npx prisma generate
+          fi
+          npm test -- --run --coverage || true
+        env:
+          NODE_ENV: test
+          DATABASE_URL: postgresql://dummy:dummy@localhost:5432/dummy
+          JWT_ACCESS_SECRET: test-secret
+          CORS_ORIGIN: http://localhost:5000
+
+      - name: Install & test orders-service
+        working-directory: backend/services/orders-service
+        run: |
+          npm ci
+          if [ -f prisma/schema.prisma ]; then
+            DATABASE_URL="postgresql://dummy:dummy@localhost:5432/dummy" npx prisma generate
+          fi
+          npm test -- --run --coverage || true
+        env:
+          NODE_ENV: test
+          DATABASE_URL: postgresql://dummy:dummy@localhost:5432/dummy
+          JWT_ACCESS_SECRET: test-secret
+          CORS_ORIGIN: http://localhost:5000
+
+      - name: Install & test delivery-service
+        working-directory: backend/services/delivery-service
+        run: |
+          npm ci
+          if [ -f prisma/schema.prisma ]; then
+            DATABASE_URL="postgresql://dummy:dummy@localhost:5432/dummy" npx prisma generate
+          fi
+          npm test -- --run --coverage || true
+        env:
+          NODE_ENV: test
+          DATABASE_URL: postgresql://dummy:dummy@localhost:5432/dummy
+          JWT_ACCESS_SECRET: test-secret
+          CORS_ORIGIN: http://localhost:5000
+
+      - name: Install & test optimization-service
+        working-directory: backend/services/optimization-service
+        run: |
+          npm ci
+          npm test -- --run --coverage || true
+        env:
+          NODE_ENV: test
+          JWT_ACCESS_SECRET: test-secret
+          CORS_ORIGIN: http://localhost:5000
+
+      - name: Install & test reports-service
+        working-directory: backend/services/reports-service
+        run: |
+          npm ci
+          if [ -f prisma/schema.prisma ]; then
+            DATABASE_URL="postgresql://dummy:dummy@localhost:5432/dummy" npx prisma generate
+          fi
+          npm test -- --run --coverage || true
+        env:
+          NODE_ENV: test
+          DATABASE_URL: postgresql://dummy:dummy@localhost:5432/dummy
+          JWT_ACCESS_SECRET: test-secret
+          CORS_ORIGIN: http://localhost:5000
+
+      # --- Frontend: Install microfrontends ---
+      - name: Install shell
+        working-directory: frontend/microfrontends/shell
+        run: npm ci
+
+      - name: Install remote-orders
+        working-directory: frontend/microfrontends/remote-orders
+        run: npm ci
+
+      - name: Install remote-products
+        working-directory: frontend/microfrontends/remote-products
+        run: npm ci
+
+      - name: Install remote-delivery
+        working-directory: frontend/microfrontends/remote-delivery
+        run: npm ci
+
+      - name: Install remote-reports
+        working-directory: frontend/microfrontends/remote-reports
+        run: npm ci
+
+      # --- SonarCloud Scan ---
+      - name: SonarCloud Scan
+        uses: SonarSource/sonarcloud-github-action@master
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}

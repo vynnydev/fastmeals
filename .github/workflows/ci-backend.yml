@@ -2,7 +2,7 @@ name: CI Backend
 
 on:
   push:
-    branches: [development, main]
+    branches: [development, main, improvements]
     paths:
       - 'backend/**'
   pull_request:
@@ -53,4 +53,4 @@ jobs:
           JWT_ACCESS_SECRET: test-secret-for-ci
           JWT_REFRESH_SECRET: test-refresh-secret-for-ci
           REDIS_URL: redis://localhost:6379
-          CORS_ORIGIN: http://localhost:3000
+          CORS_ORIGIN: http://localhost:5000

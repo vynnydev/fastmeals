@@ -1,25 +1,27 @@
-name: Deploy Frontend
+name: Deploy Frontend (Amplify)
 
 on:
   push:
     branches: [main]
     paths:
-      - 'frontend/**'
+      - 'frontend/microfrontends/**'
   workflow_dispatch:
+
+# NOTE: O Amplify faz auto-deploy via webhook quando detecta push na branch.
+# Este workflow serve como fallback manual e para verificar o status do deploy.
 
 env:
   AWS_REGION: us-east-1
-  ECR_REPOSITORY: fastmeals-frontend
-  ECS_CLUSTER: fastmeals-cluster
-  ECS_SERVICE: fastmeals-frontend
+  AMPLIFY_APP_ID: dom7pekcheg36
+  BRANCH_NAME: improvements
 
 permissions:
   id-token: write
   contents: read
 
 jobs:
-  deploy:
-    name: Build & Deploy Frontend
+  trigger-deploy:
+    name: Trigger Amplify Deploy
     runs-on: ubuntu-latest
 
     steps:
@@ -32,46 +34,43 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: Login to Amazon ECR
-        id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v2
-
-      - name: Build, tag, and push image
-        id: build-image
-        env:
-          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          IMAGE_TAG: ${{ github.sha }}
-        working-directory: frontend
+      - name: Trigger Amplify build
         run: |
-          docker build \
-            --platform linux/amd64 \
-            --build-arg NEXT_PUBLIC_API_URL=${{ secrets.API_GATEWAY_URL }} \
-            -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG \
-            -t $ECR_REGISTRY/$ECR_REPOSITORY:latest \
-            .
-          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-          docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
-          echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
+          echo "🚀 Triggering Amplify build for branch ${{ env.BRANCH_NAME }}..."
+          JOB=$(aws amplify start-job \
+            --app-id ${{ env.AMPLIFY_APP_ID }} \
+            --branch-name ${{ env.BRANCH_NAME }} \
+            --job-type RELEASE \
+            --region ${{ env.AWS_REGION }} \
+            --query "jobSummary.jobId" \
+            --output text)
+          echo "Job ID: $JOB"
+          echo "AMPLIFY_JOB_ID=$JOB" >> $GITHUB_ENV
 
-      - name: Deploy to ECS
+      - name: Wait for Amplify deploy
         run: |
-          aws ecs update-service \
-            --cluster $ECS_CLUSTER \
-            --service $ECS_SERVICE \
-            --force-new-deployment \
-            --region $AWS_REGION
-
-      - name: Wait for deployment
-        run: |
-          echo "⏳ Waiting for ECS deployment to stabilize..."
-          aws ecs wait services-stable \
-            --cluster $ECS_CLUSTER \
-            --services $ECS_SERVICE \
-            --region $AWS_REGION
-          echo "✅ Deployment complete!"
+          echo "⏳ Waiting for Amplify build to complete..."
+          for i in $(seq 1 30); do
+            STATUS=$(aws amplify get-job \
+              --app-id ${{ env.AMPLIFY_APP_ID }} \
+              --branch-name ${{ env.BRANCH_NAME }} \
+              --job-id ${{ env.AMPLIFY_JOB_ID }} \
+              --query "job.summary.status" \
+              --output text \
+              --region ${{ env.AWS_REGION }})
+            echo "  Attempt $i/30: $STATUS"
+            if [ "$STATUS" = "SUCCEED" ]; then
+              echo "✅ Amplify deploy completed!"
+              break
+            elif [ "$STATUS" = "FAILED" ] || [ "$STATUS" = "CANCELLED" ]; then
+              echo "❌ Amplify deploy failed with status: $STATUS"
+              exit 1
+            fi
+            sleep 30
+          done
 
       - name: Print URLs
         run: |
-          ALB_DNS=$(aws elbv2 describe-load-balancers --names fastmeals-alb --query 'LoadBalancers[0].DNSName' --output text --region $AWS_REGION)
-          echo "🌐 Frontend URL: http://$ALB_DNS"
-          echo "🌐 Frontend URL: https://fastmeals.com.br"
+          echo "🌐 Frontend: https://fastmeals.com.br"
+          echo "🌐 Amplify:  https://${{ env.BRANCH_NAME }}.${{ env.AMPLIFY_APP_ID }}.amplifyapp.com"
+          echo "📦 Build:    5 microfrontends (shell + 4 remotes) consolidated"
