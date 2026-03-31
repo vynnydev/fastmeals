@@ -47,3 +47,19 @@ output "redis_endpoint" {
   description = "Redis endpoint"
   value       = module.cache.redis_endpoint
 }
+
+# --- Bastion ---
+output "bastion_public_ip" {
+  description = "IP do Bastion Host"
+  value       = module.bastion.bastion_public_ip
+}
+
+output "ssh_command" {
+  description = "Comando SSH"
+  value       = module.bastion.ssh_command
+}
+
+output "rds_tunnel_command" {
+  description = "Comando para túnel SSH ao RDS"
+  value       = module.bastion.rds_tunnel_command
+}

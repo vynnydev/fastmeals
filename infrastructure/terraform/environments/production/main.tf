@@ -165,3 +165,17 @@ module "dns" {
   amplify_cert_record_name  = local.amplify_cert_name
   amplify_cert_record_value = local.amplify_cert_value
 }
+
+# --- Bastion Host (SSH tunnel to RDS/Redis) ---
+module "bastion" {
+  source = "../../modules/bastion"
+
+  project_name            = var.project_name
+  vpc_id                  = module.networking.vpc_id
+  public_subnet_id        = module.networking.public_subnet_ids[0]
+  rds_security_group_id   = module.networking.rds_security_group_id
+  redis_security_group_id = module.networking.redis_security_group_id
+  rds_endpoint            = module.database.rds_endpoint
+  key_name                = "fastmeals-bastion"
+  allowed_ssh_cidrs       = ["0.0.0.0/0"]  # Restrinja para seu IP em produção
+}

@@ -1,0 +1,160 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="app.diagrams.net" agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36" version="29.6.6">
+  <diagram id="db-architecture" name="Database Architecture">
+    <mxGraphModel dx="1447" dy="1284" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="1000" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="title" parent="1" style="text;html=1;fontSize=24;fontStyle=1;align=center;verticalAlign=middle;fillColor=none;strokeColor=none;fontColor=#1a1a1a;" value="FastMeals — Database Architecture" vertex="1">
+          <mxGeometry height="40" width="800" x="400" y="20" as="geometry" />
+        </mxCell>
+        <mxCell id="subtitle" parent="1" style="text;html=1;fontSize=12;align=center;verticalAlign=middle;fillColor=none;strokeColor=none;fontColor=#666666;" value="&lt;font style=&quot;font-size: 14px;&quot;&gt;PostgreSQL 16 · Amazon RDS · Database-per-Service · CQRS Read Model&lt;/font&gt;" vertex="1">
+          <mxGeometry height="25" width="800" x="400" y="55" as="geometry" />
+        </mxCell>
+        <mxCell id="rds-box" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#999999;strokeWidth=2;dashed=1;arcSize=8;" value="" vertex="1">
+          <mxGeometry height="530" width="1320" x="140" y="100" as="geometry" />
+        </mxCell>
+        <mxCell id="rds-label" parent="1" style="text;html=1;fontSize=14;fontStyle=1;align=left;verticalAlign=top;fillColor=none;strokeColor=none;fontColor=#333333;" value="&lt;font&gt;&lt;font style=&quot;&quot;&gt;Amazon RDS — PostgreSQL 16.4&lt;br&gt;&lt;/font&gt;&lt;font style=&quot;font-weight: normal; color: rgb(102, 102, 102);&quot;&gt;&lt;font style=&quot;&quot;&gt;fastmeals-postgres.cw3eceym6ad8.us-east-1.rds.amazonaws.com:5432&lt;br&gt;&lt;/font&gt;&lt;font style=&quot;&quot;&gt;db.t3.micro · Encrypted · 7-day backup · Private Subnet (2 AZs)&lt;/font&gt;&lt;/font&gt;&lt;/font&gt;" vertex="1">
+          <mxGeometry height="60" width="600" x="160" y="120" as="geometry" />
+        </mxCell>
+        <mxCell id="auth-db" parent="1" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=12;fillColor=#dae8fc;strokeColor=#6c8ebf;strokeWidth=2;" value="&lt;b style=&quot;font-size:14px;&quot;&gt;auth_db&lt;/b&gt;" vertex="1">
+          <mxGeometry height="90" width="140" x="180" y="210" as="geometry" />
+        </mxCell>
+        <mxCell id="auth-owner" parent="1" style="text;html=1;fontSize=11;align=center;fillColor=none;strokeColor=none;" value="&lt;font color=&quot;#4472C4&quot; style=&quot;font-size: 12px;&quot;&gt;👤 auth_user&lt;/font&gt;" vertex="1">
+          <mxGeometry height="20" width="140" x="180" y="310" as="geometry" />
+        </mxCell>
+        <mxCell id="auth-tables" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#6c8ebf;strokeWidth=1;verticalAlign=top;spacingTop=4;" value="&lt;div style=&quot;text-align: left; line-height: 1.4;&quot;&gt;&lt;font&gt;📋 users&lt;br&gt;📋 refresh_tokens&lt;br&gt;📋 _prisma_migrations&lt;/font&gt;&lt;/div&gt;" vertex="1">
+          <mxGeometry height="75" width="160" x="170" y="335" as="geometry" />
+        </mxCell>
+        <mxCell id="auth-service-badge" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#4472C4;strokeColor=none;fontColor=#FFFFFF;fontSize=10;fontStyle=1;" value="&lt;font style=&quot;font-size: 12px;&quot;&gt;auth-service :3001&lt;/font&gt;" vertex="1">
+          <mxGeometry height="25" width="140" x="180" y="420" as="geometry" />
+        </mxCell>
+        <mxCell id="products-db" parent="1" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=12;fillColor=#d5e8d4;strokeColor=#82b366;strokeWidth=2;" value="&lt;b style=&quot;font-size:14px;&quot;&gt;products_db&lt;/b&gt;" vertex="1">
+          <mxGeometry height="90" width="140" x="400" y="210" as="geometry" />
+        </mxCell>
+        <mxCell id="products-owner" parent="1" style="text;html=1;fontSize=11;align=center;fillColor=none;strokeColor=none;" value="&lt;font color=&quot;#548235&quot; style=&quot;font-size: 12px;&quot;&gt;👤 products_user&lt;/font&gt;" vertex="1">
+          <mxGeometry height="20" width="140" x="400" y="310" as="geometry" />
+        </mxCell>
+        <mxCell id="products-tables" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#82b366;strokeWidth=1;verticalAlign=top;spacingTop=4;" value="&lt;div style=&quot;text-align: left; line-height: 1.4;&quot;&gt;&lt;font&gt;📋 products&lt;br&gt;📋 categories&lt;br&gt;📋 _prisma_migrations&lt;/font&gt;&lt;/div&gt;" vertex="1">
+          <mxGeometry height="75" width="160" x="390" y="335" as="geometry" />
+        </mxCell>
+        <mxCell id="products-service-badge" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#548235;strokeColor=none;fontColor=#FFFFFF;fontSize=10;fontStyle=1;" value="&lt;font style=&quot;font-size: 12px;&quot;&gt;products-service :3002&lt;/font&gt;" vertex="1">
+          <mxGeometry height="25" width="140" x="400" y="420" as="geometry" />
+        </mxCell>
+        <mxCell id="orders-db" parent="1" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=12;fillColor=#fff2cc;strokeColor=#d6b656;strokeWidth=2;" value="&lt;b style=&quot;font-size:14px;&quot;&gt;orders_db&lt;/b&gt;" vertex="1">
+          <mxGeometry height="90" width="140" x="620" y="210" as="geometry" />
+        </mxCell>
+        <mxCell id="orders-owner" parent="1" style="text;html=1;fontSize=11;align=center;fillColor=none;strokeColor=none;" value="&lt;font color=&quot;#BF8F00&quot; style=&quot;font-size: 12px;&quot;&gt;👤 orders_user&lt;/font&gt;" vertex="1">
+          <mxGeometry height="20" width="140" x="620" y="310" as="geometry" />
+        </mxCell>
+        <mxCell id="orders-tables" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#d6b656;strokeWidth=1;verticalAlign=top;spacingTop=4;" value="&lt;div style=&quot;text-align: left; line-height: 1.4;&quot;&gt;&lt;font&gt;📋 orders&lt;br&gt;📋 order_items&lt;br&gt;📋 _prisma_migrations&lt;/font&gt;&lt;/div&gt;" vertex="1">
+          <mxGeometry height="75" width="160" x="610" y="335" as="geometry" />
+        </mxCell>
+        <mxCell id="orders-service-badge" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#BF8F00;strokeColor=none;fontColor=#FFFFFF;fontSize=10;fontStyle=1;" value="&lt;font style=&quot;font-size: 12px;&quot;&gt;orders-service :3003&lt;/font&gt;" vertex="1">
+          <mxGeometry height="25" width="140" x="620" y="420" as="geometry" />
+        </mxCell>
+        <mxCell id="delivery-db" parent="1" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=12;fillColor=#e1d5e7;strokeColor=#9673a6;strokeWidth=2;" value="&lt;b style=&quot;font-size:14px;&quot;&gt;delivery_db&lt;/b&gt;" vertex="1">
+          <mxGeometry height="90" width="140" x="840" y="210" as="geometry" />
+        </mxCell>
+        <mxCell id="delivery-owner" parent="1" style="text;html=1;fontSize=11;align=center;fillColor=none;strokeColor=none;" value="&lt;font color=&quot;#7030A0&quot; style=&quot;font-size: 12px;&quot;&gt;👤 delivery_user&lt;/font&gt;" vertex="1">
+          <mxGeometry height="20" width="140" x="840" y="310" as="geometry" />
+        </mxCell>
+        <mxCell id="delivery-tables" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#9673a6;strokeWidth=1;verticalAlign=top;spacingTop=4;" value="&lt;div style=&quot;text-align: left; line-height: 1.4;&quot;&gt;&lt;font&gt;📋 delivery_persons&lt;br&gt;📋 delivery_assignments&lt;br&gt;📋 _prisma_migrations&lt;/font&gt;&lt;/div&gt;" vertex="1">
+          <mxGeometry height="75" width="160" x="830" y="335" as="geometry" />
+        </mxCell>
+        <mxCell id="delivery-service-badge" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#7030A0;strokeColor=none;fontColor=#FFFFFF;fontSize=10;fontStyle=1;" value="&lt;font style=&quot;font-size: 12px;&quot;&gt;delivery-service :3004&lt;/font&gt;" vertex="1">
+          <mxGeometry height="25" width="140" x="840" y="420" as="geometry" />
+        </mxCell>
+        <mxCell id="reports-db" parent="1" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=12;fillColor=#f8cecc;strokeColor=#b85450;strokeWidth=2;" value="&lt;b style=&quot;font-size:14px;&quot;&gt;reports_db&lt;/b&gt;" vertex="1">
+          <mxGeometry height="90" width="140" x="1060" y="210" as="geometry" />
+        </mxCell>
+        <mxCell id="reports-owner" parent="1" style="text;html=1;fontSize=11;align=center;fillColor=none;strokeColor=none;" value="&lt;font color=&quot;#C00000&quot; style=&quot;font-size: 12px;&quot;&gt;👤 reports_user&lt;/font&gt;" vertex="1">
+          <mxGeometry height="20" width="140" x="1060" y="310" as="geometry" />
+        </mxCell>
+        <mxCell id="reports-tables" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#b85450;strokeWidth=1;verticalAlign=top;spacingTop=4;" value="&lt;div style=&quot;text-align: left; line-height: 1.4;&quot;&gt;&lt;font&gt;📋 orders (read replica)&lt;br&gt;📋 order_items (read replica)&lt;br&gt;📋 products (read replica)&lt;br&gt;📋 delivery_persons (read replica)&lt;br&gt;📋 _prisma_migrations&lt;/font&gt;&lt;/div&gt;" vertex="1">
+          <mxGeometry height="105" width="210" x="1033" y="335" as="geometry" />
+        </mxCell>
+        <mxCell id="reports-service-badge" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#C00000;strokeColor=none;fontColor=#FFFFFF;fontSize=10;fontStyle=1;" value="&lt;font style=&quot;font-size: 12px;&quot;&gt;reports-service :3006&lt;/font&gt;" vertex="1">
+          <mxGeometry height="25" width="140" x="1070" y="445" as="geometry" />
+        </mxCell>
+        <mxCell id="cqrs-badge" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FF6D00;strokeColor=none;fontColor=#FFFFFF;fontSize=10;fontStyle=1;" value="&lt;font style=&quot;font-size: 12px;&quot;&gt;⚡ CQRS Read Model&lt;/font&gt;" vertex="1">
+          <mxGeometry height="42" width="120" x="1080" y="478" as="geometry" />
+        </mxCell>
+        <mxCell id="rabbitmq-box" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FF6600;strokeColor=none;fontColor=#FFFFFF;fontSize=12;fontStyle=1;" value="🐰 RabbitMQ" vertex="1">
+          <mxGeometry height="35" width="140" x="729.94" y="545" as="geometry" />
+        </mxCell>
+        <mxCell id="rabbitmq-desc" parent="1" style="text;html=1;fontSize=9;align=center;fillColor=none;strokeColor=none;fontColor=#999999;" value="&lt;font style=&quot;font-size: 14px;&quot;&gt;Event-driven sync (order.created, order.updated, delivery.assigned)&lt;/font&gt;" vertex="1">
+          <mxGeometry height="18" width="400" x="600" y="590" as="geometry" />
+        </mxCell>
+        <mxCell id="arrow-orders-rabbit" edge="1" parent="1" source="orders-service-badge" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#d6b656;strokeWidth=2;dashed=1;endArrow=classic;" target="rabbitmq-box">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="arrow-delivery-rabbit" edge="1" parent="1" source="delivery-service-badge" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#9673a6;strokeWidth=2;dashed=1;endArrow=classic;" target="rabbitmq-box">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="arrow-rabbit-reports" edge="1" parent="1" source="rabbitmq-box" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#FF6600;strokeWidth=2;dashed=1;endArrow=classic;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" target="cqrs-badge">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1129.94" y="540" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="infra-box" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E8F5E9;strokeColor=#4CAF50;strokeWidth=2;dashed=1;arcSize=8;" value="" vertex="1">
+          <mxGeometry height="130" width="1320" x="140" y="660" as="geometry" />
+        </mxCell>
+        <mxCell id="infra-label" parent="1" style="text;html=1;fontSize=13;fontStyle=1;align=left;fillColor=none;strokeColor=none;fontColor=#333333;" value="&lt;font style=&quot;font-size: 14px;&quot;&gt;Infraestrutura de Cache e Mensageria&lt;/font&gt;" vertex="1">
+          <mxGeometry height="22" width="300" x="160" y="668" as="geometry" />
+        </mxCell>
+        <mxCell id="redis-box" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DC382D;strokeColor=none;fontColor=#FFFFFF;fontSize=11;" value="&lt;font style=&quot;font-size: 12px;&quot;&gt;&lt;b&gt;Redis 7&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;&quot;&gt;ElastiCache&lt;br&gt;fastmeals-redis.3gjcuc...&lt;br&gt;Token store + Rate limiting&lt;/font&gt;&lt;/font&gt;" vertex="1">
+          <mxGeometry height="70" width="220" x="200" y="700" as="geometry" />
+        </mxCell>
+        <mxCell id="rabbitmq-infra" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FF6600;strokeColor=none;fontColor=#FFFFFF;fontSize=11;" value="&lt;font style=&quot;font-size: 12px;&quot;&gt;&lt;b&gt;RabbitMQ 3.13&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;&quot;&gt;Amazon MQ&lt;br&gt;AMQPS (5671)&lt;br&gt;Eventos entre microserviços&lt;/font&gt;&lt;/font&gt;" vertex="1">
+          <mxGeometry height="70" width="220" x="490" y="700" as="geometry" />
+        </mxCell>
+        <mxCell id="bastion-box" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#333333;strokeColor=none;fontColor=#FFFFFF;fontSize=11;" value="&lt;font style=&quot;font-size: 12px;&quot;&gt;&lt;b style=&quot;&quot;&gt;Bastion Host&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;&quot;&gt;EC2 t3.micro&lt;br&gt;SSH Tunnel → RDS + Redis&lt;br&gt;Amazon Linux 2023&lt;/font&gt;&lt;/font&gt;" vertex="1">
+          <mxGeometry height="70" width="220" x="780" y="700" as="geometry" />
+        </mxCell>
+        <mxCell id="prisma-box" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#2D3748;strokeColor=none;fontColor=#FFFFFF;fontSize=11;" value="&lt;font style=&quot;font-size: 12px;&quot;&gt;&lt;b&gt;Prisma ORM 6.19&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;&quot;&gt;Migrations · Schema-first&lt;br&gt;Type-safe queries&lt;br&gt;Usado por todos os serviços&lt;/font&gt;&lt;/font&gt;" vertex="1">
+          <mxGeometry height="70" width="220" x="1070" y="700" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-box" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FAFAFA;strokeColor=#CCCCCC;strokeWidth=1;arcSize=12;" value="" vertex="1">
+          <mxGeometry height="80" width="1320" x="140" y="840" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-title" parent="1" style="text;html=1;fontSize=11;align=left;fillColor=none;strokeColor=none;fontColor=#333;" value="&lt;b&gt;&lt;font style=&quot;font-size: 12px;&quot;&gt;Legenda:&lt;/font&gt;&lt;/b&gt;" vertex="1">
+          <mxGeometry height="20" width="60" x="350" y="850" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-1" parent="1" style="shape=cylinder3;size=6;fillColor=#dae8fc;strokeColor=#6c8ebf;strokeWidth=1;" value="" vertex="1">
+          <mxGeometry height="18" width="20" x="430" y="851" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-1-text" parent="1" style="text;html=1;fontSize=10;align=left;fillColor=none;strokeColor=none;" value="&lt;font style=&quot;font-size: 12px;&quot;&gt;Database isolado&lt;/font&gt;" vertex="1">
+          <mxGeometry height="16" width="100" x="455" y="850" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-2" parent="1" style="rounded=1;fillColor=#4472C4;strokeColor=none;arcSize=50;" value="" vertex="1">
+          <mxGeometry height="14" width="16" x="584" y="856" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-2-text" parent="1" style="text;html=1;fontSize=10;align=left;fillColor=none;strokeColor=none;" value="&lt;font style=&quot;font-size: 12px;&quot;&gt;Microserviço owner&lt;/font&gt;" vertex="1">
+          <mxGeometry height="16" width="120" x="600" y="850" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-3" parent="1" style="rounded=0;fillColor=none;strokeColor=#d6b656;strokeWidth=2;dashed=1;" value="" vertex="1">
+          <mxGeometry height="1" width="30" x="740" y="863" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-3-text" parent="1" style="text;html=1;fontSize=10;align=left;fillColor=none;strokeColor=none;" value="&lt;font style=&quot;font-size: 12px;&quot;&gt;Evento assíncrono (RabbitMQ)&lt;/font&gt;" vertex="1">
+          <mxGeometry height="16" width="180" x="775" y="850" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-4" parent="1" style="rounded=1;fillColor=#FF6D00;strokeColor=none;" value="" vertex="1">
+          <mxGeometry height="14" width="16" x="970" y="855" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-4-text" parent="1" style="text;html=1;fontSize=10;align=left;fillColor=none;strokeColor=none;" value="&lt;font style=&quot;font-size: 12px;&quot;&gt;CQRS Read Model&lt;/font&gt;" vertex="1">
+          <mxGeometry height="16" width="120" x="990" y="850" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-5" parent="1" style="rounded=1;fillColor=#FFFFFF;strokeColor=#6c8ebf;strokeWidth=1;" value="" vertex="1">
+          <mxGeometry height="16" width="16" x="1130" y="855" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-5-text" parent="1" style="text;html=1;fontSize=10;align=left;fillColor=none;strokeColor=none;" value="&lt;font style=&quot;font-size: 12px;&quot;&gt;Tabelas (Prisma)&lt;/font&gt;" vertex="1">
+          <mxGeometry height="16" width="100" x="1150" y="850" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-6-text" parent="1" style="text;html=1;fontSize=10;align=center;fillColor=none;strokeColor=none;" value="&lt;font color=&quot;#666&quot; style=&quot;font-size: 14px;&quot;&gt;Docker local: portas 5433-5437 · Produção: RDS subnet privada via Bastion&lt;/font&gt;" vertex="1">
+          <mxGeometry height="16" width="500" x="580" y="890" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

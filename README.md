@@ -41,12 +41,15 @@ Plataforma fullstack de gerenciamento de delivery com **6 microserviços**, **5 
 7. [Frontend — Microfrontends](#-frontend--microfrontends)
 8. [Algoritmo de Otimização](#-algoritmo-de-otimização)
 9. [Infraestrutura AWS](#-infraestrutura-aws)
-10. [CI/CD Pipeline](#-cicd-pipeline)
-11. [Testes](#-testes)
-12. [Estrutura do Projeto](#-estrutura-do-projeto)
-13. [Documentação](#-documentação)
-14. [Variáveis de Ambiente](#-variáveis-de-ambiente)
-15. [Autor](#-autor)
+10. [Banco de Dados](#-banco-de-dados)
+11. [Bastion Host — Acesso ao RDS](#-bastion-host--acesso-ao-rds)
+12. [CI/CD Pipeline](#-cicd-pipeline)
+13. [Testes](#-testes)
+14. [Estrutura do Projeto](#-estrutura-do-projeto)
+15. [Documentação](#-documentação)
+16. [Variáveis de Ambiente](#-variáveis-de-ambiente)
+17. [Docker](#-docker)
+18. [Autor](#-autor)
 
 ---
 
@@ -550,6 +553,170 @@ Todas as variáveis estão definidas no `docker-compose.yml`. Para desenvolvimen
 | `AWS_REGION` | reports | Região AWS para Bedrock |
 | `CORS_ORIGIN` | Todos | Origem permitida |
 | `VITE_API_URL` | frontend (remotes) | URL do API Gateway (vazio em dev para usar proxy) |
+
+---
+
+## 🗄️ Banco de Dados
+
+A plataforma utiliza **PostgreSQL 16** via **Amazon RDS** com uma única instância compartilhada e **5 databases isolados** — cada microserviço tem seu próprio banco, seguindo o padrão de database-per-service.
+
+![Arquitetura de Bancos de Dados](docs/diagrams/images/09-database-architecture.drawio.png)
+
+### Arquitetura de Dados
+
+| Database | Owner | Microserviço | Descrição |
+|----------|-------|-------------|-----------|
+| `auth_db` | `auth_user` | auth-service | Usuários, credenciais, tokens de refresh |
+| `products_db` | `products_user` | products-service | Catálogo de produtos, categorias, preços |
+| `orders_db` | `orders_user` | orders-service | Pedidos, itens, status, histórico |
+| `delivery_db` | `delivery_user` | delivery-service | Entregadores, veículos, localização |
+| `reports_db` | `reports_user` | reports-service | Read model (CQRS) para relatórios e analytics |
+
+### Padrão CQRS no Reports
+
+O `reports_db` é um read model que replica dados dos demais bancos via eventos do RabbitMQ. Isso permite queries analíticas complexas sem impactar a performance dos serviços transacionais. As tabelas do reports (`orders`, `order_items`, `products`, `delivery_persons`) são sincronizadas via consumers que escutam eventos de criação e atualização.
+
+### Conexão Local (Docker)
+
+Em desenvolvimento local via Docker Compose, cada database roda em um container PostgreSQL independente com portas mapeadas:
+
+| Database | Container | Porta Local | Credenciais |
+|----------|-----------|-------------|-------------|
+| auth_db | fastmeals-auth-db | 5433 | auth_user / auth_pass |
+| products_db | fastmeals-products-db | 5434 | products_user / products_pass |
+| orders_db | fastmeals-orders-db | 5435 | orders_user / orders_pass |
+| delivery_db | fastmeals-delivery-db | 5436 | delivery_user / delivery_pass |
+| reports_db | fastmeals-reports-db | 5437 | reports_user / reports_pass |
+
+### Conexão Produção (AWS RDS)
+
+Em produção, todos os databases estão em uma única instância RDS na subnet privada da VPC. O acesso é feito exclusivamente via Bastion Host (veja seção abaixo).
+
+| Configuração | Valor |
+|-------------|-------|
+| **Engine** | PostgreSQL 16.4 |
+| **Instance** | db.t3.micro |
+| **Endpoint** | `fastmeals-postgres.cw3eceym6ad8.us-east-1.rds.amazonaws.com` |
+| **Port** | 5432 |
+| **Subnets** | Privadas (2 AZs) |
+| **Encryption** | Habilitado |
+| **Backups** | 7 dias de retenção automática |
+
+### Migrations
+
+Cada microserviço gerencia suas migrations via **Prisma ORM**. Para executar migrations:
+
+```bash
+# Local (Docker)
+cd backend/services/auth-service && npx prisma migrate deploy
+
+# Produção (via Bastion Host)
+ssh -i ~/.ssh/fastmeals-bastion.pem ec2-user@<BASTION_IP>
+DATABASE_URL="postgresql://auth_user:<password>@<RDS_ENDPOINT>:5432/auth_db" npx prisma migrate deploy
+```
+
+---
+
+## 🔐 Bastion Host — Acesso ao RDS
+
+O RDS está em uma subnet privada sem acesso direto pela internet. Para acessar os bancos de dados (visualizar, popular, debugar), utilizamos um **Bastion Host** — uma instância EC2 na subnet pública que serve como ponto de entrada seguro.
+
+### Arquitetura de Acesso
+
+```
+Seu computador (DBeaver)
+        │
+        │ SSH Tunnel (porta 15432)
+        ▼
+  ┌─────────────┐      ┌──────────────┐
+  │   Bastion    │─────▶│   RDS        │
+  │   EC2        │ 5432 │  PostgreSQL  │
+  │  (pública)   │      │  (privada)   │
+  └─────────────┘      └──────────────┘
+   44.204.165.150     fastmeals-postgres...
+```
+
+### Configuração da Infraestrutura
+
+| Recurso | Valor |
+|---------|-------|
+| **Instance Type** | t3.micro |
+| **AMI** | Amazon Linux 2023 |
+| **Subnet** | Pública (us-east-1a) |
+| **Key Pair** | fastmeals-bastion |
+| **Security Group** | SSH (22) + acesso ao RDS (5432) e Redis (6379) |
+| **IAM Role** | SSM Session Manager habilitado |
+| **Ferramentas instaladas** | postgresql16, redis6 |
+
+### Como conectar via SSH Tunnel + DBeaver
+
+**Passo 1 — Criar o túnel SSH** (deixe o terminal aberto):
+
+```bash
+ssh -i ~/.ssh/fastmeals-bastion.pem \
+  -L 15432:fastmeals-postgres.cw3eceym6ad8.us-east-1.rds.amazonaws.com:5432 \
+  ec2-user@44.204.165.150
+```
+
+> Usamos a porta `15432` porque a porta `5432` pode estar em uso pelo PostgreSQL local.
+
+**Passo 2 — Configurar conexão no DBeaver:**
+
+| Campo | Valor |
+|-------|-------|
+| **Host** | `localhost` |
+| **Port** | `15432` |
+| **Database** | `orders_db` (ou qualquer outro) |
+| **Username** | `fastmeals_admin` |
+| **Password** | (senha master do RDS) |
+
+Repita para cada database que deseja acessar (`auth_db`, `products_db`, `orders_db`, `delivery_db`, `reports_db`).
+
+**Passo 3 — Verificar conexão no DBeaver:**
+
+Clique em **"Test Connection"** — deve aparecer "Connected" com sucesso.
+
+### Acesso direto via Bastion (psql)
+
+Para queries rápidas sem DBeaver:
+
+```bash
+# Conectar no Bastion
+ssh -i ~/.ssh/fastmeals-bastion.pem ec2-user@44.204.165.150
+
+# Dentro do Bastion, conectar no RDS
+psql -h fastmeals-postgres.cw3eceym6ad8.us-east-1.rds.amazonaws.com -U fastmeals_admin -d orders_db
+
+# Listar tabelas
+\dt
+
+# Contar registros
+SELECT COUNT(*) FROM orders;
+
+# Sair
+\q
+```
+
+### Acesso ao Redis (via Bastion)
+
+```bash
+# No Bastion
+redis-cli -h fastmeals-redis.3gjcuc.0001.use1.cache.amazonaws.com
+
+# Verificar tokens ativos
+KEYS fastmeals:*
+```
+
+### Gerenciado por Terraform
+
+O Bastion Host é provisionado via Terraform no módulo `infrastructure/terraform/modules/bastion/`, incluindo EC2, Security Group, IAM Role e regras de acesso ao RDS e Redis.
+
+```bash
+# Outputs do Terraform
+terraform output bastion_public_ip
+terraform output ssh_command
+terraform output rds_tunnel_command
+```
 
 ---
 
