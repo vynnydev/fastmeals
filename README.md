@@ -241,7 +241,7 @@ cd backend/services/reports-service && npm test       # 18 testes
 
 ## 🔧 Microserviços
 
-![Microserviços](docs/images/backend/services/tests/01-architecture-overview.drawio.png)
+![Microserviços](docs/diagrams/images/01-architecture-overview.drawio.png)
 
 | Serviço | Porta | Banco | Testes | Responsabilidade |
 |---------|-------|-------|--------|-----------------|
