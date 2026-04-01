@@ -241,6 +241,8 @@ cd backend/services/reports-service && npm test       # 18 testes
 
 ## 🔧 Microserviços
 
+![Microserviços](docs/images/backend/services/tests/01-architecture-overview.drawio.png)
+
 | Serviço | Porta | Banco | Testes | Responsabilidade |
 |---------|-------|-------|--------|-----------------|
 | [auth-service](backend/services/auth-service/README.md) | 3001 | auth_db + Redis | 19 | JWT login, refresh token, bcrypt |
@@ -599,37 +601,37 @@ O Terraform adiciona automaticamente a **Datadog Extension Layer** e as environm
 
 Todos os testes são executados com `Vitest 3.x` e coverage via `@vitest/coverage-v8`, gerando reports em `lcov` para integração com SonarCloud.
 
-### 🔐 [auth-service](backend/services/auth-service/README.md) — 19 testes
+### 🔐 [auth-service](backend/services/auth-service/readme-auth-service.md) — 19 testes
 
 Testes de autenticação JWT, refresh token com Redis, hash bcrypt e rate limiting. Cobertura de 100% nos use cases e controllers.
 
 ![Auth Service Tests](docs/images/backend/services/tests/auth-service-tests.png)
 
-### 📦 [products-service](backend/services/products-service/README.md) — 24 testes
+### 📦 [products-service](backend/services/products-service/readme-products-service.md) — 24 testes
 
 CRUD completo de produtos com paginação, busca por nome/categoria, proteção contra delete de produtos vinculados a pedidos, e validação Zod.
 
 ![Products Service Tests](docs/images/backend/services/tests/products-service-tests.png)
 
-### 📋 [orders-service](backend/services/orders-service/README.md) — 43 testes
+### 📋 [orders-service](backend/services/orders-service/readme-orders-service.md) — 43 testes
 
 O serviço mais testado. Cobre todas as transições da máquina de estados (pending → preparing → ready → delivering → delivered), comunicação inter-service (products + delivery), snapshot de preços e validação de regras de negócio.
 
 ![Orders Service Tests](docs/images/backend/services/tests/orders-service-tests.png)
 
-### 🚴 [delivery-service](backend/services/delivery-service/README.md) — 20 testes
+### 🚴 [delivery-service](backend/services/delivery-service/readme-delivery-service.md) — 20 testes
 
 CRUD de entregadores, filtro por disponibilidade, proteção contra delete de entregadores com entregas ativas, e validação de dados do veículo.
 
 ![Delivery Service Tests](docs/images/backend/services/tests/delivery-service-tests.png)
 
-### 🧠 [optimization-service](backend/services/optimization-service/README.md) — 29 testes
+### 🧠 [optimization-service](backend/services/optimization-service/readme-optimization-service.md) — 29 testes
 
 Validação da corretude do algoritmo Hungarian (atribuição ótima vs. greedy), precisão do Haversine (< 0.1% de erro), e performance com matrizes 30×50 em < 87ms.
 
 ![Optimization Service Tests](docs/images/backend/services/tests/optimization-service-tests.png)
 
-### 📊 [reports-service](backend/services/reports-service/README.md) — 19 testes
+### 📊 [reports-service](backend/services/reports-service/readme-reports-service.md) — 19 testes
 
 Revenue por período, orders-by-status, top produtos, tempo médio de entrega, e AI Insights com fallback local quando o Bedrock não está disponível.
 
