@@ -441,9 +441,103 @@ infrastructure/terraform/
 
 ---
 
+## 🗄️ Banco de Dados
+
+A plataforma utiliza **PostgreSQL 16** via **Amazon RDS** com uma única instância compartilhada e **5 databases isolados** — cada microserviço tem seu próprio banco, seguindo o padrão de database-per-service.
+
+![Arquitetura de Bancos de Dados](docs/diagrams/images/09-database-architecture.drawio.png)
+
+### Arquitetura de Dados
+
+| Database | Owner | Microserviço | Descrição |
+|----------|-------|-------------|-----------|
+| `auth_db` | `auth_user` | auth-service | Usuários, credenciais, tokens de refresh |
+| `products_db` | `products_user` | products-service | Catálogo de produtos, categorias, preços |
+| `orders_db` | `orders_user` | orders-service | Pedidos, itens, status, histórico |
+| `delivery_db` | `delivery_user` | delivery-service | Entregadores, veículos, localização |
+| `reports_db` | `reports_user` | reports-service | Read model (CQRS) para relatórios e analytics |
+
+### Padrão CQRS no Reports
+
+O `reports_db` é um read model que replica dados dos demais bancos via eventos do RabbitMQ. Isso permite queries analíticas complexas sem impactar a performance dos serviços transacionais. As tabelas do reports (`orders`, `order_items`, `products`, `delivery_persons`) são sincronizadas via consumers que escutam eventos de criação e atualização.
+
+### Conexão Local (Docker)
+
+| Database | Container | Porta Local | Credenciais |
+|----------|-----------|-------------|-------------|
+| auth_db | fastmeals-auth-db | 5433 | auth_user / auth_pass |
+| products_db | fastmeals-products-db | 5434 | products_user / products_pass |
+| orders_db | fastmeals-orders-db | 5435 | orders_user / orders_pass |
+| delivery_db | fastmeals-delivery-db | 5436 | delivery_user / delivery_pass |
+| reports_db | fastmeals-reports-db | 5437 | reports_user / reports_pass |
+
+### Conexão Produção (AWS RDS)
+
+| Configuração | Valor |
+|-------------|-------|
+| **Engine** | PostgreSQL 16.4 |
+| **Instance** | db.t3.micro |
+| **Endpoint** | `fastmeals-postgres.cw3eceym6ad8.us-east-1.rds.amazonaws.com` |
+| **Port** | 5432 |
+| **Subnets** | Privadas (2 AZs) |
+| **Encryption** | Habilitado |
+| **Backups** | 7 dias de retenção automática |
+
+---
+
+## 🔐 Bastion Host — Acesso ao RDS
+
+O RDS está em uma subnet privada sem acesso direto pela internet. Para acessar os bancos de dados, utilizamos um **Bastion Host** — uma instância EC2 na subnet pública que serve como ponto de entrada seguro.
+
+### Arquitetura de Acesso
+
+```
+Seu computador (DBeaver)
+        │
+        │ SSH Tunnel (porta 15432)
+        ▼
+  ┌─────────────┐      ┌──────────────┐
+  │   Bastion    │─────▶│   RDS        │
+  │   EC2        │ 5432 │  PostgreSQL  │
+  │  (pública)   │      │  (privada)   │
+  └─────────────┘      └──────────────┘
+   44.204.165.150     fastmeals-postgres...
+```
+
+### Configuração
+
+| Recurso | Valor |
+|---------|-------|
+| **Instance Type** | t3.micro |
+| **AMI** | Amazon Linux 2023 |
+| **Key Pair** | fastmeals-bastion |
+| **Security Group** | SSH (22) + RDS (5432) + Redis (6379) |
+| **IAM Role** | SSM Session Manager habilitado |
+| **Ferramentas** | postgresql16, redis6 |
+
+### Como conectar via SSH Tunnel + DBeaver
+
+```bash
+# Passo 1 — Criar túnel SSH (deixe aberto)
+ssh -i ~/.ssh/fastmeals-bastion.pem \
+  -L 15432:fastmeals-postgres.cw3eceym6ad8.us-east-1.rds.amazonaws.com:5432 \
+  ec2-user@44.204.165.150
+
+# Passo 2 — No DBeaver: localhost:15432, user fastmeals_admin
+```
+
+### Acesso direto via Bastion (psql)
+
+```bash
+ssh -i ~/.ssh/fastmeals-bastion.pem ec2-user@44.204.165.150
+psql -h fastmeals-postgres.cw3eceym6ad8.us-east-1.rds.amazonaws.com -U fastmeals_admin -d orders_db
+```
+
+---
+
 ## 📊 Observabilidade — Datadog
 
-Todas as **23 Lambda functions** são instrumentadas com o **Datadog Extension Layer**, enviando métricas, logs e dados de invocação em tempo real para o dashboard do Datadog.
+Todas as **23 Lambda functions** são instrumentadas com o **Datadog Extension Layer**, enviando métricas, logs e dados de invocação em tempo real.
 
 ### Serverless Overview
 
@@ -467,21 +561,13 @@ Todas as **23 Lambda functions** são instrumentadas com o **Datadog Extension L
 
 ### Configuração via Terraform
 
-A instrumentação é feita via Terraform no módulo Lambda, sem necessidade de alterar código:
-
 ```hcl
 # Habilitado via flag no módulo Lambda
 datadog_enabled = true
 datadog_site    = "us5.datadoghq.com"
 ```
 
-O Terraform adiciona automaticamente a **Datadog Extension Layer** e as environment variables (`DD_API_KEY`, `DD_SITE`, `DD_TRACE_ENABLED`, etc.) em todas as 23 funções Lambda.
-
-### Acesso ao Dashboard
-
-O dashboard do Datadog está disponível em: https://us5.datadoghq.com/functions
-
-Funcionalidades disponíveis no dashboard: visão geral serverless com todas as funções, detalhamento por função individual (invocações, logs, cold starts), agrupamento por serviço (auth, products, orders, delivery, optimization, reports), filtragem por período, região, runtime e environment, e alertas configuráveis para erros, latência e cold start rate.
+O Terraform adiciona automaticamente a **Datadog Extension Layer** e as environment variables em todas as 23 funções Lambda.
 
 ---
 
@@ -511,16 +597,43 @@ Funcionalidades disponíveis no dashboard: visão geral serverless com todas as 
 | Backend (flow) | Shell script | 52 | Fluxo real entre todos os serviços |
 | **Total** | — | **180+ testes** | — |
 
-### Distribuição por serviço
+Todos os testes são executados com `Vitest 3.x` e coverage via `@vitest/coverage-v8`, gerando reports em `lcov` para integração com SonarCloud.
 
-| Serviço | Testes | Destaques |
-|---------|--------|-----------|
-| auth-service | 19 | Login, refresh token, bcrypt, rate limiting |
-| products-service | 24 | CRUD, paginação, busca, delete protection |
-| orders-service | 43 | Status machine (todas as transições), inter-service, price snapshot |
-| delivery-service | 20 | CRUD, available filter, delete protection |
-| optimization-service | 29 | Hungarian correctness, Haversine accuracy, performance 30×50 |
-| reports-service | 18 | Revenue, orders-by-status, top-products, AI insights |
+### 🔐 [auth-service](backend/services/auth-service/README.md) — 19 testes
+
+Testes de autenticação JWT, refresh token com Redis, hash bcrypt e rate limiting. Cobertura de 100% nos use cases e controllers.
+
+![Auth Service Tests](docs/images/backend/services/tests/auth-service-tests.png)
+
+### 📦 [products-service](backend/services/products-service/README.md) — 24 testes
+
+CRUD completo de produtos com paginação, busca por nome/categoria, proteção contra delete de produtos vinculados a pedidos, e validação Zod.
+
+![Products Service Tests](docs/images/backend/services/tests/products-service-tests.png)
+
+### 📋 [orders-service](backend/services/orders-service/README.md) — 43 testes
+
+O serviço mais testado. Cobre todas as transições da máquina de estados (pending → preparing → ready → delivering → delivered), comunicação inter-service (products + delivery), snapshot de preços e validação de regras de negócio.
+
+![Orders Service Tests](docs/images/backend/services/tests/orders-service-tests.png)
+
+### 🚴 [delivery-service](backend/services/delivery-service/README.md) — 20 testes
+
+CRUD de entregadores, filtro por disponibilidade, proteção contra delete de entregadores com entregas ativas, e validação de dados do veículo.
+
+![Delivery Service Tests](docs/images/backend/services/tests/delivery-service-tests.png)
+
+### 🧠 [optimization-service](backend/services/optimization-service/README.md) — 29 testes
+
+Validação da corretude do algoritmo Hungarian (atribuição ótima vs. greedy), precisão do Haversine (< 0.1% de erro), e performance com matrizes 30×50 em < 87ms.
+
+![Optimization Service Tests](docs/images/backend/services/tests/optimization-service-tests.png)
+
+### 📊 [reports-service](backend/services/reports-service/README.md) — 19 testes
+
+Revenue por período, orders-by-status, top produtos, tempo médio de entrega, e AI Insights com fallback local quando o Bedrock não está disponível.
+
+![Reports Service Tests](docs/images/backend/services/tests/reports-service-tests.png)
 
 ---
 
@@ -547,7 +660,7 @@ fastmeals/
 │       ├── orders-service/            # 📋 Pedidos + state machine (43 testes)
 │       ├── delivery-service/          # 🚴 Entregadores (20 testes)
 │       ├── optimization-service/      # 🧠 Hungarian + Haversine (29 testes)
-│       └── reports-service/           # 📊 Analytics + AI (18 testes)
+│       └── reports-service/           # 📊 Analytics + AI (19 testes)
 ├── frontend/
 │   └── microfrontends/
 │       ├── shell/                     # 🏠 Host: Auth, Dashboard, Layout, CSS global
@@ -565,7 +678,7 @@ fastmeals/
 └── docs/
     ├── api-spec.md                    # Especificação completa da API
     ├── database-schema.md             # Schema do banco de dados
-    ├── images/observability/          # Screenshots Datadog
+    ├── images/                        # Screenshots (tests, observability)
     ├── evidences/                     # Screenshots
     └── diagrams/                      # 9 diagramas draw.io
         ├── images/                    # PNGs exportados
@@ -600,170 +713,6 @@ Cada serviço possui documentação interativa acessível em `/docs`:
 | Delivery | http://localhost:3004/docs |
 | Optimization | http://localhost:3005/docs |
 | Reports | http://localhost:3006/docs |
-
----
-
-## 🗄️ Banco de Dados
-
-A plataforma utiliza **PostgreSQL 16** via **Amazon RDS** com uma única instância compartilhada e **5 databases isolados** — cada microserviço tem seu próprio banco, seguindo o padrão de database-per-service.
-
-![Arquitetura de Bancos de Dados](docs/diagrams/images/09-database-architecture.drawio.png)
-
-### Arquitetura de Dados
-
-| Database | Owner | Microserviço | Descrição |
-|----------|-------|-------------|-----------|
-| `auth_db` | `auth_user` | auth-service | Usuários, credenciais, tokens de refresh |
-| `products_db` | `products_user` | products-service | Catálogo de produtos, categorias, preços |
-| `orders_db` | `orders_user` | orders-service | Pedidos, itens, status, histórico |
-| `delivery_db` | `delivery_user` | delivery-service | Entregadores, veículos, localização |
-| `reports_db` | `reports_user` | reports-service | Read model (CQRS) para relatórios e analytics |
-
-### Padrão CQRS no Reports
-
-O `reports_db` é um read model que replica dados dos demais bancos via eventos do RabbitMQ. Isso permite queries analíticas complexas sem impactar a performance dos serviços transacionais. As tabelas do reports (`orders`, `order_items`, `products`, `delivery_persons`) são sincronizadas via consumers que escutam eventos de criação e atualização.
-
-### Conexão Local (Docker)
-
-Em desenvolvimento local via Docker Compose, cada database roda em um container PostgreSQL independente com portas mapeadas:
-
-| Database | Container | Porta Local | Credenciais |
-|----------|-----------|-------------|-------------|
-| auth_db | fastmeals-auth-db | 5433 | auth_user / auth_pass |
-| products_db | fastmeals-products-db | 5434 | products_user / products_pass |
-| orders_db | fastmeals-orders-db | 5435 | orders_user / orders_pass |
-| delivery_db | fastmeals-delivery-db | 5436 | delivery_user / delivery_pass |
-| reports_db | fastmeals-reports-db | 5437 | reports_user / reports_pass |
-
-### Conexão Produção (AWS RDS)
-
-Em produção, todos os databases estão em uma única instância RDS na subnet privada da VPC. O acesso é feito exclusivamente via Bastion Host (veja seção abaixo).
-
-| Configuração | Valor |
-|-------------|-------|
-| **Engine** | PostgreSQL 16.4 |
-| **Instance** | db.t3.micro |
-| **Endpoint** | `fastmeals-postgres.cw3eceym6ad8.us-east-1.rds.amazonaws.com` |
-| **Port** | 5432 |
-| **Subnets** | Privadas (2 AZs) |
-| **Encryption** | Habilitado |
-| **Backups** | 7 dias de retenção automática |
-
-### Migrations
-
-Cada microserviço gerencia suas migrations via **Prisma ORM**. Para executar migrations:
-
-```bash
-# Local (Docker)
-cd backend/services/auth-service && npx prisma migrate deploy
-
-# Produção (via Bastion Host)
-ssh -i ~/.ssh/fastmeals-bastion.pem ec2-user@<BASTION_IP>
-DATABASE_URL="postgresql://auth_user:<password>@<RDS_ENDPOINT>:5432/auth_db" npx prisma migrate deploy
-```
-
----
-
-## 🔐 Bastion Host — Acesso ao RDS
-
-O RDS está em uma subnet privada sem acesso direto pela internet. Para acessar os bancos de dados (visualizar, popular, debugar), utilizamos um **Bastion Host** — uma instância EC2 na subnet pública que serve como ponto de entrada seguro.
-
-### Arquitetura de Acesso
-
-```
-Seu computador (DBeaver)
-        │
-        │ SSH Tunnel (porta 15432)
-        ▼
-  ┌─────────────┐      ┌──────────────┐
-  │   Bastion    │─────▶│   RDS        │
-  │   EC2        │ 5432 │  PostgreSQL  │
-  │  (pública)   │      │  (privada)   │
-  └─────────────┘      └──────────────┘
-   44.204.165.150     fastmeals-postgres...
-```
-
-### Configuração da Infraestrutura
-
-| Recurso | Valor |
-|---------|-------|
-| **Instance Type** | t3.micro |
-| **AMI** | Amazon Linux 2023 |
-| **Subnet** | Pública (us-east-1a) |
-| **Key Pair** | fastmeals-bastion |
-| **Security Group** | SSH (22) + acesso ao RDS (5432) e Redis (6379) |
-| **IAM Role** | SSM Session Manager habilitado |
-| **Ferramentas instaladas** | postgresql16, redis6 |
-
-### Como conectar via SSH Tunnel + DBeaver
-
-**Passo 1 — Criar o túnel SSH** (deixe o terminal aberto):
-
-```bash
-ssh -i ~/.ssh/fastmeals-bastion.pem \
-  -L 15432:fastmeals-postgres.cw3eceym6ad8.us-east-1.rds.amazonaws.com:5432 \
-  ec2-user@44.204.165.150
-```
-
-> Usamos a porta `15432` porque a porta `5432` pode estar em uso pelo PostgreSQL local.
-
-**Passo 2 — Configurar conexão no DBeaver:**
-
-| Campo | Valor |
-|-------|-------|
-| **Host** | `localhost` |
-| **Port** | `15432` |
-| **Database** | `orders_db` (ou qualquer outro) |
-| **Username** | `fastmeals_admin` |
-| **Password** | (senha master do RDS) |
-
-Repita para cada database que deseja acessar (`auth_db`, `products_db`, `orders_db`, `delivery_db`, `reports_db`).
-
-**Passo 3 — Verificar conexão no DBeaver:**
-
-Clique em **"Test Connection"** — deve aparecer "Connected" com sucesso.
-
-### Acesso direto via Bastion (psql)
-
-Para queries rápidas sem DBeaver:
-
-```bash
-# Conectar no Bastion
-ssh -i ~/.ssh/fastmeals-bastion.pem ec2-user@44.204.165.150
-
-# Dentro do Bastion, conectar no RDS
-psql -h fastmeals-postgres.cw3eceym6ad8.us-east-1.rds.amazonaws.com -U fastmeals_admin -d orders_db
-
-# Listar tabelas
-\dt
-
-# Contar registros
-SELECT COUNT(*) FROM orders;
-
-# Sair
-\q
-```
-
-### Acesso ao Redis (via Bastion)
-
-```bash
-# No Bastion
-redis-cli -h fastmeals-redis.3gjcuc.0001.use1.cache.amazonaws.com
-
-# Verificar tokens ativos
-KEYS fastmeals:*
-```
-
-### Gerenciado por Terraform
-
-O Bastion Host é provisionado via Terraform no módulo `infrastructure/terraform/modules/bastion/`, incluindo EC2, Security Group, IAM Role e regras de acesso ao RDS e Redis.
-
-```bash
-# Outputs do Terraform
-terraform output bastion_public_ip
-terraform output ssh_command
-terraform output rds_tunnel_command
-```
 
 ---
 
