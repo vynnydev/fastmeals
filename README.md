@@ -243,7 +243,7 @@ cd backend/services/reports-service && npm test       # 18 testes
 
 ![Microserviços](docs/diagrams/images/01-architecture-overview.drawio.png)
 
-- OBS: Acesse o readme.md do microserviço desejado clicando no nome dele na tabela a seguir.
+- OBS: Acesse o readme.md do microserviço desejado, clicando no nome dele na tabela a seguir.
 
 | Serviço | Porta | Banco | Testes | Responsabilidade |
 |---------|-------|-------|--------|-----------------|

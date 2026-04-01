@@ -4,8 +4,38 @@
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.7-3178C6?logo=typescript&logoColor=white)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-4169E1?logo=postgresql&logoColor=white)
 ![Prisma](https://img.shields.io/badge/Prisma-6.19-2D3748?logo=prisma&logoColor=white)
+![Tests](https://img.shields.io/badge/Tests-24_passed-22c55e?logo=vitest&logoColor=white)
 
-Microserviço de gestão de produtos com CRUD completo, paginação, busca e filtros.
+Microserviço de gestão de produtos com CRUD completo, paginação, busca e filtros. Implementa Clean Architecture com 5 use cases e 5 Lambda handlers.
+
+## Arquitetura
+
+```
+src/
+├── domain/
+│   ├── entities/           → Product entity
+│   └── repositories/       → IProductRepository interface
+├── application/
+│   ├── use-cases/          → List, Get, Create, Update, Delete
+│   └── dtos/               → ProductDTO, CreateProductDTO
+├── infrastructure/
+│   ├── database/           → Prisma client
+│   ├── repositories/       → PrismaProductRepository
+│   ├── http/
+│   │   ├── controllers/    → ProductController
+│   │   ├── routes/         → product.routes.ts
+│   │   ├── middlewares/    → auth, rate-limiter
+│   │   ├── validators/     → product.validator.ts (Zod)
+│   │   └── errors/         → AppError, error-handler
+│   │   └── swagger.ts      → rotas renderizadas no swagger
+│   └── config/             → env.ts, logger.ts (Pino)
+└── lambda/
+    ├── products-list-handler.ts
+    ├── products-get-handler.ts
+    ├── products-create-handler.ts
+    ├── products-update-handler.ts
+    └── products-delete-handler.ts
+```
 
 ## Endpoints
 
@@ -29,12 +59,28 @@ Microserviço de gestão de produtos com CRUD completo, paginação, busca e fil
 | `sortBy` | string | Ordenar: name, price, createdAt |
 | `sortOrder` | string | asc ou desc |
 
-## Stack
+## Lambda Handlers (Produção)
 
-- **Express** — HTTP server
-- **Prisma 6** — ORM com PostgreSQL
-- **Zod** — Validação de entrada
-- **JWT** — Validação local (shared secret com auth-service)
+| Função | Handler | API Gateway Route |
+|--------|---------|-------------------|
+| `fastmeals-products-list` | products-list-handler.handler | GET /api/products |
+| `fastmeals-products-get` | products-get-handler.handler | GET /api/products/{id} |
+| `fastmeals-products-create` | products-create-handler.handler | POST /api/products |
+| `fastmeals-products-update` | products-update-handler.handler | PUT /api/products/{id} |
+| `fastmeals-products-delete` | products-delete-handler.handler | DELETE /api/products/{id} |
+
+## Categorias
+
+| Categoria | Exemplos |
+|-----------|----------|
+| meal | X-Burger, Pizza Margherita |
+| drink | Suco de Laranja, Refrigerante |
+| dessert | Pudim, Brownie |
+| side | Batata Frita, Coxinha |
+
+## Business Rules
+
+- Não é possível deletar produto com pedidos ativos (status pending/preparing) — retorna `409 PRODUCT_IN_USE`
 
 ## Variáveis de Ambiente
 
@@ -45,7 +91,7 @@ DATABASE_URL=postgresql://products_user:products_pass@localhost:5434/products_db
 JWT_ACCESS_SECRET=dev-access-secret-fastmeals-2026
 RATE_LIMIT_WINDOW_MS=60000
 RATE_LIMIT_MAX_REQUESTS=100
-CORS_ORIGIN=http://localhost:3000
+CORS_ORIGIN=http://localhost:5000
 ```
 
 ## Rodar localmente
@@ -61,23 +107,16 @@ npm test    # 24 testes
 npm run dev
 ```
 
-## Categorias
-
-| Categoria | Exemplos |
-|-----------|----------|
-| meal | X-Burger, Pizza Margherita |
-| drink | Suco de Laranja, Refrigerante |
-| dessert | Pudim, Brownie |
-| side | Batata Frita, Coxinha |
-
-## Business Rules
-
-- Não é possível deletar produto com pedidos ativos (status pending/preparing) — retorna `409 PRODUCT_IN_USE`
-
 ## Testes: 24
 
+| Tipo | Quantidade | Cobertura |
+|------|-----------|-----------|
+| Unit | 10 | Use cases (CRUD) |
+| Integration | 14 | Controllers HTTP, paginação, busca |
+
+**Destaques dos testes:**
 - CRUD completo via HTTP
-- Paginação, busca e filtros
+- Paginação, busca e filtros por categoria
 - Autorização (admin vs viewer)
 - Validação de dados (Zod)
 - Proteção contra delete de produto em uso

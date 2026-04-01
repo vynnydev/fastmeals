@@ -5,8 +5,37 @@
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-4169E1?logo=postgresql&logoColor=white)
 ![Redis](https://img.shields.io/badge/Redis-7-DC382D?logo=redis&logoColor=white)
 ![Prisma](https://img.shields.io/badge/Prisma-6.19-2D3748?logo=prisma&logoColor=white)
+![Tests](https://img.shields.io/badge/Tests-19_passed-22c55e?logo=vitest&logoColor=white)
 
-Microserviço de autenticação com JWT (access + refresh tokens) e Redis como token store.
+Microserviço de autenticação com JWT (access + refresh tokens) e Redis como token store. Implementa Clean Architecture com 2 use cases e 2 Lambda handlers.
+
+## Arquitetura
+
+```
+src/
+├── domain/
+│   ├── entities/           → User entity com validação
+│   └── repositories/       → IUserRepository interface
+├── application/
+│   ├── use-cases/          → LoginUseCase, RefreshTokenUseCase
+│   ├── interfaces/         → IJwtService, IPasswordHasher, ITokenStore
+│   └── dtos/               → LoginRequestDTO, LoginResponseDTO, RefreshTokenDTO
+├── infrastructure/
+│   ├── database/           → Prisma client
+│   ├── repositories/       → PrismaUserRepository
+│   ├── services/           → JwtService, BcryptService, RedisTokenStore
+│   ├── http/
+│   │   ├── controllers/    → AuthController
+│   │   ├── routes/         → auth.routes.ts
+│   │   ├── middlewares/    → auth, rate-limiter
+│   │   ├── validators/     → auth.validator.ts (Zod)
+│   │   └── errors/         → AppError, error-handler
+│   │   └── swagger.ts      → rotas renderizadas no swagger
+│   └── config/             → env.ts, logger.ts (Pino)
+└── lambda/
+    ├── auth-login-handler.ts
+    └── auth-refresh_token-handler.ts
+```
 
 ## Endpoints
 
@@ -16,6 +45,13 @@ Microserviço de autenticação com JWT (access + refresh tokens) e Redis como t
 | POST | `/api/auth/refresh-token` | Renovar access token | Refresh Token |
 | GET | `/health` | Health check | Público |
 
+## Lambda Handlers (Produção)
+
+| Função | Handler | API Gateway Route |
+|--------|---------|-------------------|
+| `fastmeals-auth-login` | auth-login-handler.handler | POST /api/auth/login |
+| `fastmeals-auth-refresh_token` | auth-refresh_token-handler.handler | POST /api/auth/refresh-token |
+
 ## Stack
 
 - **Express** — HTTP server
@@ -24,6 +60,7 @@ Microserviço de autenticação com JWT (access + refresh tokens) e Redis como t
 - **Redis** — Armazenamento de refresh tokens (permite revogação)
 - **Prisma 6** — ORM com PostgreSQL
 - **Zod** — Validação de entrada
+- **Pino** — Logs estruturados (JSON)
 
 ## Variáveis de Ambiente
 
@@ -38,7 +75,7 @@ JWT_ACCESS_EXPIRATION=15m
 JWT_REFRESH_EXPIRATION=7d
 RATE_LIMIT_WINDOW_MS=60000
 RATE_LIMIT_MAX_REQUESTS=100
-CORS_ORIGIN=http://localhost:3000
+CORS_ORIGIN=http://localhost:5000
 ```
 
 ## Rodar localmente
@@ -57,6 +94,9 @@ npm run seed
 # Rodar testes (19 testes)
 npm test
 
+# Rodar com coverage
+npx vitest run --coverage
+
 # Rodar servidor
 npm run dev
 ```
@@ -70,8 +110,15 @@ npm run dev
 
 ## Testes: 19
 
-- Login com credenciais válidas/inválidas
-- Refresh token flow
-- Validação de campos obrigatórios
+| Tipo | Quantidade | Cobertura |
+|------|-----------|-----------|
+| Unit | 11 | Use cases (login, refresh token) |
+| Integration | 8 | Controllers HTTP, auth flow |
+
+**Destaques dos testes:**
+- Login com credenciais válidas e inválidas
+- Refresh token flow completo
+- Validação de campos obrigatórios (Zod)
 - Rate limiting
 - bcrypt hash verification
+- Token expiration handling

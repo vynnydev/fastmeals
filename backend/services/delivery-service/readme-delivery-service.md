@@ -5,8 +5,40 @@
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-4169E1?logo=postgresql&logoColor=white)
 ![RabbitMQ](https://img.shields.io/badge/RabbitMQ-3.13-FF6600?logo=rabbitmq&logoColor=white)
 ![Prisma](https://img.shields.io/badge/Prisma-6.19-2D3748?logo=prisma&logoColor=white)
+![Tests](https://img.shields.io/badge/Tests-20_passed-22c55e?logo=vitest&logoColor=white)
 
-Microserviço de gestão de entregadores com CRUD, filtro de disponibilidade e consumo de eventos RabbitMQ.
+Microserviço de gestão de entregadores com CRUD, filtro de disponibilidade e consumo de eventos RabbitMQ. Implementa Clean Architecture com 5 use cases e 5 Lambda handlers.
+
+## Arquitetura
+
+```
+src/
+├── domain/
+│   ├── entities/           → DeliveryPerson entity
+│   ├── enums/              → VehicleType enum
+│   └── repositories/       → IDeliveryPersonRepository interface
+├── application/
+│   ├── use-cases/          → List, Get, Create, Update, Delete
+│   └── dtos/               → DeliveryPersonDTO, CreateDeliveryPersonDTO
+├── infrastructure/
+│   ├── database/           → Prisma client
+│   ├── repositories/       → PrismaDeliveryPersonRepository
+│   ├── messaging/          → RabbitMQ consumer (order status changes)
+│   ├── http/
+│   │   ├── controllers/    → DeliveryController
+│   │   ├── routes/         → delivery.routes.ts
+│   │   ├── middlewares/    → auth, rate-limiter
+│   │   ├── validators/     → delivery.validator.ts (Zod)
+│   │   └── errors/         → AppError, error-handler
+│   │   └── swagger.ts      → rotas renderizadas no swagger
+│   └── config/             → env.ts, logger.ts (Pino)
+└── lambda/
+    ├── delivery-list-handler.ts
+    ├── delivery-get-handler.ts
+    ├── delivery-create-handler.ts
+    ├── delivery-update-handler.ts
+    └── delivery-delete-handler.ts
+```
 
 ## Endpoints
 
@@ -25,6 +57,16 @@ Microserviço de gestão de entregadores com CRUD, filtro de disponibilidade e c
 |-------|------|-----------|
 | `isActive` | boolean | Filtrar por ativos/inativos |
 | `available` | boolean | `true` = ativos sem entrega em andamento |
+
+## Lambda Handlers (Produção)
+
+| Função | Handler | API Gateway Route |
+|--------|---------|-------------------|
+| `fastmeals-delivery-list` | delivery-list-handler.handler | GET /api/delivery-persons |
+| `fastmeals-delivery-get` | delivery-get-handler.handler | GET /api/delivery-persons/{id} |
+| `fastmeals-delivery-create` | delivery-create-handler.handler | POST /api/delivery-persons |
+| `fastmeals-delivery-update` | delivery-update-handler.handler | PUT /api/delivery-persons/{id} |
+| `fastmeals-delivery-delete` | delivery-delete-handler.handler | DELETE /api/delivery-persons/{id} |
 
 ## Tipos de Veículo
 
@@ -56,13 +98,13 @@ ORDERS_SERVICE_URL=http://localhost:3003
 RABBITMQ_URL=amqp://guest:guest@localhost:5672
 RATE_LIMIT_WINDOW_MS=60000
 RATE_LIMIT_MAX_REQUESTS=100
-CORS_ORIGIN=http://localhost:3000
+CORS_ORIGIN=http://localhost:5000
 ```
 
 ## Rodar localmente
 
 ```bash
-docker-compose up delivery-db -d
+docker-compose up delivery-db rabbitmq -d
 cp .env.example .env
 npm install
 npx prisma migrate dev --name init
@@ -74,8 +116,14 @@ npm run dev
 
 ## Testes: 20
 
+| Tipo | Quantidade | Cobertura |
+|------|-----------|-----------|
+| Unit | 8 | Use cases (CRUD, availability) |
+| Integration | 12 | Controllers HTTP, auth, filters |
+
+**Destaques dos testes:**
 - CRUD completo via HTTP
-- Filtro `available=true`
+- Filtro `available=true` (entregadores livres)
 - Autorização (admin vs viewer)
 - Proteção contra delete de entregador em entrega
 - Validação de telefone brasileiro e tipo de veículo
