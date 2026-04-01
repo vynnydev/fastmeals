@@ -243,14 +243,16 @@ cd backend/services/reports-service && npm test       # 18 testes
 
 ![Microserviços](docs/diagrams/images/01-architecture-overview.drawio.png)
 
+- OBS: Acesse o readme.md do microserviço desejado clicando no nome dele na tabela a seguir.
+
 | Serviço | Porta | Banco | Testes | Responsabilidade |
 |---------|-------|-------|--------|-----------------|
-| [auth-service](backend/services/auth-service/README.md) | 3001 | auth_db + Redis | 19 | JWT login, refresh token, bcrypt |
-| [products-service](backend/services/products-service/README.md) | 3002 | products_db | 24 | CRUD produtos, paginação, busca |
-| [orders-service](backend/services/orders-service/README.md) | 3003 | orders_db | 43 | Pedidos, máquina de estados, inter-service |
-| [delivery-service](backend/services/delivery-service/README.md) | 3004 | delivery_db | 20 | CRUD entregadores, disponibilidade |
-| [optimization-service](backend/services/optimization-service/README.md) | 3005 | — (stateless) | 29 | Hungarian Algorithm + Haversine |
-| [reports-service](backend/services/reports-service/README.md) | 3006 | reports_db (CQRS) | 18 | Analytics, AI Insights (Bedrock) |
+| [auth-service](backend/services/auth-service/readme-auth-service.md) | 3001 | auth_db + Redis | 19 | JWT login, refresh token, bcrypt |
+| [products-service](backend/services/products-service/readme-products-service.md) | 3002 | products_db | 24 | CRUD produtos, paginação, busca |
+| [orders-service](backend/services/orders-service/readme-orders-service.md) | 3003 | orders_db | 43 | Pedidos, máquina de estados, inter-service |
+| [delivery-service](backend/services/delivery-service/readme-delivery-service.md) | 3004 | delivery_db | 20 | CRUD entregadores, disponibilidade |
+| [optimization-service](backend/services/optimization-service/readme-optimization-service.md) | 3005 | — (stateless) | 29 | Hungarian Algorithm + Haversine |
+| [reports-service](backend/services/reports-service/readme-reports-service.md) | 3006 | reports_db (CQRS) | 18 | Analytics, AI Insights (Bedrock) |
 
 ### Comunicação entre serviços
 
