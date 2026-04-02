@@ -872,6 +872,8 @@ fastmeals/
 | [Delivery Service](backend/services/delivery-service/README.md) | CRUD, disponibilidade, RabbitMQ |
 | [Optimization Service](backend/services/optimization-service/README.md) | Hungarian O(n³), Haversine |
 | [Reports Service](backend/services/reports-service/README.md) | Analytics, CQRS, AI Insights |
+| [Guia de Tecnologias](docs/tech-stack-guide.md) | 25 tecnologias com vantagens, desvantagens e comandos |
+| [Referência de Comandos](docs/commands-reference.md) | Todos os comandos AWS, Terraform, Docker, Git, Playwright |
 
 &nbsp;
 
