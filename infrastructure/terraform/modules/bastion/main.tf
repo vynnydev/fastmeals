@@ -1,6 +1,7 @@
 # ============================================
 # FastMeals — Bastion Host Module
 # EC2 t3.micro for SSH tunnel to RDS/Redis/MQ
+# + Ansible target (Node.js, Prisma, AWS CLI)
 # ============================================
 
 # --- Latest Amazon Linux 2023 AMI ---
@@ -72,7 +73,7 @@ resource "aws_security_group_rule" "redis_from_bastion" {
   description              = "Redis from Bastion"
 }
 
-# --- IAM Role (for SSM Session Manager as alternative to SSH) ---
+# --- IAM Role (SSM + S3 backups) ---
 resource "aws_iam_role" "bastion" {
   name = "${var.project_name}-bastion-role"
 
@@ -95,6 +96,59 @@ resource "aws_iam_role_policy_attachment" "bastion_ssm" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
 }
 
+# --- S3 access for database backups ---
+resource "aws_iam_role_policy" "bastion_s3_backups" {
+  name = "${var.project_name}-bastion-s3-backups"
+  role = aws_iam_role.bastion.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "s3:PutObject",
+          "s3:GetObject",
+          "s3:DeleteObject",
+          "s3:ListBucket",
+          "s3:GetBucketLocation"
+        ]
+        Resource = [
+          "arn:aws:s3:::${var.project_name}-db-backups",
+          "arn:aws:s3:::${var.project_name}-db-backups/*"
+        ]
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "s3:CreateBucket",
+          "s3:PutBucketVersioning",
+          "s3:PutLifecycleConfiguration"
+        ]
+        Resource = "arn:aws:s3:::${var.project_name}-db-backups"
+      }
+    ]
+  })
+}
+
+# --- Secrets Manager read access (for Ansible to fetch credentials) ---
+resource "aws_iam_role_policy" "bastion_secrets_read" {
+  name = "${var.project_name}-bastion-secrets-read"
+  role = aws_iam_role.bastion.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect = "Allow"
+      Action = [
+        "secretsmanager:GetSecretValue",
+        "secretsmanager:DescribeSecret"
+      ]
+      Resource = "arn:aws:secretsmanager:${var.aws_region}:*:secret:${var.project_name}/*"
+    }]
+  })
+}
+
 resource "aws_iam_instance_profile" "bastion" {
   name = "${var.project_name}-bastion-profile"
   role = aws_iam_role.bastion.name
@@ -112,20 +166,48 @@ resource "aws_instance" "bastion" {
   associate_public_ip_address = true
 
   root_block_device {
-    volume_size = 8
+    volume_size = 20
     volume_type = "gp3"
     encrypted   = true
   }
 
   user_data = <<-EOF
     #!/bin/bash
-    yum update -y
-    yum install -y postgresql16 redis6
+    set -euxo pipefail
 
-    # Create connection helper scripts
+    # ========================================
+    # System packages
+    # ========================================
+    yum update -y
+    yum install -y postgresql16 redis6 git jq tar gzip unzip python3-pip
+
+    # ========================================
+    # Node.js 20 LTS (for Prisma CLI)
+    # ========================================
+    curl -fsSL https://rpm.nodesource.com/setup_20.x | bash -
+    yum install -y nodejs
+    npm install -g prisma
+
+    # ========================================
+    # AWS CLI v2
+    # ========================================
+    if ! command -v aws &> /dev/null; then
+      curl -fsSL https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip -o /tmp/awscliv2.zip
+      cd /tmp && unzip -q awscliv2.zip && ./aws/install && rm -rf aws awscliv2.zip
+    fi
+
+    # ========================================
+    # Directories
+    # ========================================
+    mkdir -p /home/ec2-user/{backups,logs}
+    chown -R ec2-user:ec2-user /home/ec2-user/{backups,logs}
+
+    # ========================================
+    # Connection helper scripts
+    # ========================================
     cat > /home/ec2-user/connect-rds.sh << 'SCRIPT'
     #!/bin/bash
-    echo "Connecting to FastMeals RDS..."
+    echo "🔗 Connecting to FastMeals RDS..."
     echo "Databases: auth_db, products_db, orders_db, delivery_db, reports_db"
     echo ""
     echo "Usage: psql -h ${var.rds_endpoint} -U <user> -d <database>"
@@ -134,11 +216,34 @@ resource "aws_instance" "bastion" {
     echo "  psql -h ${var.rds_endpoint} -U auth_user -d auth_db"
     echo "  psql -h ${var.rds_endpoint} -U reports_user -d reports_db"
     SCRIPT
-    chmod +x /home/ec2-user/connect-rds.sh
-    chown ec2-user:ec2-user /home/ec2-user/connect-rds.sh
+
+    cat > /home/ec2-user/health-check.sh << 'SCRIPT'
+    #!/bin/bash
+    echo "🏥 FastMeals Quick Health Check"
+    echo "================================"
+    echo ""
+    echo "RDS:"
+    pg_isready -h ${var.rds_endpoint} -p 5432 && echo "  ✅ PostgreSQL OK" || echo "  ❌ PostgreSQL FAIL"
+    echo ""
+    echo "Redis:"
+    redis-cli -h ${var.redis_endpoint} -p 6379 --tls ping 2>/dev/null && echo "  ✅ Redis OK" || echo "  ❌ Redis FAIL"
+    echo ""
+    echo "API Gateway:"
+    curl -s -o /dev/null -w "  HTTP %%{http_code}" ${var.api_gateway_url}/api/products && echo " ✅" || echo " ❌"
+    echo ""
+    echo "Disk:"
+    df -h / | tail -1 | awk '{print "  Usage: " $5 " (" $3 "/" $2 ")"}'
+    SCRIPT
+
+    chmod +x /home/ec2-user/*.sh
+    chown ec2-user:ec2-user /home/ec2-user/*.sh
+
+    echo "✅ Bastion setup complete — $(date)" >> /home/ec2-user/logs/setup.log
   EOF
 
   tags = {
-    Name = "${var.project_name}-bastion"
+    Name        = "${var.project_name}-bastion"
+    ManagedBy   = "terraform"
+    AnsibleRole = "bastion"
   }
 }

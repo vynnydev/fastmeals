@@ -29,6 +29,24 @@ variable "rds_endpoint" {
   default     = ""
 }
 
+variable "redis_endpoint" {
+  description = "Endpoint do Redis (para scripts de conexão)"
+  type        = string
+  default     = ""
+}
+
+variable "api_gateway_url" {
+  description = "URL do API Gateway (para health check scripts)"
+  type        = string
+  default     = ""
+}
+
+variable "aws_region" {
+  description = "AWS region (para IAM policies)"
+  type        = string
+  default     = "us-east-1"
+}
+
 variable "key_name" {
   description = "Nome da key pair EC2 para SSH"
   type        = string
