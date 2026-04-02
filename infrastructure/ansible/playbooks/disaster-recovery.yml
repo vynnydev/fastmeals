@@ -1,0 +1,150 @@
+# ============================================
+# FastMeals — Disaster Recovery Playbook
+# Restore databases from S3 backups
+# ============================================
+# Usage:
+#   Latest backup:     ansible-playbook playbooks/disaster-recovery.yml
+#   Specific backup:   ansible-playbook playbooks/disaster-recovery.yml -e "restore_prefix=backups/20260401T120000-scheduled"
+#   Single DB:         ansible-playbook playbooks/disaster-recovery.yml -e "target_db=orders_db"
+#   Skip confirmation: ansible-playbook playbooks/disaster-recovery.yml -e "skip_confirm=true"
+# ============================================
+
+---
+- name: FastMeals Disaster Recovery — Restore from S3
+  hosts: bastion
+  become: false
+  vars_files:
+    - ../group_vars/bastion.yml
+    - ../group_vars/secrets.yml
+  vars:
+    target_db: ""  # Empty = all databases
+    restore_prefix: ""  # Empty = find latest
+    skip_confirm: false
+    timestamp: "{{ ansible_date_time.iso8601_basic_short }}"
+    restore_dir: "/home/ec2-user/restore-{{ timestamp }}"
+
+  tasks:
+    # ========================================
+    # Find latest backup if not specified
+    # ========================================
+    - name: Find latest backup in S3
+      ansible.builtin.shell: >
+        aws s3 ls s3://{{ s3_backup_bucket }}/backups/
+        --recursive
+        | grep '.sql.gz'
+        | sort -k1,2
+        | tail -1
+        | awk '{print $4}'
+      register: latest_backup
+      changed_when: false
+      when: restore_prefix == ""
+
+    - name: Determine restore prefix
+      ansible.builtin.set_fact:
+        effective_prefix: "{{ restore_prefix if restore_prefix else (latest_backup.stdout | dirname) }}"
+
+    - name: Display restore plan
+      ansible.builtin.debug:
+        msg: |
+          ⚠️  DISASTER RECOVERY — RESTORE PLAN
+          ════════════════════════════════════
+          Source: s3://{{ s3_backup_bucket }}/{{ effective_prefix }}/
+          Target DBs: {{ target_db if target_db else 'ALL (' + (databases | length | string) + ')' }}
+          RDS: {{ rds_endpoint }}
+          ════════════════════════════════════
+          ⚠️  This will DROP and RECREATE the target databases!
+
+    - name: Confirm restore (safety check)
+      ansible.builtin.pause:
+        prompt: "Type 'RESTORE' to confirm disaster recovery (Ctrl+C to abort)"
+      register: confirm
+      when: not skip_confirm
+
+    - name: Abort if not confirmed
+      ansible.builtin.fail:
+        msg: "Restore aborted — confirmation not provided"
+      when: not skip_confirm and confirm.user_input != "RESTORE"
+
+    # ========================================
+    # Download backups from S3
+    # ========================================
+    - name: Create restore directory
+      ansible.builtin.file:
+        path: "{{ restore_dir }}"
+        state: directory
+        mode: "0755"
+
+    - name: List available backups in S3
+      ansible.builtin.command: >
+        aws s3 ls s3://{{ s3_backup_bucket }}/{{ effective_prefix }}/
+      register: s3_files
+      changed_when: false
+
+    - name: Display available backups
+      ansible.builtin.debug:
+        msg: "{{ s3_files.stdout }}"
+
+    - name: Download backups from S3
+      ansible.builtin.command: >
+        aws s3 cp
+        s3://{{ s3_backup_bucket }}/{{ effective_prefix }}/{{ item.name }}_{{ effective_prefix | basename | split('-') | first }}.sql.gz
+        {{ restore_dir }}/{{ item.name }}.sql.gz
+      loop: "{{ databases }}"
+      loop_control:
+        label: "{{ item.name }}"
+      when: target_db == "" or target_db == item.name
+      register: downloads
+      ignore_errors: true
+
+    # Fallback — download everything and match by name
+    - name: Fallback — sync entire prefix
+      ansible.builtin.command: >
+        aws s3 sync
+        s3://{{ s3_backup_bucket }}/{{ effective_prefix }}/
+        {{ restore_dir }}/
+      when: downloads.results | selectattr('rc', 'defined') | selectattr('rc', 'ne', 0) | list | length > 0
+
+    # ========================================
+    # Restore each database
+    # ========================================
+    - name: Find downloaded backup files
+      ansible.builtin.find:
+        paths: "{{ restore_dir }}"
+        patterns: "*.sql.gz"
+      register: restore_files
+
+    - name: Restore databases
+      ansible.builtin.include_tasks: tasks/restore-single-db.yml
+      loop: "{{ databases }}"
+      loop_control:
+        loop_var: db
+        label: "{{ db.name }}"
+      when: >
+        (target_db == "" or target_db == db.name) and
+        (restore_files.files | selectattr('path', 'search', db.name) | list | length > 0)
+
+    # ========================================
+    # Cleanup
+    # ========================================
+    - name: Cleanup restore directory
+      ansible.builtin.file:
+        path: "{{ restore_dir }}"
+        state: absent
+
+    # ========================================
+    # Summary
+    # ========================================
+    - name: Disaster Recovery Summary
+      ansible.builtin.debug:
+        msg: |
+          ════════════════════════════════════
+          🔄 Disaster Recovery Complete — {{ timestamp }}
+          ════════════════════════════════════
+          Source: s3://{{ s3_backup_bucket }}/{{ effective_prefix }}/
+          Databases restored: {{ target_db if target_db else 'ALL' }}
+          ════════════════════════════════════
+          ⚠️  Next steps:
+          1. Run health check: ansible-playbook playbooks/health-check.yml
+          2. Run migrations (if needed): ansible-playbook playbooks/migrations.yml
+          3. Verify application: curl {{ api_gateway_url }}/api/products
+          ════════════════════════════════════

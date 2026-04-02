@@ -1,0 +1,201 @@
+# ============================================
+# FastMeals — Health Check Playbook
+# Verifies RDS, Redis, MQ, API Gateway, Lambdas
+# ============================================
+# Usage:
+#   Full check:    ansible-playbook playbooks/health-check.yml
+#   DB only:       ansible-playbook playbooks/health-check.yml --tags database
+#   API only:      ansible-playbook playbooks/health-check.yml --tags api
+#   Quick (no API): ansible-playbook playbooks/health-check.yml --skip-tags api
+# ============================================
+
+---
+- name: FastMeals Infrastructure Health Check
+  hosts: bastion
+  become: false
+  vars_files:
+    - ../group_vars/bastion.yml
+    - ../group_vars/secrets.yml
+  vars:
+    health_results: []
+    timestamp: "{{ ansible_date_time.iso8601_basic_short }}"
+
+  tasks:
+    # ========================================
+    # RDS — PostgreSQL (5 databases)
+    # ========================================
+    - name: "[RDS] Check PostgreSQL connectivity"
+      ansible.builtin.command: >
+        pg_isready -h {{ rds_endpoint }} -p {{ rds_port }}
+      register: pg_ready
+      ignore_errors: true
+      changed_when: false
+      tags: [database, rds]
+
+    - name: "[RDS] Ping each database"
+      ansible.builtin.command: >
+        psql -h {{ rds_endpoint }} -p {{ rds_port }}
+        -U {{ item.user }} -d {{ item.name }}
+        -c "SELECT 1 AS health_check;"
+      environment:
+        PGPASSWORD: "{{ item.password }}"
+      loop: "{{ databases }}"
+      loop_control:
+        label: "{{ item.name }}"
+      register: db_pings
+      ignore_errors: true
+      changed_when: false
+      tags: [database, rds]
+
+    - name: "[RDS] Check table counts per database"
+      ansible.builtin.command: >
+        psql -h {{ rds_endpoint }} -p {{ rds_port }}
+        -U {{ item.user }} -d {{ item.name }} -t -A
+        -c "SELECT count(*) FROM information_schema.tables WHERE table_schema = 'public';"
+      environment:
+        PGPASSWORD: "{{ item.password }}"
+      loop: "{{ databases }}"
+      loop_control:
+        label: "{{ item.name }}"
+      register: table_counts
+      ignore_errors: true
+      changed_when: false
+      tags: [database, rds]
+
+    - name: "[RDS] Check database sizes"
+      ansible.builtin.command: >
+        psql -h {{ rds_endpoint }} -p {{ rds_port }}
+        -U {{ item.user }} -d {{ item.name }} -t -A
+        -c "SELECT pg_size_pretty(pg_database_size('{{ item.name }}'));"
+      environment:
+        PGPASSWORD: "{{ item.password }}"
+      loop: "{{ databases }}"
+      loop_control:
+        label: "{{ item.name }}"
+      register: db_sizes
+      ignore_errors: true
+      changed_when: false
+      tags: [database, rds]
+
+    - name: "[RDS] Display database health"
+      ansible.builtin.debug:
+        msg: |
+          📊 RDS Health Report:
+          {% for i in range(databases | length) %}
+          {{ '✅' if db_pings.results[i].rc == 0 else '❌' }} {{ databases[i].name }}
+             Tables: {{ table_counts.results[i].stdout | default('?') | trim }}
+             Size: {{ db_sizes.results[i].stdout | default('?') | trim }}
+          {% endfor %}
+      tags: [database, rds]
+
+    # ========================================
+    # Redis
+    # ========================================
+    - name: "[Redis] Check connectivity"
+      ansible.builtin.command: >
+        redis-cli -h {{ redis_endpoint }} -p {{ redis_port }} ping
+      register: redis_ping
+      ignore_errors: true
+      changed_when: false
+      tags: [cache, redis]
+
+    - name: "[Redis] Get info"
+      ansible.builtin.command: >
+        redis-cli -h {{ redis_endpoint }} -p {{ redis_port }}
+        info keyspace
+      register: redis_info
+      ignore_errors: true
+      changed_when: false
+      tags: [cache, redis]
+
+    - name: "[Redis] Display health"
+      ansible.builtin.debug:
+        msg: >-
+          {{ '✅' if redis_ping.rc == 0 and 'PONG' in redis_ping.stdout else '❌' }}
+          Redis — {{ redis_ping.stdout | default('UNREACHABLE') }}
+          {{ redis_info.stdout | default('') }}
+      tags: [cache, redis]
+
+    # ========================================
+    # API Gateway + Lambda (external)
+    # ========================================
+    - name: "[API] Check API Gateway base URL"
+      ansible.builtin.uri:
+        url: "{{ api_gateway_url }}/api/products?page=1&limit=1"
+        method: GET
+        status_code: [200, 401, 403]
+        timeout: 15
+      register: api_check
+      ignore_errors: true
+      changed_when: false
+      tags: [api, lambda]
+
+    - name: "[API] Check key Lambda endpoints"
+      ansible.builtin.uri:
+        url: "{{ api_gateway_url }}{{ item.path }}"
+        method: "{{ item.method }}"
+        status_code: [200, 201, 400, 401, 403, 404]
+        timeout: 15
+      loop: "{{ lambda_endpoints | selectattr('method', 'equalto', 'GET') | list }}"
+      loop_control:
+        label: "{{ item.name }}"
+      register: lambda_checks
+      ignore_errors: true
+      changed_when: false
+      tags: [api, lambda]
+
+    - name: "[API] Display Lambda health"
+      ansible.builtin.debug:
+        msg: |
+          🌐 API Gateway & Lambda Health:
+          API Base: {{ '✅' if api_check.status | default(0) in [200, 401] else '❌' }} ({{ api_check.status | default('TIMEOUT') }})
+          {% for result in lambda_checks.results %}
+          {{ '✅' if result.status | default(0) in [200, 201, 400, 401, 403] else '❌' }} {{ result.item.name }} — HTTP {{ result.status | default('TIMEOUT') }}
+          {% endfor %}
+      tags: [api, lambda]
+
+    # ========================================
+    # Bastion Host itself
+    # ========================================
+    - name: "[Bastion] Check disk usage"
+      ansible.builtin.command: df -h /
+      register: disk_usage
+      changed_when: false
+      tags: [bastion]
+
+    - name: "[Bastion] Check memory"
+      ansible.builtin.command: free -m
+      register: memory_usage
+      changed_when: false
+      tags: [bastion]
+
+    - name: "[Bastion] Check uptime"
+      ansible.builtin.command: uptime
+      register: uptime_info
+      changed_when: false
+      tags: [bastion]
+
+    - name: "[Bastion] Display system health"
+      ansible.builtin.debug:
+        msg: |
+          🖥️ Bastion Host Health:
+          {{ uptime_info.stdout }}
+          {{ disk_usage.stdout_lines | join('\n') }}
+          {{ memory_usage.stdout_lines[:3] | join('\n') }}
+      tags: [bastion]
+
+    # ========================================
+    # Summary
+    # ========================================
+    - name: Health Check Summary
+      ansible.builtin.debug:
+        msg: |
+          ════════════════════════════════════
+          🏥 FastMeals Health Check — {{ timestamp }}
+          ════════════════════════════════════
+          RDS:     {{ '✅' if pg_ready is defined and pg_ready.rc == 0 else '⏭️  skipped' }} PostgreSQL ({{ databases | length }} databases)
+          Redis:   {{ '✅' if redis_ping is defined and redis_ping.rc | default(1) == 0 else '❌' }}
+          API GW:  {{ '✅' if api_check is defined and api_check.status | default(0) in [200, 401] else '⏭️  skipped' }}
+          Bastion: ✅ (you're reading this)
+          ════════════════════════════════════
+      tags: always

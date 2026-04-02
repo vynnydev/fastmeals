@@ -1,0 +1,211 @@
+# ============================================
+# FastMeals — Database Maintenance Playbook
+# VACUUM, REINDEX, cleanup old data, disk check
+# ============================================
+# Usage:
+#   Full maintenance:  ansible-playbook playbooks/maintenance.yml
+#   Vacuum only:       ansible-playbook playbooks/maintenance.yml --tags vacuum
+#   Cleanup only:      ansible-playbook playbooks/maintenance.yml --tags cleanup
+# ============================================
+
+---
+- name: FastMeals Database Maintenance
+  hosts: bastion
+  become: false
+  vars_files:
+    - ../group_vars/bastion.yml
+    - ../group_vars/secrets.yml
+  vars:
+    timestamp: "{{ ansible_date_time.iso8601_basic_short }}"
+
+  tasks:
+    # ========================================
+    # VACUUM ANALYZE — optimize query planner
+    # ========================================
+    - name: "[Vacuum] Run VACUUM ANALYZE on all databases"
+      ansible.builtin.command: >
+        psql -h {{ rds_endpoint }} -p {{ rds_port }}
+        -U {{ item.user }} -d {{ item.name }}
+        -c "VACUUM (ANALYZE, VERBOSE);"
+      environment:
+        PGPASSWORD: "{{ item.password }}"
+      loop: "{{ databases }}"
+      loop_control:
+        label: "{{ item.name }}"
+      register: vacuum_results
+      ignore_errors: true
+      changed_when: true
+      tags: [vacuum]
+
+    - name: "[Vacuum] Display results"
+      ansible.builtin.debug:
+        msg: "{{ '✅' if item.rc == 0 else '❌' }} VACUUM {{ databases[idx].name }}"
+      loop: "{{ vacuum_results.results }}"
+      loop_control:
+        index_var: idx
+        label: "{{ databases[idx].name }}"
+      tags: [vacuum]
+
+    # ========================================
+    # REINDEX — rebuild indexes
+    # ========================================
+    - name: "[Reindex] Reindex all databases"
+      ansible.builtin.command: >
+        psql -h {{ rds_endpoint }} -p {{ rds_port }}
+        -U {{ item.user }} -d {{ item.name }}
+        -c "REINDEX DATABASE {{ item.name }};"
+      environment:
+        PGPASSWORD: "{{ item.password }}"
+      loop: "{{ databases }}"
+      loop_control:
+        label: "{{ item.name }}"
+      register: reindex_results
+      ignore_errors: true
+      changed_when: true
+      tags: [reindex]
+
+    # ========================================
+    # Check for bloat / dead tuples
+    # ========================================
+    - name: "[Stats] Check dead tuples per database"
+      ansible.builtin.command: >
+        psql -h {{ rds_endpoint }} -p {{ rds_port }}
+        -U {{ item.user }} -d {{ item.name }} -t -A
+        -c "SELECT schemaname || '.' || relname AS table,
+            n_dead_tup AS dead_tuples,
+            n_live_tup AS live_tuples,
+            CASE WHEN n_live_tup > 0
+              THEN round(n_dead_tup::numeric / n_live_tup * 100, 2)
+              ELSE 0
+            END AS dead_pct
+          FROM pg_stat_user_tables
+          WHERE n_dead_tup > 100
+          ORDER BY n_dead_tup DESC
+          LIMIT 5;"
+      environment:
+        PGPASSWORD: "{{ item.password }}"
+      loop: "{{ databases }}"
+      loop_control:
+        label: "{{ item.name }}"
+      register: dead_tuples
+      ignore_errors: true
+      changed_when: false
+      tags: [stats]
+
+    - name: "[Stats] Display dead tuples report"
+      ansible.builtin.debug:
+        msg: |
+          📊 {{ databases[idx].name }}:
+          {{ item.stdout | default('No significant bloat') }}
+      loop: "{{ dead_tuples.results }}"
+      loop_control:
+        index_var: idx
+        label: "{{ databases[idx].name }}"
+      tags: [stats]
+
+    # ========================================
+    # Check active connections
+    # ========================================
+    - name: "[Connections] Check active connections per database"
+      ansible.builtin.command: >
+        psql -h {{ rds_endpoint }} -p {{ rds_port }}
+        -U {{ databases[0].user }} -d {{ databases[0].name }} -t -A
+        -c "SELECT datname, count(*) as connections,
+            count(*) FILTER (WHERE state = 'active') as active,
+            count(*) FILTER (WHERE state = 'idle') as idle
+          FROM pg_stat_activity
+          WHERE datname IS NOT NULL
+          GROUP BY datname
+          ORDER BY connections DESC;"
+      environment:
+        PGPASSWORD: "{{ databases[0].password }}"
+      register: connections
+      ignore_errors: true
+      changed_when: false
+      tags: [connections]
+
+    - name: "[Connections] Display active connections"
+      ansible.builtin.debug:
+        msg: |
+          🔗 Database Connections:
+          {{ connections.stdout | default('No data') }}
+      tags: [connections]
+
+    # ========================================
+    # Kill idle connections older than 1 hour
+    # ========================================
+    - name: "[Cleanup] Terminate idle connections > 1 hour"
+      ansible.builtin.command: >
+        psql -h {{ rds_endpoint }} -p {{ rds_port }}
+        -U {{ databases[0].user }} -d {{ databases[0].name }} -t -A
+        -c "SELECT pg_terminate_backend(pid)
+          FROM pg_stat_activity
+          WHERE state = 'idle'
+          AND state_change < NOW() - INTERVAL '1 hour'
+          AND datname LIKE '%_db'
+          AND pid <> pg_backend_pid();"
+      environment:
+        PGPASSWORD: "{{ databases[0].password }}"
+      register: killed_connections
+      ignore_errors: true
+      changed_when: killed_connections.stdout | default('') | length > 0
+      tags: [cleanup]
+
+    # ========================================
+    # Cleanup old backups on disk
+    # ========================================
+    - name: "[Cleanup] Remove local backups older than {{ backup_retention_days }} days"
+      ansible.builtin.find:
+        paths: "{{ backup_dir }}"
+        age: "{{ backup_retention_days }}d"
+        recurse: false
+        patterns: "*.sql.gz"
+      register: old_backups
+      tags: [cleanup]
+
+    - name: "[Cleanup] Delete old backup files"
+      ansible.builtin.file:
+        path: "{{ item.path }}"
+        state: absent
+      loop: "{{ old_backups.files }}"
+      loop_control:
+        label: "{{ item.path | basename }}"
+      when: old_backups.files | length > 0
+      tags: [cleanup]
+
+    # ========================================
+    # Bastion disk space check
+    # ========================================
+    - name: "[Bastion] Check disk usage"
+      ansible.builtin.command: df -h /
+      register: disk_info
+      changed_when: false
+      tags: [bastion]
+
+    - name: "[Bastion] Get disk usage percentage"
+      ansible.builtin.shell: df / --output=pcent | tail -1 | tr -d ' %'
+      register: disk_pct
+      changed_when: false
+      tags: [bastion]
+
+    - name: "[Bastion] WARN if disk > 80%"
+      ansible.builtin.debug:
+        msg: "⚠️ WARNING: Bastion disk usage at {{ disk_pct.stdout }}%!"
+      when: disk_pct.stdout | int > 80
+      tags: [bastion]
+
+    # ========================================
+    # Summary
+    # ========================================
+    - name: Maintenance Summary
+      ansible.builtin.debug:
+        msg: |
+          ════════════════════════════════════
+          🔧 Maintenance Complete — {{ timestamp }}
+          ════════════════════════════════════
+          VACUUM ANALYZE: {{ vacuum_results.results | selectattr('rc', 'equalto', 0) | list | length }}/{{ databases | length }} OK
+          REINDEX: {{ reindex_results.results | selectattr('rc', 'equalto', 0) | list | length }}/{{ databases | length }} OK
+          Old backups removed: {{ old_backups.files | default([]) | length }}
+          Disk usage: {{ disk_pct.stdout | default('?') }}%
+          ════════════════════════════════════
+      tags: always

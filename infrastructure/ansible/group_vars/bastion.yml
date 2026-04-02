@@ -1,0 +1,96 @@
+# ============================================
+# FastMeals — Bastion Host Variables
+# ============================================
+
+# --- Project ---
+project_name: fastmeals
+github_repo: "https://github.com/vynnydev/fastmeals.git"
+github_branch: improvements
+work_dir: "/home/ec2-user/fastmeals"
+
+# --- AWS ---
+aws_region: us-east-1
+s3_backup_bucket: "{{ project_name }}-db-backups"
+
+# --- RDS ---
+rds_endpoint: fastmeals-postgres.cw3eceym6ad8.us-east-1.rds.amazonaws.com
+rds_port: 5432
+
+# --- Database Definitions ---
+# Passwords are loaded from ansible-vault (secrets.yml)
+databases:
+  - name: auth_db
+    user: auth_user
+    password: "{{ vault_auth_db_password }}"
+    service: auth-service
+    has_seed: true
+    prisma_schema: "backend/services/auth-service/prisma/schema.prisma"
+
+  - name: products_db
+    user: products_user
+    password: "{{ vault_products_db_password }}"
+    service: products-service
+    has_seed: true
+    prisma_schema: "backend/services/products-service/prisma/schema.prisma"
+
+  - name: orders_db
+    user: orders_user
+    password: "{{ vault_orders_db_password }}"
+    service: orders-service
+    has_seed: true
+    prisma_schema: "backend/services/orders-service/prisma/schema.prisma"
+
+  - name: delivery_db
+    user: delivery_user
+    password: "{{ vault_delivery_db_password }}"
+    service: delivery-service
+    has_seed: true
+    prisma_schema: "backend/services/delivery-service/prisma/schema.prisma"
+
+  - name: reports_db
+    user: reports_user
+    password: "{{ vault_reports_db_password }}"
+    service: reports-service
+    has_seed: true
+    prisma_schema: "backend/services/reports-service/prisma/schema.prisma"
+
+# --- Redis ---
+redis_endpoint: "fastmeals-redis.3gjcuc.0001.use1.cache.amazonaws.com"
+redis_port: 6379
+
+# --- RabbitMQ (Amazon MQ) ---
+mq_endpoint: "{{ lookup('env', 'MQ_ENDPOINT') | default('b-xxxx.mq.us-east-1.amazonaws.com', true) }}"
+mq_port: 5671
+
+# --- API Gateway ---
+api_gateway_url: "https://t2fwiydcrc.execute-api.us-east-1.amazonaws.com"
+
+# --- Lambda Functions (for health check) ---
+lambda_endpoints:
+  # Auth
+  - { name: "auth-login", method: "POST", path: "/api/auth/login" }
+  - { name: "auth-refresh", method: "POST", path: "/api/auth/refresh" }
+  # Products
+  - { name: "products-list", method: "GET", path: "/api/products" }
+  - { name: "products-get", method: "GET", path: "/api/products?page=1&limit=1" }
+  # Orders
+  - { name: "orders-list", method: "GET", path: "/api/orders" }
+  # Delivery
+  - { name: "delivery-list", method: "GET", path: "/api/delivery-persons" }
+  # Optimization
+  - { name: "optimization-run", method: "POST", path: "/api/orders/optimize-assignment" }
+  # Reports
+  - { name: "reports-revenue", method: "GET", path: "/api/reports/revenue" }
+  - { name: "reports-orders-by-status", method: "GET", path: "/api/reports/orders-by-status" }
+
+# --- Maintenance ---
+vacuum_tables:
+  - { db: "orders_db", user: "orders_user", tables: ["orders", "order_items"] }
+  - { db: "reports_db", user: "reports_user", tables: ["orders", "order_items", "products", "delivery_persons"] }
+
+log_retention_days: 30
+
+# --- Backup ---
+backup_dir: "/home/ec2-user/backups"
+backup_retention_days: 7
+backup_compression: true

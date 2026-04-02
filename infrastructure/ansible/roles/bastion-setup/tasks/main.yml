@@ -1,0 +1,177 @@
+# ============================================
+# FastMeals — Bastion Setup Role
+# Installs Node.js 20, Prisma CLI, AWS CLI
+# Run once: ansible-playbook playbooks/setup.yml
+# ============================================
+
+- name: Update system packages
+  ansible.builtin.yum:
+    name: "*"
+    state: latest
+  register: yum_update
+
+- name: Install base dependencies
+  ansible.builtin.yum:
+    name:
+      - postgresql16
+      - redis6
+      - git
+      - jq
+      - tar
+      - gzip
+      - unzip
+      - python3-pip
+    state: present
+
+# --- Node.js 20 via NodeSource ---
+- name: Check if Node.js is installed
+  ansible.builtin.command: node --version
+  register: node_check
+  ignore_errors: true
+  changed_when: false
+
+- name: Install Node.js 20 LTS
+  when: node_check.rc != 0 or 'v20' not in node_check.stdout
+  block:
+    - name: Add NodeSource repository
+      ansible.builtin.shell: |
+        curl -fsSL https://rpm.nodesource.com/setup_20.x | bash -
+      args:
+        creates: /etc/yum.repos.d/nodesource-el9.repo
+
+    - name: Install Node.js
+      ansible.builtin.yum:
+        name: nodejs
+        state: present
+
+- name: Verify Node.js version
+  ansible.builtin.command: node --version
+  register: node_version
+  changed_when: false
+
+- name: Display Node.js version
+  ansible.builtin.debug:
+    msg: "Node.js version: {{ node_version.stdout }}"
+
+# --- AWS CLI ---
+- name: Check if AWS CLI is installed
+  ansible.builtin.command: aws --version
+  register: aws_check
+  ignore_errors: true
+  changed_when: false
+
+- name: Install AWS CLI v2
+  when: aws_check.rc != 0
+  block:
+    - name: Download AWS CLI installer
+      ansible.builtin.get_url:
+        url: https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip
+        dest: /tmp/awscliv2.zip
+        mode: "0644"
+
+    - name: Unzip AWS CLI
+      ansible.builtin.unarchive:
+        src: /tmp/awscliv2.zip
+        dest: /tmp/
+        remote_src: true
+
+    - name: Run AWS CLI installer
+      ansible.builtin.command: /tmp/aws/install
+      args:
+        creates: /usr/local/bin/aws
+
+    - name: Cleanup AWS CLI installer
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - /tmp/awscliv2.zip
+        - /tmp/aws
+
+# --- Project Clone ---
+- name: Clone FastMeals repository
+  ansible.builtin.git:
+    repo: "{{ github_repo }}"
+    dest: "{{ work_dir }}"
+    version: "{{ github_branch }}"
+    force: true
+  become: false
+
+# --- Install Prisma CLI globally ---
+- name: Install Prisma CLI globally
+  community.general.npm:
+    name: prisma
+    global: true
+    state: present
+
+# --- Create directories ---
+- name: Create backup directory
+  ansible.builtin.file:
+    path: "{{ backup_dir }}"
+    state: directory
+    owner: ec2-user
+    group: ec2-user
+    mode: "0755"
+
+- name: Create logs directory
+  ansible.builtin.file:
+    path: /home/ec2-user/logs
+    state: directory
+    owner: ec2-user
+    group: ec2-user
+    mode: "0755"
+
+# --- S3 Backup Bucket ---
+- name: Check if S3 backup bucket exists
+  ansible.builtin.command: >
+    aws s3api head-bucket --bucket {{ s3_backup_bucket }}
+  register: s3_check
+  ignore_errors: true
+  changed_when: false
+  become: false
+
+- name: Create S3 backup bucket
+  ansible.builtin.command: >
+    aws s3api create-bucket
+    --bucket {{ s3_backup_bucket }}
+    --region {{ aws_region }}
+  when: s3_check.rc != 0
+  become: false
+  ignore_errors: true
+
+- name: Enable S3 bucket versioning
+  ansible.builtin.command: >
+    aws s3api put-bucket-versioning
+    --bucket {{ s3_backup_bucket }}
+    --versioning-configuration Status=Enabled
+  when: s3_check.rc != 0
+  become: false
+  ignore_errors: true
+
+- name: Set S3 lifecycle policy (expire after {{ backup_retention_days }} days)
+  ansible.builtin.command: >
+    aws s3api put-bucket-lifecycle-configuration
+    --bucket {{ s3_backup_bucket }}
+    --lifecycle-configuration '{
+      "Rules": [{
+        "ID": "ExpireOldBackups",
+        "Status": "Enabled",
+        "Filter": { "Prefix": "backups/" },
+        "Expiration": { "Days": {{ backup_retention_days }} }
+      }]
+    }'
+  when: s3_check.rc != 0
+  become: false
+  ignore_errors: true
+
+- name: Display setup summary
+  ansible.builtin.debug:
+    msg: |
+      ✅ Bastion setup complete!
+      - Node.js: {{ node_version.stdout }}
+      - Prisma CLI: global
+      - AWS CLI: installed
+      - PostgreSQL client: 16
+      - Redis client: 6
+      - Repo: {{ work_dir }} ({{ github_branch }})
+      - Backups: {{ backup_dir }} → s3://{{ s3_backup_bucket }}

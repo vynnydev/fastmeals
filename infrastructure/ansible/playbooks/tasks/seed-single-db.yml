@@ -1,0 +1,39 @@
+# ============================================
+# FastMeals — Seed Single Database
+# Included by seed.yml via loop
+# ============================================
+
+- name: "[{{ db.service }}] Install npm dependencies"
+  ansible.builtin.command:
+    cmd: npm ci
+    chdir: "{{ work_dir }}/backend/services/{{ db.service }}"
+
+- name: "[{{ db.service }}] Generate Prisma client"
+  ansible.builtin.command:
+    cmd: npx prisma generate
+    chdir: "{{ work_dir }}/backend/services/{{ db.service }}"
+  environment:
+    DATABASE_URL: "postgresql://{{ db.user }}:{{ db.password }}@{{ rds_endpoint }}:{{ rds_port }}/{{ db.name }}?schema=public"
+
+- name: "[{{ db.service }}] Reset database (drop + recreate)"
+  ansible.builtin.command:
+    cmd: npx prisma migrate reset --force
+    chdir: "{{ work_dir }}/backend/services/{{ db.service }}"
+  environment:
+    DATABASE_URL: "postgresql://{{ db.user }}:{{ db.password }}@{{ rds_endpoint }}:{{ rds_port }}/{{ db.name }}?schema=public"
+  when: reset_before_seed
+
+- name: "[{{ db.service }}] Run seed"
+  ansible.builtin.command:
+    cmd: npx prisma db seed
+    chdir: "{{ work_dir }}/backend/services/{{ db.service }}"
+  environment:
+    DATABASE_URL: "postgresql://{{ db.user }}:{{ db.password }}@{{ rds_endpoint }}:{{ rds_port }}/{{ db.name }}?schema=public"
+    NODE_ENV: production
+    JWT_ACCESS_SECRET: "{{ vault_jwt_access_secret | default('seed-not-needed') }}"
+    REDIS_URL: "redis://{{ redis_endpoint }}:{{ redis_port }}"
+  register: seed_result
+
+- name: "[{{ db.service }}] Seed result"
+  ansible.builtin.debug:
+    msg: "✅ {{ seed_result.stdout_lines | last | default('Seed complete') }}"

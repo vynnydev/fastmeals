@@ -1,0 +1,76 @@
+# ============================================
+# FastMeals — Restore Single Database
+# Included by disaster-recovery.yml via loop
+# ============================================
+
+- name: "[{{ db.name }}] Find backup file"
+  ansible.builtin.find:
+    paths: "{{ restore_dir }}"
+    patterns: "*{{ db.name }}*.sql.gz"
+  register: db_backup_file
+
+- name: "[{{ db.name }}] Decompress backup"
+  ansible.builtin.command: >
+    gunzip -k {{ db_backup_file.files[0].path }}
+  when: db_backup_file.files | length > 0
+
+- name: "[{{ db.name }}] Get SQL file path"
+  ansible.builtin.set_fact:
+    sql_file: "{{ db_backup_file.files[0].path | regex_replace('.gz$', '') }}"
+  when: db_backup_file.files | length > 0
+
+- name: "[{{ db.name }}] Terminate active connections"
+  ansible.builtin.command: >
+    psql -h {{ rds_endpoint }} -p {{ rds_port }}
+    -U {{ databases[0].user }} -d postgres
+    -c "SELECT pg_terminate_backend(pid)
+        FROM pg_stat_activity
+        WHERE datname = '{{ db.name }}'
+        AND pid <> pg_backend_pid();"
+  environment:
+    PGPASSWORD: "{{ databases[0].password }}"
+  ignore_errors: true
+
+- name: "[{{ db.name }}] Drop existing database"
+  ansible.builtin.command: >
+    psql -h {{ rds_endpoint }} -p {{ rds_port }}
+    -U {{ databases[0].user }} -d postgres
+    -c "DROP DATABASE IF EXISTS {{ db.name }};"
+  environment:
+    PGPASSWORD: "{{ databases[0].password }}"
+  ignore_errors: true
+
+- name: "[{{ db.name }}] Recreate database"
+  ansible.builtin.command: >
+    psql -h {{ rds_endpoint }} -p {{ rds_port }}
+    -U {{ databases[0].user }} -d postgres
+    -c "CREATE DATABASE {{ db.name }} OWNER {{ db.user }};"
+  environment:
+    PGPASSWORD: "{{ databases[0].password }}"
+
+- name: "[{{ db.name }}] Restore from backup"
+  ansible.builtin.shell: >
+    psql -h {{ rds_endpoint }} -p {{ rds_port }}
+    -U {{ db.user }} -d {{ db.name }}
+    -f {{ sql_file }}
+    2>&1 | tail -5
+  environment:
+    PGPASSWORD: "{{ db.password }}"
+  register: restore_result
+  when: db_backup_file.files | length > 0
+
+- name: "[{{ db.name }}] Verify restore — count tables"
+  ansible.builtin.command: >
+    psql -h {{ rds_endpoint }} -p {{ rds_port }}
+    -U {{ db.user }} -d {{ db.name }} -t -A
+    -c "SELECT count(*) FROM information_schema.tables WHERE table_schema = 'public';"
+  environment:
+    PGPASSWORD: "{{ db.password }}"
+  register: table_count
+  changed_when: false
+
+- name: "[{{ db.name }}] Restore result"
+  ansible.builtin.debug:
+    msg: >-
+      {{ '✅' if restore_result.rc | default(1) == 0 else '❌' }}
+      {{ db.name }} — {{ table_count.stdout | default('0') | trim }} tables restored

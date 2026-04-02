@@ -1,0 +1,26 @@
+# ============================================
+# FastMeals — Backup Single Database
+# Included by backup.yml via loop
+# ============================================
+
+- name: "[{{ db.name }}] Run pg_dump"
+  ansible.builtin.shell: >
+    pg_dump -h {{ rds_endpoint }} -p {{ rds_port }}
+    -U {{ db.user }} -d {{ db.name }}
+    --format=plain --no-owner --no-privileges
+    --verbose 2>/dev/null
+    | gzip > {{ backup_dir }}/{{ timestamp }}/{{ db.name }}_{{ timestamp }}.sql.gz
+  environment:
+    PGPASSWORD: "{{ db.password }}"
+  register: dump_result
+
+- name: "[{{ db.name }}] Get backup file size"
+  ansible.builtin.stat:
+    path: "{{ backup_dir }}/{{ timestamp }}/{{ db.name }}_{{ timestamp }}.sql.gz"
+  register: backup_stat
+
+- name: "[{{ db.name }}] Display backup info"
+  ansible.builtin.debug:
+    msg: >-
+      {{ '✅' if dump_result.rc == 0 else '❌' }}
+      {{ db.name }} — {{ backup_stat.stat.size | default(0) | human_readable }}

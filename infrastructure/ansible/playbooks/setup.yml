@@ -1,0 +1,30 @@
+# ============================================
+# FastMeals — Bastion Setup Playbook
+# Prepares bastion with Node.js, Prisma, AWS CLI
+# ============================================
+# Usage: ansible-playbook playbooks/setup.yml
+# ============================================
+
+---
+- name: Setup Bastion Host for FastMeals operations
+  hosts: bastion
+  become: true
+  vars_files:
+    - ../group_vars/bastion.yml
+    - ../group_vars/secrets.yml
+
+  roles:
+    - bastion-setup
+
+  post_tasks:
+    - name: Test PostgreSQL connectivity to RDS
+      ansible.builtin.command: >
+        pg_isready -h {{ rds_endpoint }} -p {{ rds_port }}
+      register: pg_ready
+      ignore_errors: true
+      changed_when: false
+      become: false
+
+    - name: Display RDS connectivity
+      ansible.builtin.debug:
+        msg: "{{ '✅ RDS is reachable' if pg_ready.rc == 0 else '❌ RDS is NOT reachable — check security groups' }}"

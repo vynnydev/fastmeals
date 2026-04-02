@@ -1,0 +1,48 @@
+# ============================================
+# FastMeals — Migrate Single Database
+# Included by migrations.yml via loop
+# ============================================
+
+- name: "[{{ db.service }}] Install npm dependencies"
+  ansible.builtin.command:
+    cmd: npm ci --omit=dev
+    chdir: "{{ work_dir }}/backend/services/{{ db.service }}"
+  environment:
+    NODE_ENV: production
+
+- name: "[{{ db.service }}] Generate Prisma client"
+  ansible.builtin.command:
+    cmd: npx prisma generate
+    chdir: "{{ work_dir }}/backend/services/{{ db.service }}"
+  environment:
+    DATABASE_URL: "postgresql://{{ db.user }}:{{ db.password }}@{{ rds_endpoint }}:{{ rds_port }}/{{ db.name }}?schema=public"
+
+- name: "[{{ db.service }}] Check pending migrations (status)"
+  ansible.builtin.command:
+    cmd: npx prisma migrate status
+    chdir: "{{ work_dir }}/backend/services/{{ db.service }}"
+  environment:
+    DATABASE_URL: "postgresql://{{ db.user }}:{{ db.password }}@{{ rds_endpoint }}:{{ rds_port }}/{{ db.name }}?schema=public"
+  register: migrate_status
+  changed_when: false
+  ignore_errors: true
+
+- name: "[{{ db.service }}] Display migration status"
+  ansible.builtin.debug:
+    msg: "{{ migrate_status.stdout_lines | default(['No output']) }}"
+
+- name: "[{{ db.service }}] Apply pending migrations"
+  ansible.builtin.command:
+    cmd: npx prisma migrate deploy
+    chdir: "{{ work_dir }}/backend/services/{{ db.service }}"
+  environment:
+    DATABASE_URL: "postgresql://{{ db.user }}:{{ db.password }}@{{ rds_endpoint }}:{{ rds_port }}/{{ db.name }}?schema=public"
+  register: migrate_result
+  when: not dry_run
+  changed_when: "'migrations applied' in migrate_result.stdout | default('')"
+
+- name: "[{{ db.service }}] Migration result"
+  ansible.builtin.debug:
+    msg: >-
+      {{ '🔍 DRY RUN — would apply migrations' if dry_run
+         else ('✅ ' + migrate_result.stdout | default('Done')) }}

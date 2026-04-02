@@ -1,0 +1,88 @@
+# ============================================
+# FastMeals — Database Backup Playbook
+# pg_dump all 5 databases → compress → S3
+# ============================================
+# Usage:
+#   All DBs:     ansible-playbook playbooks/backup.yml
+#   Single DB:   ansible-playbook playbooks/backup.yml -e "target_db=orders_db"
+#   Custom tag:  ansible-playbook playbooks/backup.yml -e "backup_tag=pre-migration"
+# ============================================
+
+---
+- name: Backup FastMeals databases to S3
+  hosts: bastion
+  become: false
+  vars_files:
+    - ../group_vars/bastion.yml
+    - ../group_vars/secrets.yml
+  vars:
+    target_db: ""  # Empty = all databases
+    backup_tag: "scheduled"
+    timestamp: "{{ ansible_date_time.iso8601_basic_short }}"
+    s3_prefix: "backups/{{ timestamp }}-{{ backup_tag }}"
+
+  tasks:
+    # --- Ensure backup dir exists ---
+    - name: Ensure backup directory exists
+      ansible.builtin.file:
+        path: "{{ backup_dir }}/{{ timestamp }}"
+        state: directory
+        mode: "0755"
+
+    # --- Backup each database ---
+    - name: Backup databases
+      ansible.builtin.include_tasks: tasks/backup-single-db.yml
+      loop: "{{ databases }}"
+      loop_control:
+        loop_var: db
+        label: "{{ db.name }}"
+      when: target_db == "" or target_db == db.name
+
+    # --- Upload to S3 ---
+    - name: Find backup files
+      ansible.builtin.find:
+        paths: "{{ backup_dir }}/{{ timestamp }}"
+        patterns: "*.sql.gz"
+      register: backup_files
+
+    - name: Upload backups to S3
+      ansible.builtin.command: >
+        aws s3 cp {{ item.path }}
+        s3://{{ s3_backup_bucket }}/{{ s3_prefix }}/{{ item.path | basename }}
+        --storage-class STANDARD_IA
+      loop: "{{ backup_files.files }}"
+      loop_control:
+        label: "{{ item.path | basename }}"
+      register: s3_uploads
+
+    # --- Verify uploads ---
+    - name: Verify S3 uploads
+      ansible.builtin.command: >
+        aws s3 ls s3://{{ s3_backup_bucket }}/{{ s3_prefix }}/
+      register: s3_listing
+      changed_when: false
+
+    - name: Display S3 listing
+      ansible.builtin.debug:
+        msg: |
+          {{ s3_listing.stdout }}
+
+    # --- Cleanup local files ---
+    - name: Remove local backup directory
+      ansible.builtin.file:
+        path: "{{ backup_dir }}/{{ timestamp }}"
+        state: absent
+
+    # --- Summary ---
+    - name: Backup Summary
+      ansible.builtin.debug:
+        msg: |
+          ════════════════════════════════════
+          💾 Backup Complete — {{ timestamp }}
+          ════════════════════════════════════
+          Tag: {{ backup_tag }}
+          Databases: {{ target_db if target_db else 'ALL (' + (databases | length | string) + ')' }}
+          S3 Path: s3://{{ s3_backup_bucket }}/{{ s3_prefix }}/
+          Files: {{ backup_files.files | length }}
+          Total size: {{ backup_files.files | map(attribute='size') | sum | human_readable }}
+          ════════════════════════════════════

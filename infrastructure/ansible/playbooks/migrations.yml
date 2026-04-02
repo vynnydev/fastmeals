@@ -1,0 +1,53 @@
+# ============================================
+# FastMeals — Database Migrations Playbook
+# Runs Prisma migrate deploy on all 5 databases
+# ============================================
+# Usage:
+#   All DBs:     ansible-playbook playbooks/migrations.yml
+#   Single DB:   ansible-playbook playbooks/migrations.yml -e "target_service=auth-service"
+#   Dry run:     ansible-playbook playbooks/migrations.yml -e "dry_run=true"
+# ============================================
+
+---
+- name: Run Prisma Migrations on FastMeals databases
+  hosts: bastion
+  become: false
+  vars_files:
+    - ../group_vars/bastion.yml
+    - ../group_vars/secrets.yml
+  vars:
+    dry_run: false
+    target_service: ""  # Empty = all services
+    timestamp: "{{ ansible_date_time.iso8601_basic_short }}"
+
+  tasks:
+    # --- Pull latest code ---
+    - name: Pull latest code from {{ github_branch }}
+      ansible.builtin.git:
+        repo: "{{ github_repo }}"
+        dest: "{{ work_dir }}"
+        version: "{{ github_branch }}"
+        force: true
+
+    # --- Run migrations per service ---
+    - name: Run Prisma migrations
+      ansible.builtin.include_tasks: tasks/migrate-single-db.yml
+      loop: "{{ databases }}"
+      loop_control:
+        loop_var: db
+        label: "{{ db.service }}"
+      when: target_service == "" or target_service == db.service
+
+    # --- Summary ---
+    - name: Migration summary
+      ansible.builtin.debug:
+        msg: |
+          ✅ Migrations complete — {{ timestamp }}
+          Mode: {{ 'DRY RUN' if dry_run else 'APPLIED' }}
+          Services: {{ target_service if target_service else 'ALL (5 databases)' }}
+
+# ============================================
+# Included task file (inline via block)
+# ============================================
+# Since we need a separate task file for the loop,
+# we create it as a handler block below
