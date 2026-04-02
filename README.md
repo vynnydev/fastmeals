@@ -454,8 +454,6 @@ Toda a infraestrutura é gerenciada por **Terraform** com **9 módulos**, estado
 
 ![AWS Infrastructure](docs/diagrams/images/06-aws-infrastructure.drawio.png)
 
-&nbsp;
-
 | Recurso | Serviço AWS | Especificação |
 |---------|------------|---------------|
 | Banco de dados | RDS PostgreSQL 16 | db.t3.micro, 5 databases, encrypted |
