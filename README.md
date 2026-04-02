@@ -79,6 +79,8 @@ A plataforma segue uma arquitetura de **microserviços** no backend e **microfro
 - **Lambda per Use Case** — cada operação é uma função independente (23 Lambda handlers)
 - **Microfrontends** — Module Federation com shell host + 4 remotes independentes
 
+&nbsp;
+
 ---
 
 ## 🧅 Clean Architecture + SOLID
@@ -96,6 +98,8 @@ src/
 ├── infrastructure/  → Prisma, HTTP Clients, Express Controllers, Config
 └── lambda/          → AWS Lambda Handlers (1 per use case)
 ```
+
+&nbsp;
 
 ---
 
@@ -182,6 +186,8 @@ cd backend/services/reports-service && npm test       # 18 testes
 # Teste de fluxo completo (requer Docker rodando)
 ./scripts/test-flow.sh                                # 52 assertions
 ```
+
+&nbsp;
 
 ---
 
@@ -282,6 +288,8 @@ reports-service ──SQL──▶ reports_db           (CQRS read model cross-d
 
 ![Order Creation Flow](docs/diagrams/images/04-order-creation-flow.drawio.png)
 
+&nbsp;
+
 ---
 
 ## 🖥 Frontend — Microfrontends
@@ -355,6 +363,8 @@ O frontend foi construído com arquitetura de **microfrontends** usando **Vite +
 | Máscara de telefone | Formatação automática `(XX) XXXXX-XXXX` |
 | Atribuição manual | Select com entregadores ocupados desabilitados |
 
+&nbsp;
+
 ---
 
 ## 🧠 Algoritmo de Otimização
@@ -399,6 +409,8 @@ POST /api/orders/optimize-assignment
 ```
 
 Retorna `assignments` (pedido → entregador com distância), `unassigned` (pedidos sem entregador disponível) e `totalDistanceKm`.
+
+&nbsp;
 
 ---
 
@@ -446,6 +458,8 @@ infrastructure/terraform/
 └── environments/
     └── production/      # Entry point (main.tf)
 ```
+
+&nbsp;
 
 ---
 
@@ -628,6 +642,8 @@ O Terraform adiciona automaticamente a **Datadog Extension Layer** e as environm
 | Deploy Frontend | merge to main | Amplify auto-deploy via webhook |
 | Terraform | PR (plan) / merge (apply) | Infra as Code com review (9 módulos) |
 
+&nbsp;
+
 ---
 
 ## 🧪 Testes
@@ -809,6 +825,8 @@ fastmeals/
         └── xml/                       # Arquivos .drawio editáveis
 ```
 
+&nbsp;
+
 ---
 
 ## 📖 Documentação
@@ -838,6 +856,8 @@ Cada serviço possui documentação interativa acessível em `/docs`:
 | Optimization | http://localhost:3005/docs |
 | Reports | http://localhost:3006/docs |
 
+&nbsp;
+
 ---
 
 ## 🔑 Variáveis de Ambiente
@@ -858,6 +878,8 @@ Todas as variáveis estão definidas no `docker-compose.yml`. Para desenvolvimen
 | `VITE_API_URL` | frontend (remotes) | URL do API Gateway (vazio em dev para usar proxy) |
 | `DD_API_KEY` | Lambda (Datadog) | API Key do Datadog |
 | `DD_SITE` | Lambda (Datadog) | Site do Datadog (us5.datadoghq.com) |
+
+&nbsp;
 
 ---
 
@@ -886,6 +908,8 @@ O `docker-compose.yml` orquestra **19 containers** (7 infra + 6 backend + 5 fron
 | mfe-remote-delivery | node:20-alpine | 5003 | Microfrontend entregas |
 | mfe-remote-reports | node:20-alpine | 5004 | Microfrontend relatórios |
 | nginx | nginx:alpine | 80 | API Gateway |
+
+&nbsp;
 
 ---
 
