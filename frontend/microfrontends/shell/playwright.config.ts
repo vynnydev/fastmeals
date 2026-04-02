@@ -11,6 +11,7 @@ export default defineConfig({
   workers: 1,
   reporter: isCI ? 'github' : 'html',
   timeout: 30_000,
+  globalSetup: './e2e/global-setup.ts',
 
   use: {
     baseURL,
@@ -21,21 +22,32 @@ export default defineConfig({
   },
 
   projects: [
+    // Auth tests run without stored state (they test login itself)
     {
-      name: 'chromium',
+      name: 'auth',
+      testMatch: 'auth.spec.ts',
+      use: { ...devices['Desktop Chrome'] },
+    },
+    // All other tests run with admin auth state pre-loaded
+    {
+      name: 'admin',
+      testMatch: ['dashboard.spec.ts', 'orders.spec.ts', 'products.spec.ts', 'delivery.spec.ts', 'reports.spec.ts'],
+      use: {
+        ...devices['Desktop Chrome'],
+        storageState: 'e2e/.auth/admin.json',
+      },
+    },
+    // Smoke tests run without stored state (they login manually)
+    {
+      name: 'smoke',
+      testMatch: 'smoke.spec.ts',
+      use: { ...devices['Desktop Chrome'] },
+    },
+    // Full flow test for demo/recording (single browser, no reopen)
+    {
+      name: 'full-flow',
+      testMatch: 'full-flow.spec.ts',
       use: { ...devices['Desktop Chrome'] },
     },
   ],
-
-  /* Run local dev server before tests (only when not in CI or production) */
-  ...(baseURL.includes('localhost')
-    ? {
-        webServer: {
-          command: 'npm run preview',
-          port: 5000,
-          reuseExistingServer: !isCI,
-          timeout: 120_000,
-        },
-      }
-    : {}),
 })

@@ -12,7 +12,8 @@
 ![Tailwind](https://img.shields.io/badge/Tailwind_CSS-4-06B6D4?logo=tailwindcss&logoColor=white)
 ![Prisma](https://img.shields.io/badge/Prisma-6.19-2D3748?logo=prisma&logoColor=white)
 ![Vitest](https://img.shields.io/badge/Vitest-3.0-6E9F18?logo=vitest&logoColor=white)
-![Tests](https://img.shields.io/badge/Tests-180+-22c55e?logo=checkmarx&logoColor=white)
+![Tests](https://img.shields.io/badge/Tests-210+-22c55e?logo=checkmarx&logoColor=white)
+![Playwright](https://img.shields.io/badge/Playwright-E2E_28_tests-2EAD33?logo=playwright&logoColor=white)
 ![Terraform](https://img.shields.io/badge/Terraform-1.7-844FBA?logo=terraform&logoColor=white)
 ![AWS](https://img.shields.io/badge/AWS-Cloud-FF9900?logo=amazon-aws&logoColor=white)
 ![Express](https://img.shields.io/badge/Express-4.21-000000?logo=express&logoColor=white)
@@ -55,8 +56,6 @@ Plataforma fullstack de gerenciamento de delivery com **6 microserviços**, **5 
 19. [Autor](#-autor)
 
 ---
-
-## 🎬 Demo
 
 <!-- GIF de apresentação da aplicação -->
 
@@ -224,6 +223,7 @@ cd backend/services/reports-service && npm test       # 18 testes
 | Recharts | 3 | Gráficos e visualizações (remote-reports) |
 | Axios | 1.13 | HTTP client com interceptors |
 | Sonner | 2 | Toast notifications |
+| Playwright | latest | Testes E2E (28 testes) |
 
 ### DevOps & Observabilidade
 
@@ -237,22 +237,20 @@ cd backend/services/reports-service && npm test       # 18 testes
 | AWS Lambda | 23 funções serverless (Node.js 20) |
 | AWS API Gateway | HTTP API com CORS e logging |
 
+&nbsp;
+
 ---
 
 ## 🔧 Microserviços
 
-![Microserviços](docs/diagrams/images/01-architecture-overview.drawio.png)
-
-- OBS: Acesse o readme.md do microserviço desejado, clicando no nome dele na tabela a seguir.
-
 | Serviço | Porta | Banco | Testes | Responsabilidade |
 |---------|-------|-------|--------|-----------------|
-| [auth-service](backend/services/auth-service/readme-auth-service.md) | 3001 | auth_db + Redis | 19 | JWT login, refresh token, bcrypt |
-| [products-service](backend/services/products-service/readme-products-service.md) | 3002 | products_db | 24 | CRUD produtos, paginação, busca |
-| [orders-service](backend/services/orders-service/readme-orders-service.md) | 3003 | orders_db | 43 | Pedidos, máquina de estados, inter-service |
-| [delivery-service](backend/services/delivery-service/readme-delivery-service.md) | 3004 | delivery_db | 20 | CRUD entregadores, disponibilidade |
-| [optimization-service](backend/services/optimization-service/readme-optimization-service.md) | 3005 | — (stateless) | 29 | Hungarian Algorithm + Haversine |
-| [reports-service](backend/services/reports-service/readme-reports-service.md) | 3006 | reports_db (CQRS) | 18 | Analytics, AI Insights (Bedrock) |
+| [auth-service](backend/services/auth-service/README.md) | 3001 | auth_db + Redis | 19 | JWT login, refresh token, bcrypt |
+| [products-service](backend/services/products-service/README.md) | 3002 | products_db | 24 | CRUD produtos, paginação, busca |
+| [orders-service](backend/services/orders-service/README.md) | 3003 | orders_db | 43 | Pedidos, máquina de estados, inter-service |
+| [delivery-service](backend/services/delivery-service/README.md) | 3004 | delivery_db | 20 | CRUD entregadores, disponibilidade |
+| [optimization-service](backend/services/optimization-service/README.md) | 3005 | — (stateless) | 29 | Hungarian Algorithm + Haversine |
+| [reports-service](backend/services/reports-service/README.md) | 3006 | reports_db (CQRS) | 18 | Analytics, AI Insights (Bedrock) |
 
 ### Comunicação entre serviços
 
@@ -309,13 +307,15 @@ O frontend foi construído com arquitetura de **microfrontends** usando **Vite +
 └─────────────────────────────────────────────────────────────┘
 ```
 
+> Acesse o readme de cada microfrontend clicando no nome dele na tabela a seguir.
+
 | Microfrontend | Porta | Expõe | Responsabilidade |
 |--------------|-------|-------|------------------|
-| **Shell** | 5000 | — (host) | Auth, Dashboard, Layout, roteamento, Tailwind global |
-| **remote-orders** | 5001 | `OrdersPage` | Pedidos: tabela, cards, kanban, criação, status, atribuição |
-| **remote-products** | 5002 | `ProductsPage` | Produtos: grid, tabela, CRUD com react-hook-form + zod |
-| **remote-delivery** | 5003 | `DeliveryPage` | Entregadores: cards, kanban, CRUD, otimização Hungarian |
-| **remote-reports** | 5004 | `ReportsPage` | Relatórios: charts recharts, analytics, AI Insights Bedrock |
+| [**Shell**](frontend/microfrontends/shell/readme-shell.md) | 5000 | — (host) | Auth, Dashboard, Layout, roteamento, Tailwind global |
+| [**remote-orders**](frontend/microfrontends/remote-orders/readme-remote-orders.md) | 5001 | `OrdersPage` | Pedidos: tabela, cards, kanban, criação, status, atribuição |
+| [**remote-products**](frontend/microfrontends/remote-products/readme-remote-products.md) | 5002 | `ProductsPage` | Produtos: grid, tabela, CRUD com react-hook-form + zod |
+| [**remote-delivery**](frontend/microfrontends/remote-delivery/readme-remote-delivery.md) | 5003 | `DeliveryPage` | Entregadores: cards, kanban, CRUD, otimização Hungarian |
+| [**remote-reports**](frontend/microfrontends/remote-reports/readme-remote-reports.md) | 5004 | `ReportsPage` | Relatórios: charts recharts, analytics, AI Insights Bedrock |
 
 ### Decisões arquiteturais do frontend
 
@@ -408,6 +408,8 @@ Toda a infraestrutura é gerenciada por **Terraform** com **9 módulos**, estado
 
 ![AWS Infrastructure](docs/diagrams/images/06-aws-infrastructure.drawio.png)
 
+&nbsp;
+
 | Recurso | Serviço AWS | Especificação |
 |---------|------------|---------------|
 | Banco de dados | RDS PostgreSQL 16 | db.t3.micro, 5 databases, encrypted |
@@ -422,6 +424,8 @@ Toda a infraestrutura é gerenciada por **Terraform** com **9 módulos**, estado
 | Observabilidade | Datadog | Métricas Lambda, logs, cold starts |
 | Logs | CloudWatch | 14 dias retention |
 | State | S3 + DynamoDB | Terraform remote state |
+
+&nbsp;
 
 ### Módulos Terraform
 
@@ -449,7 +453,11 @@ infrastructure/terraform/
 
 A plataforma utiliza **PostgreSQL 16** via **Amazon RDS** com uma única instância compartilhada e **5 databases isolados** — cada microserviço tem seu próprio banco, seguindo o padrão de database-per-service.
 
+&nbsp;
+
 ![Arquitetura de Bancos de Dados](docs/diagrams/images/09-database-architecture.drawio.png)
+
+&nbsp;
 
 ### Arquitetura de Dados
 
@@ -461,9 +469,13 @@ A plataforma utiliza **PostgreSQL 16** via **Amazon RDS** com uma única instân
 | `delivery_db` | `delivery_user` | delivery-service | Entregadores, veículos, localização |
 | `reports_db` | `reports_user` | reports-service | Read model (CQRS) para relatórios e analytics |
 
+&nbsp;
+
 ### Padrão CQRS no Reports
 
 O `reports_db` é um read model que replica dados dos demais bancos via eventos do RabbitMQ. Isso permite queries analíticas complexas sem impactar a performance dos serviços transacionais. As tabelas do reports (`orders`, `order_items`, `products`, `delivery_persons`) são sincronizadas via consumers que escutam eventos de criação e atualização.
+
+&nbsp;
 
 ### Conexão Local (Docker)
 
@@ -474,6 +486,8 @@ O `reports_db` é um read model que replica dados dos demais bancos via eventos 
 | orders_db | fastmeals-orders-db | 5435 | orders_user / orders_pass |
 | delivery_db | fastmeals-delivery-db | 5436 | delivery_user / delivery_pass |
 | reports_db | fastmeals-reports-db | 5437 | reports_user / reports_pass |
+
+&nbsp;
 
 ### Conexão Produção (AWS RDS)
 
@@ -487,11 +501,15 @@ O `reports_db` é um read model que replica dados dos demais bancos via eventos 
 | **Encryption** | Habilitado |
 | **Backups** | 7 dias de retenção automática |
 
+&nbsp;
+
 ---
 
 ## 🔐 Bastion Host — Acesso ao RDS
 
 O RDS está em uma subnet privada sem acesso direto pela internet. Para acessar os bancos de dados, utilizamos um **Bastion Host** — uma instância EC2 na subnet pública que serve como ponto de entrada seguro.
+
+&nbsp;
 
 ### Arquitetura de Acesso
 
@@ -508,6 +526,8 @@ Seu computador (DBeaver)
    44.204.165.150     fastmeals-postgres...
 ```
 
+&nbsp;
+
 ### Configuração
 
 | Recurso | Valor |
@@ -518,6 +538,8 @@ Seu computador (DBeaver)
 | **Security Group** | SSH (22) + RDS (5432) + Redis (6379) |
 | **IAM Role** | SSM Session Manager habilitado |
 | **Ferramentas** | postgresql16, redis6 |
+
+&nbsp;
 
 ### Como conectar via SSH Tunnel + DBeaver
 
@@ -530,6 +552,8 @@ ssh -i ~/.ssh/fastmeals-bastion.pem \
 # Passo 2 — No DBeaver: localhost:15432, user fastmeals_admin
 ```
 
+&nbsp;
+
 ### Acesso direto via Bastion (psql)
 
 ```bash
@@ -537,19 +561,27 @@ ssh -i ~/.ssh/fastmeals-bastion.pem ec2-user@44.204.165.150
 psql -h fastmeals-postgres.cw3eceym6ad8.us-east-1.rds.amazonaws.com -U fastmeals_admin -d orders_db
 ```
 
+&nbsp;
+
 ---
 
 ## 📊 Observabilidade — Datadog
 
 Todas as **23 Lambda functions** são instrumentadas com o **Datadog Extension Layer**, enviando métricas, logs e dados de invocação em tempo real.
 
+&nbsp;
+
 ### Serverless Overview
 
 ![Datadog Serverless Overview](docs/images/observability/datadog-serverless-overview.png)
 
+&nbsp;
+
 ### Lambda Detail — Invocações e Cold Starts
 
 ![Datadog Lambda Detail](docs/images/observability/datadog-lambda-detail.png)
+
+&nbsp;
 
 ### O que é monitorado
 
@@ -563,6 +595,8 @@ Todas as **23 Lambda functions** são instrumentadas com o **Datadog Extension L
 | **Cost** | Custo estimado por função |
 | **Logs** | Logs estruturados encaminhados automaticamente |
 
+&nbsp;
+
 ### Configuração via Terraform
 
 ```hcl
@@ -573,6 +607,8 @@ datadog_site    = "us5.datadoghq.com"
 
 O Terraform adiciona automaticamente a **Datadog Extension Layer** e as environment variables em todas as 23 funções Lambda.
 
+&nbsp;
+
 ---
 
 ## 🔄 CI/CD Pipeline
@@ -580,6 +616,8 @@ O Terraform adiciona automaticamente a **Datadog Extension Layer** e as environm
 6 workflows no GitHub Actions com deploy automático e quality gate.
 
 ![CI/CD Pipeline](docs/diagrams/images/07-cicd-pipeline.drawio.png)
+
+&nbsp;
 
 | Pipeline | Trigger | O que faz |
 |----------|---------|-----------|
@@ -599,45 +637,127 @@ O Terraform adiciona automaticamente a **Datadog Extension Layer** e as environm
 | Backend (unit) | Vitest | 80+ | Use cases, algoritmos, value objects |
 | Backend (integration) | Vitest + Supertest | 73+ | Controllers HTTP, auth, validation |
 | Backend (flow) | Shell script | 52 | Fluxo real entre todos os serviços |
-| **Total** | — | **180+ testes** | — |
+| Frontend (E2E) | Playwright | 28 | Login, navegação, todos os microfrontends |
+| **Total** | — | **210+ testes** | — |
 
-Todos os testes são executados com `Vitest 3.x` e coverage via `@vitest/coverage-v8`, gerando reports em `lcov` para integração com SonarCloud.
+&nbsp;
+
+Todos os testes backend são executados com `Vitest 3.x` e coverage via `@vitest/coverage-v8`, gerando reports em `lcov` para integração com SonarCloud. Os testes E2E utilizam **Playwright** com suporte a execução local e contra produção.
+
+&nbsp;
+
+---
+
+### 🎭 Frontend — Testes E2E com Playwright
+
+**28 testes end-to-end** validando o fluxo completo da aplicação em produção, cobrindo autenticação, navegação entre microfrontends e funcionalidades de cada módulo.
+
+&nbsp;
+
+![Playwright E2E Demo](docs/images/frontend/tests/playwright-e2e-demo.gif)
+
+&nbsp;
+
+![Playwright E2E Tests](docs/images/frontend/tests/playwright-e2e-tests.png)
+
+&nbsp;
+
+| Suite | Testes | O que valida |
+|-------|--------|-------------|
+| auth.spec.ts | 7 | Login admin/viewer, credenciais inválidas, form elements |
+| dashboard.spec.ts | 6 | Stat cards, sidebar links, navegação entre páginas |
+| orders.spec.ts | 3 | Carregamento do remote, listagem, botões de ação |
+| products.spec.ts | 3 | Carregamento do remote, listagem, busca |
+| delivery.spec.ts | 3 | Carregamento do remote, listagem, aba de otimização |
+| reports.spec.ts | 3 | Carregamento do remote, conteúdo, filtros de data |
+| smoke.spec.ts | 3 | Smoke tests em produção (login + todas as páginas) |
+
+&nbsp;
+
+**Como rodar:**
+
+```bash
+cd frontend/microfrontends/shell
+
+# Contra produção
+PLAYWRIGHT_BASE_URL=https://fastmeals.com.br npx playwright test --reporter=list
+
+# Com browser visível (para gravação/demo)
+PLAYWRIGHT_BASE_URL=https://fastmeals.com.br npx playwright test --headed --project=full-flow
+
+# Modo interativo
+PLAYWRIGHT_BASE_URL=https://fastmeals.com.br npx playwright test --ui
+```
+
+&nbsp;
+
+---
+
+### 🔬 Backend — Testes Unitários e de Integração
+
+**155+ testes** com cobertura de use cases, controllers HTTP, validações e regras de negócio em todos os 6 microserviços.
+
+&nbsp;
 
 ### 🔐 [auth-service](backend/services/auth-service/readme-auth-service.md) — 19 testes
 
 Testes de autenticação JWT, refresh token com Redis, hash bcrypt e rate limiting. Cobertura de 100% nos use cases e controllers.
 
+&nbsp;
+
 ![Auth Service Tests](docs/images/backend/services/tests/auth-service-tests.png)
+
+&nbsp;
 
 ### 📦 [products-service](backend/services/products-service/readme-products-service.md) — 24 testes
 
 CRUD completo de produtos com paginação, busca por nome/categoria, proteção contra delete de produtos vinculados a pedidos, e validação Zod.
 
+&nbsp;
+
 ![Products Service Tests](docs/images/backend/services/tests/products-service-tests.png)
+
+&nbsp;
 
 ### 📋 [orders-service](backend/services/orders-service/readme-orders-service.md) — 43 testes
 
 O serviço mais testado. Cobre todas as transições da máquina de estados (pending → preparing → ready → delivering → delivered), comunicação inter-service (products + delivery), snapshot de preços e validação de regras de negócio.
 
+&nbsp;
+
 ![Orders Service Tests](docs/images/backend/services/tests/orders-service-tests.png)
+
+&nbsp;
 
 ### 🚴 [delivery-service](backend/services/delivery-service/readme-delivery-service.md) — 20 testes
 
 CRUD de entregadores, filtro por disponibilidade, proteção contra delete de entregadores com entregas ativas, e validação de dados do veículo.
 
+&nbsp;
+
 ![Delivery Service Tests](docs/images/backend/services/tests/delivery-service-tests.png)
+
+&nbsp;
 
 ### 🧠 [optimization-service](backend/services/optimization-service/readme-optimization-service.md) — 29 testes
 
 Validação da corretude do algoritmo Hungarian (atribuição ótima vs. greedy), precisão do Haversine (< 0.1% de erro), e performance com matrizes 30×50 em < 87ms.
 
+&nbsp;
+
 ![Optimization Service Tests](docs/images/backend/services/tests/optimization-service-tests.png)
+
+&nbsp;
 
 ### 📊 [reports-service](backend/services/reports-service/readme-reports-service.md) — 19 testes
 
 Revenue por período, orders-by-status, top produtos, tempo médio de entrega, e AI Insights com fallback local quando o Bedrock não está disponível.
 
+&nbsp;
+
 ![Reports Service Tests](docs/images/backend/services/tests/reports-service-tests.png)
+
+&nbsp;
 
 ---
 
@@ -667,7 +787,7 @@ fastmeals/
 │       └── reports-service/           # 📊 Analytics + AI (19 testes)
 ├── frontend/
 │   └── microfrontends/
-│       ├── shell/                     # 🏠 Host: Auth, Dashboard, Layout, CSS global
+│       ├── shell/                     # 🏠 Host + Playwright E2E (28 testes)
 │       ├── remote-orders/             # 📋 Pedidos: tabela, cards, kanban, CRUD
 │       ├── remote-products/           # 📦 Produtos: grid, tabela, CRUD
 │       ├── remote-delivery/           # 🚴 Entregadores + Otimização Hungarian
