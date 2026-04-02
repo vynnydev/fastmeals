@@ -111,6 +111,8 @@ src/
 - [Node.js](https://nodejs.org/) (>= 20) — apenas para desenvolvimento local
 - [Git](https://git-scm.com/)
 
+&nbsp;
+
 ### Com Docker (recomendado) — 3 comandos
 
 ```bash
@@ -135,12 +137,16 @@ Acesse:
 
 > Os 4 remotes (orders :5001, products :5002, delivery :5003, reports :5004) são carregados automaticamente pelo shell via Module Federation.
 
+&nbsp;
+
 ### Credenciais de acesso
 
 | Email | Senha | Perfil | Permissões |
 |-------|-------|--------|------------|
 | admin@fastmeals.com | Admin@123 | Administrador | Acesso total: CRUD de produtos, pedidos, entregadores, otimização |
 | viewer@fastmeals.com | Viewer@123 | Visualizador | Somente leitura: visualizar pedidos, produtos e relatórios |
+
+&nbsp;
 
 ### Desenvolvimento local (Microfrontends)
 
@@ -171,6 +177,8 @@ cd frontend/microfrontends/remote-delivery && npm run preview                 # 
 cd frontend/microfrontends/remote-reports && npm install && npm run dev:fed   # Terminal 15
 cd frontend/microfrontends/remote-reports && npm run preview                  # Terminal 16
 ```
+
+&nbsp;
 
 ### Rodar testes
 
@@ -213,6 +221,8 @@ cd backend/services/reports-service && npm test       # 18 testes
 | Vitest | 3.0 | Framework de testes |
 | Nginx | Alpine | API Gateway / reverse proxy |
 
+&nbsp;
+
 ### Frontend
 
 | Tecnologia | Versão | Uso |
@@ -230,6 +240,8 @@ cd backend/services/reports-service && npm test       # 18 testes
 | Axios | 1.13 | HTTP client com interceptors |
 | Sonner | 2 | Toast notifications |
 | Playwright | latest | Testes E2E (28 testes) |
+
+&nbsp;
 
 ### DevOps & Observabilidade
 
@@ -258,6 +270,8 @@ cd backend/services/reports-service && npm test       # 18 testes
 | [optimization-service](backend/services/optimization-service/README.md) | 3005 | — (stateless) | 29 | Hungarian Algorithm + Haversine |
 | [reports-service](backend/services/reports-service/README.md) | 3006 | reports_db (CQRS) | 18 | Analytics, AI Insights (Bedrock) |
 
+&nbsp;
+
 ### Comunicação entre serviços
 
 ```
@@ -269,6 +283,8 @@ optimization-service ──HTTP──▶ orders-service (buscar pedidos ready)
 optimization-service ──HTTP──▶ delivery-service (buscar entregadores disponíveis)
 reports-service ──SQL──▶ reports_db           (CQRS read model cross-domain)
 ```
+
+&nbsp;
 
 ### Máquina de estados dos pedidos
 
@@ -284,6 +300,8 @@ reports-service ──SQL──▶ reports_db           (CQRS read model cross-d
 
 > `delivering → cancelled` **não é permitido**. `delivered` e `cancelled` são estados finais.
 
+&nbsp;
+
 ### Fluxo de criação de pedido
 
 ![Order Creation Flow](docs/diagrams/images/04-order-creation-flow.drawio.png)
@@ -298,6 +316,8 @@ O frontend foi construído com arquitetura de **microfrontends** usando **Vite +
 
 <!-- Diagrama da arquitetura de microfrontends -->
 ![Microfrontends Architecture](docs/diagrams/images/08-microfrontends-architecture.drawio.png)
+
+&nbsp;
 
 ### Arquitetura
 
@@ -325,6 +345,8 @@ O frontend foi construído com arquitetura de **microfrontends** usando **Vite +
 | [**remote-delivery**](frontend/microfrontends/remote-delivery/readme-remote-delivery.md) | 5003 | `DeliveryPage` | Entregadores: cards, kanban, CRUD, otimização Hungarian |
 | [**remote-reports**](frontend/microfrontends/remote-reports/readme-remote-reports.md) | 5004 | `ReportsPage` | Relatórios: charts recharts, analytics, AI Insights Bedrock |
 
+&nbsp;
+
 ### Decisões arquiteturais do frontend
 
 | Decisão | Motivo |
@@ -335,6 +357,8 @@ O frontend foi construído com arquitetura de **microfrontends** usando **Vite +
 | **Auth via localStorage** | Shell salva `fastmeals_user` + `fastmeals_token`; remotes lêem diretamente com fallback para Zustand persist |
 | **Sonner ao invés de useToast** | Toast library sem dependência de contexto React — funciona em qualquer remote |
 | **AvatarFallback sem AvatarImage** | `AvatarImage` do Radix usa `useSyncExternalStore` que crasha com dual React |
+
+&nbsp;
 
 ### Funcionalidades por módulo
 
@@ -347,6 +371,8 @@ O frontend foi construído com arquitetura de **microfrontends** usando **Vite +
 **Entregadores e Otimização (remote-delivery)** — Cards e Kanban de entregadores (Disponíveis / Em Entrega / Inativos), CRUD completo, e aba de **Otimização** com algoritmo Hungarian mostrando atribuições sugeridas, distâncias calculadas (Haversine) e comparação greedy vs. ótimo.
 
 **Relatórios e AI Insights (remote-reports)** — Receita diária, pedidos por status, ranking de top produtos, tempo de entrega por veículo (Moto / Bicicleta / Carro), filtro por período, e **Insights com IA** via AWS Bedrock (Amazon Nova) gerando resumo, recomendações e destaques.
+
+&nbsp;
 
 ### Destaques de UX
 
@@ -371,6 +397,8 @@ O frontend foi construído com arquitetura de **microfrontends** usando **Vite +
 
 ![Optimization Flow](docs/diagrams/images/05-optimization-flow.drawio.png)
 
+&nbsp;
+
 ### Hungarian Algorithm (Kuhn-Munkres) — O(n³)
 
 Resolve o **Problema de Atribuição**: dado N entregadores e M pedidos com status `ready`, encontra a atribuição que **minimiza a distância total percorrida**.
@@ -384,6 +412,8 @@ Greedy:    A→1 (1km) + B→2 (10km) = 11 km
 Hungarian: A→2 (2km) + B→1 (3km)  =  5 km  ← 54% melhor
 ```
 
+&nbsp;
+
 ### Haversine — O(1)
 
 Calcula a distância geodésica (curvatura da Terra) entre dois pontos:
@@ -394,6 +424,8 @@ c = 2 · atan2(√a, √(1-a))
 d = R · c   (R = 6371 km)
 ```
 
+&nbsp;
+
 ### Performance
 
 | Cenário | Tempo | Requisito |
@@ -401,6 +433,8 @@ d = R · c   (R = 6371 km)
 | 30 entregadores × 50 pedidos | **87ms** | < 2.000ms |
 | 10 × 10 | < 5ms | — |
 | 1 × 1 | < 1ms | — |
+
+&nbsp;
 
 ### Endpoint
 
@@ -631,8 +665,6 @@ O Terraform adiciona automaticamente a **Datadog Extension Layer** e as environm
 
 ![CI/CD Pipeline](docs/diagrams/images/07-cicd-pipeline.drawio.png)
 
-&nbsp;
-
 | Pipeline | Trigger | O que faz |
 |----------|---------|-----------|
 | CI Backend | push development/main/improvements | Testa 6 serviços em paralelo (180+ testes) |
@@ -842,6 +874,8 @@ fastmeals/
 | [Delivery Service](backend/services/delivery-service/README.md) | CRUD, disponibilidade, RabbitMQ |
 | [Optimization Service](backend/services/optimization-service/README.md) | Hungarian O(n³), Haversine |
 | [Reports Service](backend/services/reports-service/README.md) | Analytics, CQRS, AI Insights |
+
+&nbsp;
 
 ### Swagger (OpenAPI)
 
