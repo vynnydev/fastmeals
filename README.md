@@ -679,7 +679,7 @@ Sua máquina (Ansible Controller)
  
 ## 💰 FinOps — Gestão de Custos
 
-![FinOps FastMeals Demo](docs/fastmeals.gif)
+![FinOps FastMeals Demo](docs/images/finops/finops-dashboard.gif)
  
 Estimativa de custos da infraestrutura AWS com **Infracost**, integrado ao CI/CD para mostrar o impacto financeiro em cada PR que altera o Terraform.
  
