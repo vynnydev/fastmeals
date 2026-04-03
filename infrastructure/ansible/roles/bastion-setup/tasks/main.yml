@@ -23,6 +23,13 @@
       - python3-pip
     state: present
 
+- name: Create redis-cli symlink (Amazon Linux uses redis6-cli)
+  ansible.builtin.file:
+    src: /usr/bin/redis6-cli
+    dest: /usr/bin/redis-cli
+    state: link
+  ignore_errors: true
+
 # --- Node.js 20 via NodeSource ---
 - name: Check if Node.js is installed
   ansible.builtin.command: node --version

@@ -1,0 +1,82 @@
+# ============================================
+# FastMeals — Infracost Usage Estimates
+# Provides realistic usage data for accurate cost estimation
+# ============================================
+# Docs: https://www.infracost.io/docs/features/usage_based_resources/
+# ============================================
+
+version: 0.1
+
+resource_type_default_usage:
+  # ========================================
+  # AWS Lambda — 23 functions
+  # ========================================
+  aws_lambda_function:
+    monthly_requests: 50000        # 50k requests/month (estimated for early stage)
+    request_duration_ms: 200       # 200ms average duration
+
+  # ========================================
+  # AWS API Gateway HTTP
+  # ========================================
+  aws_apigatewayv2_api:
+    monthly_requests: 50000        # Matches Lambda invocations
+
+  # ========================================
+  # RDS PostgreSQL
+  # ========================================
+  aws_db_instance:
+    monthly_additional_backup_storage_gb: 5   # 5GB backup storage
+    monthly_io_requests: 100000               # 100k I/O requests
+
+  # ========================================
+  # ElastiCache Redis
+  # ========================================
+  aws_elasticache_cluster:
+    snapshot_storage_size_gb: 1    # 1GB snapshot
+
+  # ========================================
+  # S3 (Terraform state + backups)
+  # ========================================
+  aws_s3_bucket:
+    monthly_standard_storage_gb: 2           # 2GB storage
+    monthly_standard_ia_storage_gb: 5        # 5GB IA (backups)
+    monthly_get_requests: 10000              # 10k GET
+    monthly_put_requests: 5000               # 5k PUT
+    monthly_data_transfer_out_gb: 1          # 1GB egress
+
+  # ========================================
+  # EC2 Bastion
+  # ========================================
+  aws_instance:
+    monthly_hours: 730             # Always running (24/7)
+
+  # ========================================
+  # CloudWatch Logs
+  # ========================================
+  aws_cloudwatch_log_group:
+    monthly_data_ingested_gb: 2    # 2GB logs/month
+    monthly_data_scanned_gb: 1     # 1GB scanned
+
+  # ========================================
+  # Secrets Manager
+  # ========================================
+  aws_secretsmanager_secret:
+    monthly_api_calls: 1000        # 1k API calls
+
+  # ========================================
+  # Route53
+  # ========================================
+  aws_route53_zone:
+    monthly_queries: 100000        # 100k DNS queries
+
+  # ========================================
+  # Amplify
+  # ========================================
+  aws_amplify_app:
+    monthly_build_minutes: 60      # 60 min builds/month
+    monthly_served_bytes_gb: 10    # 10GB served
+
+resource_usage:
+  # Override specific resources if needed
+  # module.bastion.aws_instance.bastion:
+  #   monthly_hours: 730

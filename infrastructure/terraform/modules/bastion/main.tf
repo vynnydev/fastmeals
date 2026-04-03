@@ -73,7 +73,7 @@ resource "aws_security_group_rule" "redis_from_bastion" {
   description              = "Redis from Bastion"
 }
 
-# --- IAM Role (SSM + S3 backups) ---
+# --- IAM Role (SSM + S3 backups + Secrets Manager) ---
 resource "aws_iam_role" "bastion" {
   name = "${var.project_name}-bastion-role"
 
@@ -96,7 +96,7 @@ resource "aws_iam_role_policy_attachment" "bastion_ssm" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
 }
 
-# --- S3 access for database backups ---
+# --- S3 access for database backups (Ansible backup/restore playbooks) ---
 resource "aws_iam_role_policy" "bastion_s3_backups" {
   name = "${var.project_name}-bastion-s3-backups"
   role = aws_iam_role.bastion.id
@@ -123,7 +123,8 @@ resource "aws_iam_role_policy" "bastion_s3_backups" {
         Action = [
           "s3:CreateBucket",
           "s3:PutBucketVersioning",
-          "s3:PutLifecycleConfiguration"
+          "s3:PutLifecycleConfiguration",
+          "s3:HeadBucket"
         ]
         Resource = "arn:aws:s3:::${var.project_name}-db-backups"
       }
@@ -166,48 +167,20 @@ resource "aws_instance" "bastion" {
   associate_public_ip_address = true
 
   root_block_device {
-    volume_size = 20
+    volume_size = 30
     volume_type = "gp3"
     encrypted   = true
   }
 
   user_data = <<-EOF
     #!/bin/bash
-    set -euxo pipefail
-
-    # ========================================
-    # System packages
-    # ========================================
     yum update -y
-    yum install -y postgresql16 redis6 git jq tar gzip unzip python3-pip
+    yum install -y postgresql16 redis6
 
-    # ========================================
-    # Node.js 20 LTS (for Prisma CLI)
-    # ========================================
-    curl -fsSL https://rpm.nodesource.com/setup_20.x | bash -
-    yum install -y nodejs
-    npm install -g prisma
-
-    # ========================================
-    # AWS CLI v2
-    # ========================================
-    if ! command -v aws &> /dev/null; then
-      curl -fsSL https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip -o /tmp/awscliv2.zip
-      cd /tmp && unzip -q awscliv2.zip && ./aws/install && rm -rf aws awscliv2.zip
-    fi
-
-    # ========================================
-    # Directories
-    # ========================================
-    mkdir -p /home/ec2-user/{backups,logs}
-    chown -R ec2-user:ec2-user /home/ec2-user/{backups,logs}
-
-    # ========================================
-    # Connection helper scripts
-    # ========================================
+    # Create connection helper scripts
     cat > /home/ec2-user/connect-rds.sh << 'SCRIPT'
     #!/bin/bash
-    echo "🔗 Connecting to FastMeals RDS..."
+    echo "Connecting to FastMeals RDS..."
     echo "Databases: auth_db, products_db, orders_db, delivery_db, reports_db"
     echo ""
     echo "Usage: psql -h ${var.rds_endpoint} -U <user> -d <database>"
@@ -216,34 +189,12 @@ resource "aws_instance" "bastion" {
     echo "  psql -h ${var.rds_endpoint} -U auth_user -d auth_db"
     echo "  psql -h ${var.rds_endpoint} -U reports_user -d reports_db"
     SCRIPT
-
-    cat > /home/ec2-user/health-check.sh << 'SCRIPT'
-    #!/bin/bash
-    echo "🏥 FastMeals Quick Health Check"
-    echo "================================"
-    echo ""
-    echo "RDS:"
-    pg_isready -h ${var.rds_endpoint} -p 5432 && echo "  ✅ PostgreSQL OK" || echo "  ❌ PostgreSQL FAIL"
-    echo ""
-    echo "Redis:"
-    redis-cli -h ${var.redis_endpoint} -p 6379 --tls ping 2>/dev/null && echo "  ✅ Redis OK" || echo "  ❌ Redis FAIL"
-    echo ""
-    echo "API Gateway:"
-    curl -s -o /dev/null -w "  HTTP %%{http_code}" ${var.api_gateway_url}/api/products && echo " ✅" || echo " ❌"
-    echo ""
-    echo "Disk:"
-    df -h / | tail -1 | awk '{print "  Usage: " $5 " (" $3 "/" $2 ")"}'
-    SCRIPT
-
-    chmod +x /home/ec2-user/*.sh
-    chown ec2-user:ec2-user /home/ec2-user/*.sh
-
-    echo "✅ Bastion setup complete — $(date)" >> /home/ec2-user/logs/setup.log
+    chmod +x /home/ec2-user/connect-rds.sh
+    chown ec2-user:ec2-user /home/ec2-user/connect-rds.sh
   EOF
 
   tags = {
     Name        = "${var.project_name}-bastion"
-    ManagedBy   = "terraform"
     AnsibleRole = "bastion"
   }
 }

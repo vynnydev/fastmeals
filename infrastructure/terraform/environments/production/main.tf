@@ -171,11 +171,12 @@ module "dns" {
   amplify_cert_record_value = local.amplify_cert_value
 }
 
-# --- Bastion Host (SSH tunnel to RDS/Redis) ---
+# --- Bastion Host (SSH tunnel to RDS/Redis + Ansible target) ---
 module "bastion" {
   source = "../../modules/bastion"
 
   project_name            = var.project_name
+  aws_region              = var.aws_region
   vpc_id                  = module.networking.vpc_id
   public_subnet_id        = module.networking.public_subnet_ids[0]
   rds_security_group_id   = module.networking.rds_security_group_id

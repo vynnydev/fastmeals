@@ -1,0 +1,3 @@
+# Generated reports (local only)
+reports/*.json
+reports/*.html
