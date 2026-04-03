@@ -24,6 +24,8 @@
 ![SonarCloud](https://img.shields.io/badge/SonarCloud-Quality_Gate-F3702A?logo=sonarcloud&logoColor=white)
 ![Datadog](https://img.shields.io/badge/Datadog-Observability-632CA6?logo=datadog&logoColor=white)
 ![Clean Architecture](https://img.shields.io/badge/Clean_Architecture-SOLID-4CAF50?logo=architect&logoColor=white)
+![Ansible](https://img.shields.io/badge/Ansible-Automation-EE0000?logo=ansible&logoColor=white)
+![Infracost](https://img.shields.io/badge/Infracost-FinOps-5B21B6?logo=cashapp&logoColor=white)
 
 > 🌐 **Live:** [https://fastmeals.com.br](https://fastmeals.com.br) | **API:** [https://t2fwiydcrc.execute-api.us-east-1.amazonaws.com](https://t2fwiydcrc.execute-api.us-east-1.amazonaws.com/api/products)
 
@@ -34,7 +36,7 @@ Plataforma fullstack de gerenciamento de delivery com **6 microserviços**, **5 
 ---
 
 ## 📑 Índice
-
+ 
 1. [Demo](#-demo)
 2. [Arquitetura](#-arquitetura)
 3. [Clean Architecture + SOLID](#-clean-architecture--solid)
@@ -46,14 +48,16 @@ Plataforma fullstack de gerenciamento de delivery com **6 microserviços**, **5 
 9. [Infraestrutura AWS](#️-infraestrutura-aws)
 10. [Banco de Dados](#️-banco-de-dados)
 11. [Bastion Host — Acesso ao RDS](#-bastion-host--acesso-ao-rds)
-12. [Observabilidade — Datadog](#-observabilidade--datadog)
-13. [CI/CD Pipeline](#-cicd-pipeline)
-14. [Testes](#-testes)
-15. [Estrutura do Projeto](#-estrutura-do-projeto)
-16. [Documentação](#-documentação)
-17. [Variáveis de Ambiente](#-variáveis-de-ambiente)
-18. [Docker](#-docker)
-19. [Autor](#-autor)
+12. [Ansible — Automação Operacional](#-ansible--automação-operacional)
+13. [FinOps — Gestão de Custos](#-finops--gestão-de-custos)
+14. [Observabilidade — Datadog](#-observabilidade--datadog)
+15. [CI/CD Pipeline](#-cicd-pipeline)
+16. [Testes](#-testes)
+17. [Estrutura do Projeto](#-estrutura-do-projeto)
+18. [Documentação](#-documentação)
+19. [Variáveis de Ambiente](#-variáveis-de-ambiente)
+20. [Docker](#-docker)
+21. [Autor](#-autor)
 
 ---
 
@@ -244,11 +248,13 @@ cd backend/services/reports-service && npm test       # 18 testes
 &nbsp;
 
 ### DevOps & Observabilidade
-
+ 
 | Tecnologia | Uso |
 |-----------|-----|
 | Terraform | IaC — 9 módulos gerenciando toda a infraestrutura AWS |
-| GitHub Actions | CI/CD — 6 workflows (CI, deploy, quality, IaC) |
+| Ansible | Automação operacional — 7 playbooks (migrations, seeds, backups, health checks) |
+| Infracost | FinOps — estimativa de custos do Terraform com CI/CD em PRs |
+| GitHub Actions | CI/CD — 7 workflows (CI, deploy, quality, IaC, cost estimation) |
 | SonarCloud | Qualidade de código, cobertura, Quality Gate |
 | Datadog | Observabilidade — métricas Lambda, logs, cold starts |
 | AWS Amplify | Deploy frontend com CDN global e SSL automático |
@@ -575,15 +581,17 @@ Seu computador (DBeaver)
 &nbsp;
 
 ### Configuração
-
+ 
 | Recurso | Valor |
 |---------|-------|
 | **Instance Type** | t3.micro |
 | **AMI** | Amazon Linux 2023 |
 | **Key Pair** | fastmeals-bastion |
 | **Security Group** | SSH (22) + RDS (5432) + Redis (6379) |
-| **IAM Role** | SSM Session Manager habilitado |
-| **Ferramentas** | postgresql16, redis6 |
+| **IAM Role** | SSM + S3 backups + Secrets Manager read |
+| **Ferramentas** | Node.js 20, Prisma CLI, AWS CLI v2, postgresql16, redis6 |
+| **Volume** | 30GB gp3 encrypted |
+| **Ansible Role** | Target para 7 playbooks operacionais |
 
 &nbsp;
 
@@ -609,6 +617,129 @@ psql -h fastmeals-postgres.cw3eceym6ad8.us-east-1.rds.amazonaws.com -U fastmeals
 
 &nbsp;
 
+---
+
+## 🤖 Ansible — Automação Operacional
+ 
+7 playbooks para automação de operações de banco de dados e infraestrutura via **Bastion Host**, com credenciais encriptadas via **Ansible Vault** e backups automatizados para **S3**.
+ 
+> Documentação completa em [infrastructure/ansible/README.md](infrastructure/ansible/ansible-readme.md)
+ 
+&nbsp;
+ 
+### Arquitetura
+ 
+```
+Sua máquina (Ansible Controller)
+        │
+        │ SSH (porta 22)
+        ▼
+  ┌─────────────┐      ┌──────────────┐
+  │   Bastion    │─────▶│   RDS        │
+  │   EC2        │ 5432 │  PostgreSQL  │
+  │  (pública)   │      │  (privada)   │
+  └──────┬───────┘      └──────────────┘
+         │
+         ├─────▶ Redis (6379)
+         ├─────▶ RabbitMQ (5671)
+         └─────▶ S3 (backups)
+```
+ 
+&nbsp;
+ 
+### Playbooks
+ 
+| Playbook | Comando | O que faz |
+|----------|---------|-----------|
+| **setup** | `ansible-playbook playbooks/setup.yml` | Instala Node.js 20, Prisma CLI, AWS CLI no Bastion |
+| **migrations** | `ansible-playbook playbooks/migrations.yml` | Roda `prisma migrate deploy` nos 5 bancos |
+| **seed** | `ansible-playbook playbooks/seed.yml` | Popula bancos com dados iniciais |
+| **health-check** | `ansible-playbook playbooks/health-check.yml` | Verifica RDS, Redis, API Gateway, Lambda e Bastion |
+| **maintenance** | `ansible-playbook playbooks/maintenance.yml` | VACUUM ANALYZE, REINDEX, kill idle connections |
+| **backup** | `ansible-playbook playbooks/backup.yml` | `pg_dump` comprimido → S3 com lifecycle 7 dias |
+| **disaster-recovery** | `ansible-playbook playbooks/disaster-recovery.yml` | Restore do S3 com confirmação de segurança |
+ 
+&nbsp;
+ 
+### Bastion Setup
+ 
+![Ansible Bastion Setup — Parte 1](docs/images/ansible/ansible-bastion-setup-parte1.png)
+![Ansible Bastion Setup — Parte 2](docs/images/ansible/ansible-bastion-setup-parte2.png)
+ 
+&nbsp;
+ 
+### Health Check — Infraestrutura Completa
+ 
+![Ansible Health Check — Parte 1](docs/images/ansible/ansible-health-check-parte1.png)
+![Ansible Health Check — Parte 2](docs/images/ansible/ansible-health-check-parte2.png)
+ 
+&nbsp;
+ 
+---
+ 
+## 💰 FinOps — Gestão de Custos
+ 
+Estimativa de custos da infraestrutura AWS com **Infracost**, integrado ao CI/CD para mostrar o impacto financeiro em cada PR que altera o Terraform.
+ 
+> Documentação completa em [infrastructure/finops/README.md](infrastructure/finops/finops-readme.md)
+ 
+&nbsp;
+ 
+### Como funciona
+ 
+```
+Developer abre PR com mudança no Terraform
+        │
+        ▼
+GitHub Actions: Infracost
+        │
+        ├─ 1. Breakdown da branch main (custo atual)
+        ├─ 2. Breakdown da branch do PR (custo proposto)
+        ├─ 3. Diff (diferença de custo)
+        ├─ 4. Comenta no PR com tabela de custos
+        └─ 5. Upload para Infracost Cloud (dashboard)
+```
+ 
+&nbsp;
+ 
+### Estimativa de Custos Atual
+ 
+| Recurso | Custo/mês |
+|---------|-----------|
+| NAT Gateway | $32.85 |
+| Amazon MQ (RabbitMQ) | $19.74 |
+| RDS PostgreSQL (db.t3.micro) | $15.44 |
+| ElastiCache Redis (cache.t3.micro) | $10.22 |
+| Bastion EC2 (t3.micro) | $9.99 |
+| CloudWatch Logs (24 log groups) | $24.24 |
+| Secrets Manager (9 secrets) | $3.60 |
+| 23 Lambda Functions | $1.15 |
+| Route53 + API Gateway | $0.55 |
+| **Total estimado** | **$117.70/mês** |
+ 
+&nbsp;
+ 
+### Cost Report (Infracost CLI)
+ 
+Para gerar o report localmente:
+ 
+```bash
+# Tabela no terminal
+./infrastructure/finops/scripts/generate-cost-report.sh
+ 
+# HTML interativo (abre no browser)
+./infrastructure/finops/scripts/generate-cost-report.sh --html
+```
+ 
+&nbsp;
+ 
+![Infracost Cost Report Part 1](docs/images/finops/infracost-cost-report-part1.png)
+![Infracost Cost Report Part 2](docs/images/finops/infracost-cost-report-part2.png)
+![Infracost Cost Report Part 3](docs/images/finops/infracost-cost-report-part3.png)
+![Infracost Cost Report Part 4](docs/images/finops/infracost-cost-report-part4.png)
+ 
+&nbsp;
+ 
 ---
 
 ## 📊 Observabilidade — Datadog
@@ -658,11 +789,11 @@ O Terraform adiciona automaticamente a **Datadog Extension Layer** e as environm
 ---
 
 ## 🔄 CI/CD Pipeline
-
-6 workflows no GitHub Actions com deploy automático e quality gate.
-
+ 
+7 workflows no GitHub Actions com deploy automático, quality gate e cost estimation.
+ 
 ![CI/CD Pipeline](docs/diagrams/images/07-cicd-pipeline.drawio.png)
-
+ 
 | Pipeline | Trigger | O que faz |
 |----------|---------|-----------|
 | CI Backend | push development/main/improvements | Testa 6 serviços em paralelo (180+ testes) |
@@ -671,6 +802,7 @@ O Terraform adiciona automaticamente a **Datadog Extension Layer** e as environm
 | Deploy Lambdas | merge to main | Build + zip + upload 23 Lambda functions |
 | Deploy Frontend | merge to main | Amplify auto-deploy via webhook |
 | Terraform | PR (plan) / merge (apply) | Infra as Code com review (9 módulos) |
+| **Infracost** | PR (terraform changes) | Estimativa de custo e diff no PR comment |
 
 &nbsp;
 
@@ -815,14 +947,16 @@ fastmeals/
 ├── README.md                          # Este arquivo
 ├── sonar-project.properties           # Configuração SonarCloud
 ├── docker-compose.yml                 # Orquestração (19 containers)
-├── .github/workflows/                 # 6 CI/CD pipelines
+├── .github/workflows/                 # 7 CI/CD pipelines
+│   └── infracost.yml                  # 💰 Cost estimation em PRs do Terraform
 ├── nginx/
 │   └── nginx.conf                     # API Gateway routing (local)
 ├── scripts/
 │   ├── prepare-services-linux-mac.sh  # Setup automático (migrations + seed)
 │   ├── prepare-services-win.bat       # Versão Windows
 │   ├── deploy-lambdas.sh             # Deploy 23 Lambda functions
-│   └── test-flow.sh                   # 52 assertions de fluxo
+│   ├── test-flow.sh                   # 52 assertions de fluxo
+│   └── setup-dev-environment.sh       # 🔧 Instala todas as ferramentas do projeto
 ├── backend/
 │   └── services/
 │       ├── auth-service/              # 🔐 JWT + Redis (19 testes)
@@ -839,6 +973,14 @@ fastmeals/
 │       ├── remote-delivery/           # 🚴 Entregadores + Otimização Hungarian
 │       └── remote-reports/            # 📊 Charts, Analytics, AI Insights
 ├── infrastructure/
+│   ├── ansible/                       # 🤖 7 playbooks operacionais
+│   │   ├── playbooks/                 # migrations, seed, health-check, backup, etc.
+│   │   ├── roles/bastion-setup/       # Role: Node.js, Prisma, AWS CLI
+│   │   ├── scripts/                   # Wrappers de execução rápida
+│   │   └── group_vars/               # Variáveis + secrets (vault)
+│   ├── finops/                        # 💰 Infracost cost estimation
+│   │   ├── infracost.yml              # Usage estimates para custos precisos
+│   │   └── scripts/                   # Report local (table, HTML, JSON)
 │   └── terraform/                     # ☁️ 9 módulos Terraform
 │       ├── bootstrap/                 # S3 + DynamoDB (state)
 │       ├── modules/                   # networking, database, cache, messaging,
@@ -848,7 +990,7 @@ fastmeals/
 └── docs/
     ├── api-spec.md                    # Especificação completa da API
     ├── database-schema.md             # Schema do banco de dados
-    ├── images/                        # Screenshots (tests, observability)
+    ├── images/                        # Screenshots (tests, observability, ansible, finops)
     ├── evidences/                     # Screenshots
     └── diagrams/                      # 9 diagramas draw.io
         ├── images/                    # PNGs exportados
@@ -860,7 +1002,7 @@ fastmeals/
 ---
 
 ## 📖 Documentação
-
+ 
 | Documento | Descrição |
 |-----------|-----------|
 | [DECISIONS.md](DECISIONS.md) | 16 ADRs — decisões arquiteturais com trade-offs |
@@ -872,6 +1014,8 @@ fastmeals/
 | [Delivery Service](backend/services/delivery-service/README.md) | CRUD, disponibilidade, RabbitMQ |
 | [Optimization Service](backend/services/optimization-service/README.md) | Hungarian O(n³), Haversine |
 | [Reports Service](backend/services/reports-service/README.md) | Analytics, CQRS, AI Insights |
+| [Ansible Automation](infrastructure/ansible/README.md) | 7 playbooks: migrations, seeds, backups, health checks |
+| [FinOps (Infracost)](infrastructure/finops/README.md) | Estimativa de custos AWS com CI/CD |
 | [Guia de Tecnologias](docs/tech-stack-guide.md) | 25 tecnologias com vantagens, desvantagens e comandos |
 | [Referência de Comandos](docs/commands-reference.md) | Todos os comandos AWS, Terraform, Docker, Git, Playwright |
 
