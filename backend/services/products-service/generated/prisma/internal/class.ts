@@ -12,7 +12,7 @@
  */
 
 import * as runtime from "@prisma/client/runtime/library"
-import type * as Prisma from "./prismaNamespace"
+import type * as Prisma from "./prismaNamespace.js"
 
 
 const config: runtime.GetPrismaClientConfig = {
@@ -23,10 +23,11 @@ const config: runtime.GetPrismaClientConfig = {
       "value": "prisma-client"
     },
     "output": {
-      "value": "/Users/vynnydev/Desktop/work-projects/repositories/fresh/fastmeals/backend/services/products-service/generated/prisma",
+      "value": "/Users/vynnydev/Desktop/work-projects/repositories/fresh/new/fastmeals/backend/services/products-service/generated/prisma",
       "fromEnvVar": null
     },
     "config": {
+      "moduleFormat": "commonjs",
       "engineType": "library"
     },
     "binaryTargets": [
@@ -41,11 +42,11 @@ const config: runtime.GetPrismaClientConfig = {
       }
     ],
     "previewFeatures": [],
-    "sourceFilePath": "/Users/vynnydev/Desktop/work-projects/repositories/fresh/fastmeals/backend/services/products-service/prisma/schema.prisma",
+    "sourceFilePath": "/Users/vynnydev/Desktop/work-projects/repositories/fresh/new/fastmeals/backend/services/products-service/prisma/schema.prisma",
     "isCustomOutput": true
   },
   "relativePath": "../../prisma",
-  "clientVersion": "6.19.2",
+  "clientVersion": "6.19.3",
   "engineVersion": "c2990dca591cba766e3b7ef5d9e8a84796e47ab7",
   "datasourceNames": [
     "db"
@@ -60,8 +61,8 @@ const config: runtime.GetPrismaClientConfig = {
       }
     }
   },
-  "inlineSchema": "generator client {\n  provider      = \"prisma-client\"\n  binaryTargets = [\"native\", \"rhel-openssl-3.0.x\"]\n  output        = \"../generated/prisma\"\n}\n\ndatasource db {\n  provider = \"postgresql\"\n  url      = env(\"DATABASE_URL\")\n}\n\nenum ProductCategory {\n  meal\n  drink\n  dessert\n  side\n}\n\nmodel Product {\n  id              String          @id @default(uuid()) @db.Uuid\n  name            String          @db.VarChar(120)\n  description     String          @db.VarChar(500)\n  price           Decimal         @db.Decimal(10, 2)\n  category        ProductCategory\n  imageUrl        String?         @map(\"image_url\") @db.VarChar(500)\n  isAvailable     Boolean         @default(true) @map(\"is_available\")\n  preparationTime Int             @map(\"preparation_time\") @db.Integer\n  createdAt       DateTime        @default(now()) @map(\"created_at\") @db.Timestamptz\n  updatedAt       DateTime        @default(now()) @updatedAt @map(\"updated_at\") @db.Timestamptz\n\n  @@index([category])\n  @@index([isAvailable])\n  @@index([name])\n  @@index([createdAt(sort: Desc)])\n  @@map(\"products\")\n}\n",
-  "inlineSchemaHash": "9d51a7a2c71ad6674b8eddbe0e12179a20ed1b74129ec250d73f9e0848c89e86",
+  "inlineSchema": "generator client {\n  provider      = \"prisma-client\"\n  binaryTargets = [\"native\", \"rhel-openssl-3.0.x\"]\n  output        = \"../generated/prisma\"\n  moduleFormat  = \"commonjs\"\n}\n\ndatasource db {\n  provider = \"postgresql\"\n  url      = env(\"DATABASE_URL\")\n}\n\nenum ProductCategory {\n  meal\n  drink\n  dessert\n  side\n}\n\nmodel Product {\n  id              String          @id @default(uuid()) @db.Uuid\n  name            String          @db.VarChar(120)\n  description     String          @db.VarChar(500)\n  price           Decimal         @db.Decimal(10, 2)\n  category        ProductCategory\n  imageUrl        String?         @map(\"image_url\") @db.VarChar(500)\n  isAvailable     Boolean         @default(true) @map(\"is_available\")\n  preparationTime Int             @map(\"preparation_time\") @db.Integer\n  createdAt       DateTime        @default(now()) @map(\"created_at\") @db.Timestamptz\n  updatedAt       DateTime        @default(now()) @updatedAt @map(\"updated_at\") @db.Timestamptz\n\n  @@index([category])\n  @@index([isAvailable])\n  @@index([name])\n  @@index([createdAt(sort: Desc)])\n  @@map(\"products\")\n}\n",
+  "inlineSchemaHash": "942674f19294db1fd7461beb05d7e12e0b34939dbe1389c1855b3cb7c9891c81",
   "copyEngine": true,
   "runtimeDataModel": {
     "models": {},

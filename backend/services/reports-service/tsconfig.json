@@ -1,7 +1,8 @@
 {
   "compilerOptions": {
     "target": "ES2022",
-    "module": "commonjs",
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
     "lib": ["ES2022"],
     "outDir": "./dist",
     "rootDir": ".",
@@ -13,13 +14,11 @@
     "declaration": true,
     "declarationMap": true,
     "sourceMap": true,
-    "moduleResolution": "node",
-    "baseUrl": ".",
     "paths": {
-      "@domain/*": ["src/domain/*"],
-      "@application/*": ["src/application/*"],
-      "@infrastructure/*": ["src/infrastructure/*"],
-      "@lambda/*": ["src/lambda/*"]
+      "@domain/*": ["./src/domain/*"],
+      "@application/*": ["./src/application/*"],
+      "@infrastructure/*": ["./src/infrastructure/*"],
+      "@lambda/*": ["./src/lambda/*"]
     }
   },
   "include": ["src/**/*", "generated/**/*"],

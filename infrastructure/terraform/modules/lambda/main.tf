@@ -58,6 +58,7 @@ resource "aws_iam_role_policy" "lambda_bedrock" {
 # --- Datadog Lambda Layers ---
 locals {
   datadog_layers = var.datadog_enabled ? [
+    "arn:aws:lambda:${var.aws_region}:464622532012:layer:Datadog-Node20-x:118",
     "arn:aws:lambda:${var.aws_region}:464622532012:layer:Datadog-Extension:65",
   ] : []
 
@@ -71,6 +72,7 @@ locals {
     DD_FLUSH_TO_LOG            = "true"
     DD_ENV                     = "production"
     DD_SERVICE                 = var.project_name
+    DD_TRACE_PROPAGATION_STYLE = "datadog"
   } : {}
 }
 
@@ -299,7 +301,7 @@ resource "aws_lambda_function" "handlers" {
 
   function_name = "${var.project_name}-${each.key}"
   role          = aws_iam_role.lambda_exec.arn
-  handler       = each.value.handler
+  handler       = var.datadog_enabled ? "/opt/nodejs/node_modules/datadog-lambda-js/handler.handler" : each.value.handler
   runtime       = "nodejs20.x"
   timeout       = 30
   memory_size   = 256
@@ -315,7 +317,11 @@ resource "aws_lambda_function" "handlers" {
   layers = local.datadog_layers
 
   environment {
-    variables = merge(each.value.env, local.datadog_env)
+    variables = merge(
+      each.value.env,
+      local.datadog_env,
+      var.datadog_enabled ? { DD_LAMBDA_HANDLER = each.value.handler } : {}
+    )
   }
 
   # Ignore code changes (managed by deploy script, not Terraform)
@@ -323,7 +329,6 @@ resource "aws_lambda_function" "handlers" {
     ignore_changes = [
       filename,
       source_code_hash,
-      layers,
     ]
   }
 

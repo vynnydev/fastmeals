@@ -2,7 +2,7 @@
 set -e
 
 # ============================================
-# FastMeals — Deploy Lambda Functions v3
+# FastMeals — Deploy Lambda Functions v4
 # Usage:
 #   ./scripts/deploy-lambdas.sh              # Interactive menu
 #   ./scripts/deploy-lambdas.sh all          # Deploy all
@@ -61,14 +61,22 @@ deploy_service() {
     fi
   fi
 
-  find . -name "libquery_engine-darwin*" -delete 2>/dev/null || true
-  find . -name "libquery_engine-windows*" -delete 2>/dev/null || true
+  # Keep ONLY rhel-openssl-3.0.x engine (Lambda runtime)
+  find . -name "libquery_engine-*" ! -name "*rhel-openssl-3.0.x*" -delete 2>/dev/null || true
+  # Remove unnecessary Prisma files
+  find . -path "*/prisma/engines/*" -delete 2>/dev/null || true
+  find . -path "*/@prisma/engines/*" -delete 2>/dev/null || true
   find . -name "*.d.ts" -delete 2>/dev/null || true
   find . -name "*.d.ts.map" -delete 2>/dev/null || true
   find . -name "*.js.map" -delete 2>/dev/null || true
   find . -name "CHANGELOG*" -delete 2>/dev/null || true
   find . -name "LICENSE" -delete 2>/dev/null || true
   find . -name "README.md" -delete 2>/dev/null || true
+  find . -name "*.md" -not -path "*/prisma/*" -delete 2>/dev/null || true
+  find . -type d -name "docs" -exec rm -rf {} + 2>/dev/null || true
+  find . -type d -name "test" -exec rm -rf {} + 2>/dev/null || true
+  find . -type d -name "tests" -exec rm -rf {} + 2>/dev/null || true
+  find . -type d -name ".github" -exec rm -rf {} + 2>/dev/null || true
 
   local LAMBDA_PATH="dist/src/lambda"
   if [ ! -d "$LAMBDA_PATH" ] && [ -d "dist/lambda" ]; then
@@ -124,6 +132,7 @@ WRAPPER
     TOTAL=$((TOTAL + 1))
     echo "  🚀 Deploying ${PROJECT}-${FN}..."
 
+    # Step 1: Update function code
     aws lambda update-function-code \
       --function-name "${PROJECT}-${FN}" \
       --s3-bucket "${BUCKET}" \
@@ -135,11 +144,28 @@ WRAPPER
       --function-name "${PROJECT}-${FN}" \
       --region "$REGION" 2>/dev/null
 
-    aws lambda update-function-configuration \
+    # Step 2: Update handler — check if Datadog tracing is enabled
+    DD_ENABLED=$(aws lambda get-function-configuration \
       --function-name "${PROJECT}-${FN}" \
-      --handler "${FN}-handler.handler" \
-      --region "$REGION" \
-      --no-cli-pager > /dev/null 2>&1
+      --query 'Environment.Variables.DD_TRACE_ENABLED' \
+      --output text \
+      --region "$REGION" 2>/dev/null)
+
+    if [ "$DD_ENABLED" = "true" ]; then
+      # Datadog enabled: use Datadog wrapper handler, real handler goes to DD_LAMBDA_HANDLER
+      aws lambda update-function-configuration \
+        --function-name "${PROJECT}-${FN}" \
+        --handler "/opt/nodejs/node_modules/datadog-lambda-js/handler.handler" \
+        --region "$REGION" \
+        --no-cli-pager > /dev/null 2>&1
+    else
+      # No Datadog: set handler directly
+      aws lambda update-function-configuration \
+        --function-name "${PROJECT}-${FN}" \
+        --handler "${FN}-handler.handler" \
+        --region "$REGION" \
+        --no-cli-pager > /dev/null 2>&1
+    fi
 
     aws lambda wait function-updated \
       --function-name "${PROJECT}-${FN}" \
@@ -152,7 +178,7 @@ WRAPPER
       --region "$REGION" 2>/dev/null)
 
     if [ "$STATUS" = "Successful" ]; then
-      echo "     ✅ OK"
+      echo "     ✅ OK $([ "$DD_ENABLED" = "true" ] && echo "(Datadog tracing)")"
       SUCCESS=$((SUCCESS + 1))
     else
       echo "     ❌ FAILED ($STATUS)"

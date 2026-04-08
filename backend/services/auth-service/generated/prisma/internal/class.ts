@@ -12,7 +12,7 @@
  */
 
 import * as runtime from "@prisma/client/runtime/library"
-import type * as Prisma from "./prismaNamespace"
+import type * as Prisma from "./prismaNamespace.js"
 
 
 const config: runtime.GetPrismaClientConfig = {
@@ -23,10 +23,11 @@ const config: runtime.GetPrismaClientConfig = {
       "value": "prisma-client"
     },
     "output": {
-      "value": "/Users/vynnydev/Desktop/work-projects/repositories/fresh/fastmeals/backend/services/auth-service/generated/prisma",
+      "value": "/Users/vynnydev/Desktop/work-projects/repositories/fresh/new/fastmeals/backend/services/auth-service/generated/prisma",
       "fromEnvVar": null
     },
     "config": {
+      "moduleFormat": "commonjs",
       "engineType": "library"
     },
     "binaryTargets": [
@@ -41,11 +42,11 @@ const config: runtime.GetPrismaClientConfig = {
       }
     ],
     "previewFeatures": [],
-    "sourceFilePath": "/Users/vynnydev/Desktop/work-projects/repositories/fresh/fastmeals/backend/services/auth-service/prisma/schema.prisma",
+    "sourceFilePath": "/Users/vynnydev/Desktop/work-projects/repositories/fresh/new/fastmeals/backend/services/auth-service/prisma/schema.prisma",
     "isCustomOutput": true
   },
   "relativePath": "../../prisma",
-  "clientVersion": "6.19.2",
+  "clientVersion": "6.19.3",
   "engineVersion": "c2990dca591cba766e3b7ef5d9e8a84796e47ab7",
   "datasourceNames": [
     "db"
@@ -60,8 +61,8 @@ const config: runtime.GetPrismaClientConfig = {
       }
     }
   },
-  "inlineSchema": "generator client {\n  provider      = \"prisma-client\"\n  binaryTargets = [\"native\", \"rhel-openssl-3.0.x\"]\n  output        = \"../generated/prisma\"\n}\n\ndatasource db {\n  provider = \"postgresql\"\n  url      = env(\"DATABASE_URL\")\n}\n\nenum UserRole {\n  admin\n  viewer\n}\n\nmodel User {\n  id        String   @id @default(uuid()) @db.Uuid\n  email     String   @unique @db.VarChar(255)\n  password  String   @db.VarChar(255)\n  role      UserRole\n  createdAt DateTime @default(now()) @map(\"created_at\") @db.Timestamptz\n  updatedAt DateTime @default(now()) @updatedAt @map(\"updated_at\") @db.Timestamptz\n\n  @@index([email])\n  @@map(\"users\")\n}\n",
-  "inlineSchemaHash": "1248742ffda1bfd1070087bcd481310c8bb081fa8129c5a6065b763dbe462791",
+  "inlineSchema": "generator client {\n  provider      = \"prisma-client\"\n  binaryTargets = [\"native\", \"rhel-openssl-3.0.x\"]\n  output        = \"../generated/prisma\"\n  moduleFormat  = \"commonjs\"\n}\n\ndatasource db {\n  provider = \"postgresql\"\n  url      = env(\"DATABASE_URL\")\n}\n\nenum UserRole {\n  admin\n  viewer\n}\n\nmodel User {\n  id        String   @id @default(uuid()) @db.Uuid\n  email     String   @unique @db.VarChar(255)\n  password  String   @db.VarChar(255)\n  role      UserRole\n  createdAt DateTime @default(now()) @map(\"created_at\") @db.Timestamptz\n  updatedAt DateTime @default(now()) @updatedAt @map(\"updated_at\") @db.Timestamptz\n\n  @@index([email])\n  @@map(\"users\")\n}\n",
+  "inlineSchemaHash": "64a3f18f35ae2e8a57237112a733d8a48f8f5ffd0290ecc6406711a56b9f4050",
   "copyEngine": true,
   "runtimeDataModel": {
     "models": {},

@@ -12,7 +12,7 @@
 ![Tailwind](https://img.shields.io/badge/Tailwind_CSS-4-06B6D4?logo=tailwindcss&logoColor=white)
 ![Prisma](https://img.shields.io/badge/Prisma-6.19-2D3748?logo=prisma&logoColor=white)
 ![Vitest](https://img.shields.io/badge/Vitest-3.0-6E9F18?logo=vitest&logoColor=white)
-![Tests](https://img.shields.io/badge/Tests-210+-22c55e?logo=checkmarx&logoColor=white)
+![Tests](https://img.shields.io/badge/Tests-608+-22c55e?logo=checkmarx&logoColor=white)
 ![Playwright](https://img.shields.io/badge/Playwright-E2E_28_tests-2EAD33?logo=playwright&logoColor=white)
 ![Terraform](https://img.shields.io/badge/Terraform-1.7-844FBA?logo=terraform&logoColor=white)
 ![AWS](https://img.shields.io/badge/AWS-Cloud-FF9900?logo=amazon-aws&logoColor=white)
@@ -188,12 +188,12 @@ cd frontend/microfrontends/remote-reports && npm run preview                  # 
 
 ```bash
 # Backend (em cada serviço)
-cd backend/services/auth-service && npm test          # 19 testes
-cd backend/services/products-service && npm test      # 24 testes
-cd backend/services/orders-service && npm test        # 43 testes
-cd backend/services/delivery-service && npm test      # 20 testes
-cd backend/services/optimization-service && npm test  # 29 testes
-cd backend/services/reports-service && npm test       # 18 testes
+cd backend/services/auth-service && npm test          # 100 testes
+cd backend/services/products-service && npm test      # 98 testes
+cd backend/services/orders-service && npm test        # 158 testes
+cd backend/services/delivery-service && npm test      # 107 testes
+cd backend/services/optimization-service && npm test  # 72 testes
+cd backend/services/reports-service && npm test       # 73 testes
 
 # Teste de fluxo completo (requer Docker rodando)
 ./scripts/test-flow.sh                                # 52 assertions
@@ -256,7 +256,7 @@ cd backend/services/reports-service && npm test       # 18 testes
 | Infracost | FinOps — estimativa de custos do Terraform com CI/CD em PRs |
 | GitHub Actions | CI/CD — 7 workflows (CI, deploy, quality, IaC, cost estimation) |
 | SonarCloud | Qualidade de código, cobertura, Quality Gate |
-| Datadog | Observabilidade — métricas Lambda, logs, cold starts |
+| Datadog | Observabilidade — APM tracing, Flame Graph, Service Map, SQL traces, métricas Lambda |
 | AWS Amplify | Deploy frontend com CDN global e SSL automático |
 | AWS Lambda | 23 funções serverless (Node.js 20) |
 | AWS API Gateway | HTTP API com CORS e logging |
@@ -269,12 +269,12 @@ cd backend/services/reports-service && npm test       # 18 testes
 
 | Serviço | Porta | Banco | Testes | Responsabilidade |
 |---------|-------|-------|--------|-----------------|
-| [auth-service](backend/services/auth-service/README.md) | 3001 | auth_db + Redis | 19 | JWT login, refresh token, bcrypt |
-| [products-service](backend/services/products-service/README.md) | 3002 | products_db | 24 | CRUD produtos, paginação, busca |
-| [orders-service](backend/services/orders-service/README.md) | 3003 | orders_db | 43 | Pedidos, máquina de estados, inter-service |
-| [delivery-service](backend/services/delivery-service/README.md) | 3004 | delivery_db | 20 | CRUD entregadores, disponibilidade |
-| [optimization-service](backend/services/optimization-service/README.md) | 3005 | — (stateless) | 29 | Hungarian Algorithm + Haversine |
-| [reports-service](backend/services/reports-service/README.md) | 3006 | reports_db (CQRS) | 18 | Analytics, AI Insights (Bedrock) |
+| [auth-service](backend/services/auth-service/README.md) | 3001 | auth_db + Redis | 100 | JWT login, refresh token, bcrypt |
+| [products-service](backend/services/products-service/README.md) | 3002 | products_db | 98 | CRUD produtos, paginação, busca |
+| [orders-service](backend/services/orders-service/README.md) | 3003 | orders_db | 158 | Pedidos, máquina de estados, inter-service |
+| [delivery-service](backend/services/delivery-service/README.md) | 3004 | delivery_db | 107 | CRUD entregadores, disponibilidade |
+| [optimization-service](backend/services/optimization-service/README.md) | 3005 | — (stateless) | 72 | Hungarian Algorithm + Haversine |
+| [reports-service](backend/services/reports-service/README.md) | 3006 | reports_db (CQRS) | 73 | Analytics, AI Insights (Bedrock) |
 
 &nbsp;
 
@@ -465,13 +465,13 @@ Toda a infraestrutura é gerenciada por **Terraform** com **9 módulos**, estado
 | Banco de dados | RDS PostgreSQL 16 | db.t3.micro, 5 databases, encrypted |
 | Cache | ElastiCache Redis 7.1 | cache.t3.micro, token store |
 | Mensageria | Amazon MQ RabbitMQ 3.13 | mq.t3.micro, AMQPS |
-| Backend | 23 Lambda Functions | Node.js 20, 256MB, VPC, Datadog Extension |
+| Backend | 23 Lambda Functions | Node.js 20, 256MB, VPC, Datadog Tracer + Extension (2 layers) |
 | API | API Gateway HTTP | 23 routes, CORS, logs |
 | Frontend | AWS Amplify | 1 app consolidado (shell + 4 remotes), CDN global |
 | DNS | Route53 + ACM | fastmeals.com.br, wildcard HTTPS |
 | Secrets | Secrets Manager | 9 secrets (DB, JWT, MQ, Bedrock) |
 | Bastion | EC2 t3.micro | SSH tunnel para RDS e Redis |
-| Observabilidade | Datadog | Métricas Lambda, logs, cold starts |
+| Observabilidade | Datadog | APM tracing, Flame Graph, Service Map, SQL traces, métricas Lambda |
 | Logs | CloudWatch | 14 dias retention |
 | State | S3 + DynamoDB | Terraform remote state |
 
@@ -746,19 +746,47 @@ Para gerar o report localmente:
 
 ## 📊 Observabilidade — Datadog
 
-Todas as **23 Lambda functions** são instrumentadas com o **Datadog Extension Layer**, enviando métricas, logs e dados de invocação em tempo real.
+Todas as **23 Lambda functions** são instrumentadas com **2 Datadog Layers** (Node.js Tracer + Extension), enviando métricas, logs, traces APM e dados de invocação em tempo real.
 
 &nbsp;
 
-### Serverless Overview
+### APM Tracing — Distributed Traces
 
-![Datadog Serverless Overview](docs/images/observability/datadog-serverless-overview.png)
+Traces distribuídos mostrando o fluxo completo de cada request: API Gateway → Lambda → PostgreSQL (via Prisma), com latência por span, status codes e erros.
 
 &nbsp;
 
-### Lambda Detail — Invocações e Cold Starts
+![Datadog APM Traces](docs/images/observability/datadog-apm-traces.png)
 
-![Datadog Lambda Detail](docs/images/observability/datadog-lambda-detail.png)
+&nbsp;
+
+### SQL Traces — Flame Graph
+
+Detalhamento de queries SQL com Flame Graph, mostrando a query executada, database instance, duração e % de tempo de execução. Útil para identificar queries lentas e otimizar performance.
+
+&nbsp;
+
+![Datadog SQL Trace](docs/images/observability/datadog-sql-trace.png)
+
+&nbsp;
+
+### Service Map
+
+Mapa de dependências entre serviços em tempo real, mostrando o fluxo API Gateway → Lambda → PostgreSQL com métricas de requests/s, error rate e latência P95.
+
+&nbsp;
+
+![Datadog Service Map](docs/images/observability/datadog-service-map.png)
+
+&nbsp;
+
+### Lambda Tracing — Serverless View
+
+Visão detalhada de cada Lambda function com invocações, cold starts, duração, tracing e mapa de dependências (Lambda → PostgreSQL).
+
+&nbsp;
+
+![Datadog Lambda Tracing](docs/images/observability/datadog-lambda-tracing.png)
 
 &nbsp;
 
@@ -766,6 +794,10 @@ Todas as **23 Lambda functions** são instrumentadas com o **Datadog Extension L
 
 | Métrica | Descrição |
 |---------|-----------|
+| **APM Traces** | Distributed tracing end-to-end (API Gateway → Lambda → DB) |
+| **Flame Graph** | Visualização hierárquica de tempo por span (SQL, HTTP, handlers) |
+| **SQL Queries** | Queries PostgreSQL com duração, db.instance e db.user |
+| **Service Map** | Topologia de dependências entre serviços em tempo real |
 | **Invocations** | Número de invocações por função |
 | **Duration** | Tempo de execução (avg, p50, p95, p99, max) |
 | **Cold Starts** | Frequência e duração de cold starts |
@@ -782,9 +814,13 @@ Todas as **23 Lambda functions** são instrumentadas com o **Datadog Extension L
 # Habilitado via flag no módulo Lambda
 datadog_enabled = true
 datadog_site    = "us5.datadoghq.com"
+
+# 2 Layers adicionadas automaticamente em todas as 23 Lambdas:
+# 1. Datadog Node.js Tracer (dd-trace-js) — instrumentação APM
+# 2. Datadog Extension — coleta e envio de dados
 ```
 
-O Terraform adiciona automaticamente a **Datadog Extension Layer** e as environment variables em todas as 23 funções Lambda.
+O Terraform adiciona automaticamente as **2 Datadog Layers** (Node.js Tracer + Extension), configura o `DD_LAMBDA_HANDLER` wrapper e as environment variables em todas as 23 funções Lambda.
 
 &nbsp;
 
@@ -798,7 +834,7 @@ O Terraform adiciona automaticamente a **Datadog Extension Layer** e as environm
  
 | Pipeline | Trigger | O que faz |
 |----------|---------|-----------|
-| CI Backend | push development/main/improvements | Testa 6 serviços em paralelo (180+ testes) |
+| CI Backend | push development/main/improvements | Testa 6 serviços em paralelo (608 testes, 93-98% coverage) |
 | CI Frontend | push development/main/improvements | Type check + build de todos os 5 microfrontends |
 | SonarCloud | push + PR | Qualidade de código, cobertura, Quality Gate |
 | Deploy Lambdas | merge to main | Build + zip + upload 23 Lambda functions |
@@ -814,11 +850,11 @@ O Terraform adiciona automaticamente a **Datadog Extension Layer** e as environm
 
 | Camada | Framework | Quantidade | Cobertura |
 |--------|-----------|-----------|-----------|
-| Backend (unit) | Vitest | 80+ | Use cases, algoritmos, value objects |
-| Backend (integration) | Vitest + Supertest | 73+ | Controllers HTTP, auth, validation |
+| Backend (unit) | Vitest | 430+ | Use cases, entities, services, middlewares, validators |
+| Backend (integration) | Vitest + Supertest | 178+ | Controllers HTTP, auth flows, full CRUD |
 | Backend (flow) | Shell script | 52 | Fluxo real entre todos os serviços |
 | Frontend (E2E) | Playwright | 28 | Login, navegação, todos os microfrontends |
-| **Total** | — | **210+ testes** | — |
+| **Total** | — | **608+ testes** | **93-98% coverage** |
 
 &nbsp;
 
@@ -875,13 +911,13 @@ PLAYWRIGHT_BASE_URL=https://fastmeals.com.br npx playwright test --ui
 
 ### 🔬 Backend — Testes Unitários e de Integração
 
-**155+ testes** com cobertura de use cases, controllers HTTP, validações e regras de negócio em todos os 6 microserviços.
+**608 testes** com **93-98% de cobertura** em todos os 6 microserviços. Cada serviço segue a mesma estrutura: testes unitários para use cases, entities, services, middlewares e validators + testes de integração para controllers HTTP com Supertest.
 
 &nbsp;
 
-### 🔐 [auth-service](backend/services/auth-service/readme-auth-service.md) — 19 testes
+### 🔐 [auth-service](backend/services/auth-service/readme-auth-service.md) — 100 testes | 97.17% coverage
 
-Testes de autenticação JWT, refresh token com Redis, hash bcrypt e rate limiting. Cobertura de 100% nos use cases e controllers.
+12 test files cobrindo autenticação JWT, refresh token com Redis, hash bcrypt, rate limiting, middlewares e error handling. 100% de cobertura em use cases, entities e controllers.
 
 &nbsp;
 
@@ -889,9 +925,9 @@ Testes de autenticação JWT, refresh token com Redis, hash bcrypt e rate limiti
 
 &nbsp;
 
-### 📦 [products-service](backend/services/products-service/readme-products-service.md) — 24 testes
+### 📦 [products-service](backend/services/products-service/readme-products-service.md) — 98 testes | 97.40% coverage
 
-CRUD completo de produtos com paginação, busca por nome/categoria, proteção contra delete de produtos vinculados a pedidos, e validação Zod.
+11 test files cobrindo CRUD completo de produtos com paginação, busca por nome/categoria, proteção contra delete de produtos vinculados a pedidos, validação Zod e Prisma repository.
 
 &nbsp;
 
@@ -899,9 +935,9 @@ CRUD completo de produtos com paginação, busca por nome/categoria, proteção 
 
 &nbsp;
 
-### 📋 [orders-service](backend/services/orders-service/readme-orders-service.md) — 43 testes
+### 📋 [orders-service](backend/services/orders-service/readme-orders-service.md) — 158 testes | 98.70% coverage
 
-O serviço mais testado. Cobre todas as transições da máquina de estados (pending → preparing → ready → delivering → delivered), comunicação inter-service (products + delivery), snapshot de preços e validação de regras de negócio.
+17 test files — o serviço mais testado. Cobre todas as transições da máquina de estados (pending → preparing → ready → delivering → delivered), comunicação inter-service (products + delivery), snapshot de preços, event publishing via RabbitMQ, entities, value objects e validação de regras de negócio.
 
 &nbsp;
 
@@ -909,9 +945,9 @@ O serviço mais testado. Cobre todas as transições da máquina de estados (pen
 
 &nbsp;
 
-### 🚴 [delivery-service](backend/services/delivery-service/readme-delivery-service.md) — 20 testes
+### 🚴 [delivery-service](backend/services/delivery-service/readme-delivery-service.md) — 107 testes | 97.27% coverage
 
-CRUD de entregadores, filtro por disponibilidade, proteção contra delete de entregadores com entregas ativas, e validação de dados do veículo.
+13 test files cobrindo CRUD de entregadores, filtro por disponibilidade, proteção contra delete de entregadores com entregas ativas, event consumer (RabbitMQ), validação de dados do veículo e Prisma repository.
 
 &nbsp;
 
@@ -919,9 +955,9 @@ CRUD de entregadores, filtro por disponibilidade, proteção contra delete de en
 
 &nbsp;
 
-### 🧠 [optimization-service](backend/services/optimization-service/readme-optimization-service.md) — 29 testes
+### 🧠 [optimization-service](backend/services/optimization-service/readme-optimization-service.md) — 72 testes | 97.32% coverage
 
-Validação da corretude do algoritmo Hungarian (atribuição ótima vs. greedy), precisão do Haversine (< 0.1% de erro), e performance com matrizes 30×50 em < 87ms.
+10 test files validando a corretude do algoritmo Hungarian (atribuição ótima vs. greedy), precisão do Haversine (< 0.1% de erro), clients HTTP (orders + delivery), middlewares e performance com matrizes 30×50 em < 87ms.
 
 &nbsp;
 
@@ -929,9 +965,9 @@ Validação da corretude do algoritmo Hungarian (atribuição ótima vs. greedy)
 
 &nbsp;
 
-### 📊 [reports-service](backend/services/reports-service/readme-reports-service.md) — 19 testes
+### 📊 [reports-service](backend/services/reports-service/readme-reports-service.md) — 73 testes | 93.49% coverage
 
-Revenue por período, orders-by-status, top produtos, tempo médio de entrega, e AI Insights com fallback local quando o Bedrock não está disponível.
+11 test files cobrindo revenue por período, orders-by-status, top produtos, tempo médio de entrega, AI Insights com AWS Bedrock (Amazon Nova) incluindo fallback local, Prisma repository e Bedrock service com error handling.
 
 &nbsp;
 
@@ -961,12 +997,12 @@ fastmeals/
 │   └── setup-dev-environment.sh       # 🔧 Instala todas as ferramentas do projeto
 ├── backend/
 │   └── services/
-│       ├── auth-service/              # 🔐 JWT + Redis (19 testes)
-│       ├── products-service/          # 📦 CRUD produtos (24 testes)
-│       ├── orders-service/            # 📋 Pedidos + state machine (43 testes)
-│       ├── delivery-service/          # 🚴 Entregadores (20 testes)
-│       ├── optimization-service/      # 🧠 Hungarian + Haversine (29 testes)
-│       └── reports-service/           # 📊 Analytics + AI (19 testes)
+│       ├── auth-service/              # 🔐 JWT + Redis (100 testes, 97% coverage)
+│       ├── products-service/          # 📦 CRUD produtos (98 testes, 97% coverage)
+│       ├── orders-service/            # 📋 Pedidos + state machine (158 testes, 98% coverage)
+│       ├── delivery-service/          # 🚴 Entregadores (107 testes, 97% coverage)
+│       ├── optimization-service/      # 🧠 Hungarian + Haversine (72 testes, 97% coverage)
+│       └── reports-service/           # 📊 Analytics + AI (73 testes, 93% coverage)
 ├── frontend/
 │   └── microfrontends/
 │       ├── shell/                     # 🏠 Host + Playwright E2E (28 testes)

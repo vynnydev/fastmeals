@@ -65,12 +65,12 @@ output "rds_tunnel_command" {
 }
 
 # --- FinOps Dashboard ---
-output "finops_dashboard_url" {
-  description = "URL do FinOps Dashboard"
-  value       = module.finops_dashboard.dashboard_url
-}
+# output "finops_dashboard_url" {
+#   description = "URL do FinOps Dashboard"
+#   value       = module.finops_dashboard.dashboard_url
+# }
 
-output "finops_cloudfront_id" {
-  description = "CloudFront Distribution ID do FinOps Dashboard"
-  value       = module.finops_dashboard.cloudfront_distribution_id
-}
+# output "finops_cloudfront_id" {
+#   description = "CloudFront Distribution ID do FinOps Dashboard"
+#   value       = module.finops_dashboard.cloudfront_distribution_id
+# }

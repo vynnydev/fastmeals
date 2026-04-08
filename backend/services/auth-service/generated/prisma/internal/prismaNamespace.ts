@@ -16,10 +16,10 @@
  */
 
 import * as runtime from "@prisma/client/runtime/library"
-import type * as Prisma from "../models"
-import { type PrismaClient } from "./class"
+import type * as Prisma from "../models.js"
+import { type PrismaClient } from "./class.js"
 
-export type * from '../models'
+export type * from '../models.js'
 
 export type DMMF = typeof runtime.DMMF
 
@@ -88,11 +88,11 @@ export type PrismaVersion = {
 }
 
 /**
- * Prisma Client JS version: 6.19.2
+ * Prisma Client JS version: 6.19.3
  * Query Engine version: c2990dca591cba766e3b7ef5d9e8a84796e47ab7
  */
 export const prismaVersion: PrismaVersion = {
-  client: "6.19.2",
+  client: "6.19.3",
   engine: "c2990dca591cba766e3b7ef5d9e8a84796e47ab7"
 }
 

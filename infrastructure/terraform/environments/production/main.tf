@@ -187,11 +187,11 @@ module "bastion" {
 }
 
 # --- FinOps Dashboard (S3 + CloudFront) ---
-module "finops_dashboard" {
-  source = "../../modules/finops-dashboard"
+# module "finops_dashboard" {
+#   source = "../../modules/finops-dashboard"
 
-  project_name    = var.project_name
-  domain_name     = var.domain_name
-  route53_zone_id = module.dns.zone_id
-  certificate_arn = module.dns.certificate_arn
-}
+#   project_name    = var.project_name
+#   domain_name     = var.domain_name
+#   route53_zone_id = module.dns.zone_id
+#   certificate_arn = module.dns.certificate_arn
+# }
