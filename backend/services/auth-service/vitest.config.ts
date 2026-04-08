@@ -19,7 +19,6 @@ export default defineConfig({
         'src/infrastructure/container/**',
         'src/infrastructure/database/**',
         'src/infrastructure/http/swagger.ts',
-        'src/infrastructure/repositories/**',
       ],
     },
     setupFiles: ['./tests/setup.ts'],
