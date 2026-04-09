@@ -51,13 +51,14 @@ Plataforma fullstack de gerenciamento de delivery com **6 microserviços**, **5 
 12. [Ansible — Automação Operacional](#-ansible--automação-operacional)
 13. [FinOps — Gestão de Custos](#-finops--gestão-de-custos)
 14. [Observabilidade — Datadog](#-observabilidade--datadog)
-15. [CI/CD Pipeline](#-cicd-pipeline)
-16. [Testes](#-testes)
-17. [Estrutura do Projeto](#-estrutura-do-projeto)
-18. [Documentação](#-documentação)
-19. [Variáveis de Ambiente](#-variáveis-de-ambiente)
-20. [Docker](#-docker)
-21. [Autor](#-autor)
+15. [Qualidade de Código — SonarCloud](#-qualidade-de-código--sonarcloud)
+16. [CI/CD Pipeline](#-cicd-pipeline)
+17. [Testes](#-testes)
+18. [Estrutura do Projeto](#-estrutura-do-projeto)
+19. [Documentação](#-documentação)
+20. [Variáveis de Ambiente](#-variáveis-de-ambiente)
+21. [Docker](#-docker)
+22. [Autor](#-autor)
 
 ---
 
@@ -821,6 +822,55 @@ datadog_site    = "us5.datadoghq.com"
 ```
 
 O Terraform adiciona automaticamente as **2 Datadog Layers** (Node.js Tracer + Extension), configura o `DD_LAMBDA_HANDLER` wrapper e as environment variables em todas as 23 funções Lambda.
+
+&nbsp;
+
+---
+
+## ✅ Qualidade de Código — SonarCloud
+
+Análise contínua de qualidade com **SonarCloud**, integrada ao CI/CD via GitHub Actions. Quality Gate configurado com **Sonar way** (padrão da indústria).
+
+&nbsp;
+
+### Quality Gate — Passed
+
+![SonarCloud Quality Gate Passed](docs/images/quality/sonarcloud-quality-gate-passed.png)
+
+&nbsp;
+
+### Summary — New Code
+
+![SonarCloud Summary New Code](docs/images/quality/sonarcloud-summary-new-code.png)
+
+&nbsp;
+
+### Summary — Overall Code
+
+![SonarCloud Summary Overall Code](docs/images/quality/sonarcloud-summary-overall-code.png)
+
+&nbsp;
+
+### Métricas
+
+| Métrica | Valor | Rating |
+|---------|-------|--------|
+| **Quality Gate** | Passed | ✅ |
+| **Security** | 0 issues | A |
+| **Reliability** | 4 issues | B |
+| **Maintainability** | 210 issues | A |
+| **Coverage** | 53.2% (backend 93-98%) | — |
+| **Duplications** | 30.2% (cross-service by design) | — |
+| **Security Hotspots** | 2 reviewed | — |
+| **Lines of Code** | 20k | — |
+
+> **Nota:** O coverage overall (53.2%) reflete backend + frontend combinados. O backend individualmente tem 93-98% de coverage nos 6 microserviços. O frontend utiliza testes E2E com Playwright (28 testes) ao invés de unit tests.
+
+&nbsp;
+
+### Configuração
+
+O Quality Gate avalia apenas o **New Code** (código adicionado desde a última versão), garantindo que novas contribuições mantenham o padrão de qualidade. Arquivos de infraestrutura compartilhados entre microserviços (middlewares, error handlers) são excluídos da detecção de duplicação via `sonar.cpd.exclusions`.
 
 &nbsp;
 
