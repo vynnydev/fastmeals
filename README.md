@@ -26,6 +26,9 @@
 ![Clean Architecture](https://img.shields.io/badge/Clean_Architecture-SOLID-4CAF50?logo=architect&logoColor=white)
 ![Ansible](https://img.shields.io/badge/Ansible-Automation-EE0000?logo=ansible&logoColor=white)
 ![Infracost](https://img.shields.io/badge/Infracost-FinOps-5B21B6?logo=cashapp&logoColor=white)
+![Trivy](https://img.shields.io/badge/Trivy-Security_Scan-1904DA?logo=aqua&logoColor=white)
+![Helmet](https://img.shields.io/badge/Helmet.js-Security_Headers-000000?logo=express&logoColor=white)
+![k6](https://img.shields.io/badge/k6-Load_Testing-7D64FF?logo=k6&logoColor=white)
 
 > 🌐 **Live:** [https://fastmeals.com.br](https://fastmeals.com.br) | **API:** [https://t2fwiydcrc.execute-api.us-east-1.amazonaws.com](https://t2fwiydcrc.execute-api.us-east-1.amazonaws.com/api/products)
 
@@ -51,15 +54,17 @@ Plataforma fullstack de gerenciamento de delivery com **6 microserviços**, **5 
 12. [Ansible — Automação Operacional](#-ansible--automação-operacional)
 13. [FinOps — Gestão de Custos](#-finops--gestão-de-custos)
 14. [Observabilidade — Datadog](#-observabilidade--datadog)
-15. [Qualidade de Código — SonarCloud](#-qualidade-de-código--sonarcloud)
-16. [Segurança](#-segurança)
-17. [CI/CD Pipeline](#-cicd-pipeline)
-18. [Testes](#-testes)
-19. [Estrutura do Projeto](#-estrutura-do-projeto)
-20. [Documentação](#-documentação)
-21. [Variáveis de Ambiente](#-variáveis-de-ambiente)
-22. [Docker](#-docker)
-23. [Autor](#-autor)
+15. [Monitoring & Alerting — Datadog](#-monitoring--alerting--datadog)
+16. [Qualidade de Código — SonarCloud](#-qualidade-de-código--sonarcloud)
+17. [Segurança](#-segurança)
+18. [Load Testing — k6](#-load-testing--k6)
+19. [CI/CD Pipeline](#-cicd-pipeline)
+20. [Testes](#-testes)
+21. [Estrutura do Projeto](#-estrutura-do-projeto)
+22. [Documentação](#-documentação)
+23. [Variáveis de Ambiente](#-variáveis-de-ambiente)
+24. [Docker](#-docker)
+25. [Autor](#-autor)
 
 ---
 
@@ -253,12 +258,13 @@ cd backend/services/reports-service && npm test       # 73 testes
  
 | Tecnologia | Uso |
 |-----------|-----|
-| Terraform | IaC — 9 módulos gerenciando toda a infraestrutura AWS |
+| Terraform | IaC — 11 módulos gerenciando toda a infraestrutura AWS |
 | Ansible | Automação operacional — 7 playbooks (migrations, seeds, backups, health checks) |
 | Infracost | FinOps — estimativa de custos do Terraform com CI/CD em PRs |
-| GitHub Actions | CI/CD — 8 workflows (CI, deploy, quality, security, IaC, cost estimation) |
+| GitHub Actions | CI/CD — 9 workflows (CI, deploy, quality, security, load testing, IaC, cost estimation) |
 | SonarCloud | Qualidade de código, cobertura, Quality Gate |
 | Trivy | Security scanning — vulnerabilidades em filesystem, dependências e Docker images |
+| k6 | Load testing — smoke, load e stress tests contra produção |
 | Datadog | Observabilidade — APM tracing, Flame Graph, Service Map, SQL traces, métricas Lambda |
 | Helmet.js | Security headers em todos os microserviços (CSP, HSTS, X-Frame-Options) |
 | AWS Amplify | Deploy frontend com CDN global e SSL automático |
@@ -460,7 +466,7 @@ Retorna `assignments` (pedido → entregador com distância), `unassigned` (pedi
 
 ## ☁️ Infraestrutura AWS
 
-Toda a infraestrutura é gerenciada por **Terraform** com **9 módulos**, estado remoto no S3 e locking com DynamoDB.
+Toda a infraestrutura é gerenciada por **Terraform** com **11 módulos**, estado remoto no S3 e locking com DynamoDB.
 
 ![AWS Infrastructure](docs/diagrams/images/06-aws-infrastructure.drawio.png)
 
@@ -830,6 +836,58 @@ O Terraform adiciona automaticamente as **2 Datadog Layers** (Node.js Tracer + E
 
 ---
 
+## 📈 Monitoring & Alerting — Datadog
+
+5 monitors (alertas) e dashboard configurados via **Terraform** para monitoramento proativo das 23 Lambda functions e API Gateway.
+
+> Documentação completa em [infrastructure/terraform/modules/observability/datadog-monitoring/README.md](infrastructure/terraform/modules/observability/datadog-monitoring/README.md)
+
+&nbsp;
+
+### Dashboard — Production Overview
+
+![Datadog Monitoring Dashboard](docs/images/observability/datadog-monitoring-dashboard.png)
+
+&nbsp;
+
+### Monitors
+
+| Monitor | Métrica | Threshold | Ação |
+|---------|---------|-----------|------|
+| **Lambda Error Rate** | % de invocações com erro | > 5% | Verificar APM traces com status error |
+| **Lambda Latency P95** | Duração P95 | > 3000ms | Analisar SQL traces e cold starts |
+| **Cold Start Rate** | % de cold starts | > 30% | Avaliar Provisioned Concurrency |
+| **Lambda Throttles** | Invocações rejeitadas | > 5 em 5min | Solicitar aumento de concurrency |
+| **API Gateway 5xx** | Erros server-side | > 10 em 5min | Verificar saúde das Lambda functions |
+
+&nbsp;
+
+### Configuração
+
+```hcl
+# Integration — layers e env vars para Lambda
+module "datadog_integration" {
+  source = "../modules/observability/datadog-integration"
+
+  enabled      = true
+  project_name = "fastmeals"
+  dd_api_key   = var.dd_api_key
+}
+
+# Monitoring — monitors e dashboard no Datadog
+module "datadog_monitoring" {
+  source = "../modules/observability/datadog-monitoring"
+
+  project_name         = "fastmeals"
+  environment          = "production"
+  notification_targets = "@vynnydev"
+}
+```
+
+&nbsp;
+
+---
+
 ## ✅ Qualidade de Código — SonarCloud
 
 Análise contínua de qualidade com **SonarCloud**, integrada ao CI/CD via GitHub Actions. Quality Gate configurado com **Sonar way** (padrão da indústria).
@@ -926,9 +984,90 @@ Segurança implementada em múltiplas camadas: aplicação, infraestrutura, CI/C
 
 ---
 
+## ⚡ Load Testing — k6
+
+Testes de carga na API de produção usando **k6** (Grafana Labs), validando performance sob diferentes níveis de tráfego.
+
+> Documentação completa em [load-testing/README.md](load-testing/README.md)
+
+&nbsp;
+
+### Smoke Test — Validação de Endpoints
+
+![k6 Smoke Test](docs/images/load-testing/k6-smoke-test.png)
+
+&nbsp;
+
+### Full Load Test — Smoke + Load + Stress (20 VUs)
+
+![k6 Full Load Test](docs/images/load-testing/k6-full-load-test.png)
+
+&nbsp;
+
+### Resultados
+
+| Métrica | Smoke (1 VU) | Full Test (20 VUs) |
+|---------|-------------|-------------------|
+| **Checks** | 6/6 (100%) | 3401/3580 (95%) |
+| **Total requests** | 6 | 3580 |
+| **Requests/s** | 1.22/s | 11.28/s |
+| **Latência avg** | 684ms | 264ms |
+| **Latência P95** | 1.11s | 388ms |
+| **Error rate** | 0.00% | 5.00% |
+
+&nbsp;
+
+### Performance por Endpoint (Full Test P95)
+
+| Endpoint | P95 | Serviço |
+|----------|-----|---------|
+| Reports (revenue) | 278ms | reports-service |
+| Delivery persons | 272ms | delivery-service |
+| Products | 380ms | products-service |
+| Optimize assignment | 423ms | optimization-service |
+| Orders | 448ms | orders-service |
+
+&nbsp;
+
+### Cenários
+
+| Cenário | VUs | Duração | O que testa |
+|---------|-----|---------|-------------|
+| **Smoke** | 1 | 30s | Validação básica, todos os endpoints |
+| **Load** | 0→5→10→0 | 2m | Tráfego normal, padrão de uso real |
+| **Stress** | 0→10→20→0 | 2m | Alta carga, limites do sistema |
+
+&nbsp;
+
+### Thresholds
+
+| Métrica | Limite | Resultado |
+|---------|--------|-----------|
+| Latência P95 | < 3000ms | ✅ 388ms |
+| Error rate | < 10% | ✅ 5.00% |
+
+&nbsp;
+
+### Como rodar
+
+```bash
+# Instalar k6 (macOS)
+brew install k6
+
+# Quick smoke test
+k6 run load-testing/k6-smoke.js
+
+# Full load test (smoke → load → stress)
+k6 run load-testing/k6-load-test.js
+```
+
+&nbsp;
+
+---
+
 ## 🔄 CI/CD Pipeline
  
-8 workflows no GitHub Actions com deploy automático, quality gate, security scan e cost estimation.
+9 workflows no GitHub Actions com deploy automático, quality gate, security scan, load testing e cost estimation.
  
 ![CI/CD Pipeline](docs/diagrams/images/07-cicd-pipeline.drawio.png)
  
@@ -938,9 +1077,10 @@ Segurança implementada em múltiplas camadas: aplicação, infraestrutura, CI/C
 | CI Frontend | push development/main/improvements | Type check + build de todos os 5 microfrontends |
 | SonarCloud | push + PR | Qualidade de código, cobertura, Quality Gate |
 | **Security Scan** | push + weekly (Monday 6AM) | Trivy + npm audit + SARIF → GitHub Security |
+| **Load Testing** | manual (workflow_dispatch) | k6 smoke ou full load test contra produção |
 | Deploy Lambdas | merge to main | Build + zip + upload 23 Lambda functions |
 | Deploy Frontend | merge to main | Amplify auto-deploy via webhook |
-| Terraform | PR (plan) / merge (apply) | Infra as Code com review (9 módulos) |
+| Terraform | PR (plan) / merge (apply) | Infra as Code com review (11 módulos) |
 | **Infracost** | PR (terraform changes) | Estimativa de custo e diff no PR comment |
 
 &nbsp;
@@ -1087,9 +1227,10 @@ fastmeals/
 ├── README.md                          # Este arquivo
 ├── sonar-project.properties           # Configuração SonarCloud
 ├── docker-compose.yml                 # Orquestração (19 containers)
-├── .github/workflows/                 # 8 CI/CD pipelines
+├── .github/workflows/                 # 9 CI/CD pipelines
 │   ├── infracost.yml                  # 💰 Cost estimation em PRs do Terraform
-│   └── security-scan.yml             # 🔒 Trivy + npm audit + SARIF
+│   ├── security-scan.yml             # 🔒 Trivy + npm audit + SARIF
+│   └── load-test.yml                 # ⚡ k6 load testing (manual trigger)
 ├── nginx/
 │   └── nginx.conf                     # API Gateway routing (local)
 ├── scripts/
@@ -1122,12 +1263,19 @@ fastmeals/
 │   ├── finops/                        # 💰 Infracost cost estimation
 │   │   ├── infracost.yml              # Usage estimates para custos precisos
 │   │   └── scripts/                   # Report local (table, HTML, JSON)
-│   └── terraform/                     # ☁️ 9 módulos Terraform
+│   └── terraform/                     # ☁️ 11 módulos Terraform
 │       ├── bootstrap/                 # S3 + DynamoDB (state)
 │       ├── modules/                   # networking, database, cache, messaging,
-│       │                              # lambda, api-gateway, frontend, dns,
-│       │                              # bastion, secrets
+│       │   ├── ...                    # lambda, api-gateway, frontend, dns,
+│       │   │                          # bastion, secrets
+│       │   └── observability/         # 📊 Datadog (2 submódulos)
+│       │       ├── datadog-integration/  # Layers + env vars para Lambda
+│       │       └── datadog-monitoring/   # 5 monitors + dashboard
 │       └── environments/production/   # Entry point
+├── load-testing/                      # ⚡ k6 load testing
+│   ├── k6-smoke.js                    # Quick smoke test (1 iteração)
+│   ├── k6-load-test.js                # Full test (smoke → load → stress)
+│   └── README.md                      # Documentação e instalação
 └── docs/
     ├── api-spec.md                    # Especificação completa da API
     ├── database-schema.md             # Schema do banco de dados
@@ -1158,6 +1306,9 @@ fastmeals/
 | [Reports Service](backend/services/reports-service/README.md) | Analytics, CQRS, AI Insights |
 | [Ansible Automation](infrastructure/ansible/README.md) | 7 playbooks: migrations, seeds, backups, health checks |
 | [FinOps (Infracost)](infrastructure/finops/README.md) | Estimativa de custos AWS com CI/CD |
+| [Load Testing (k6)](load-testing/README.md) | Testes de carga: smoke, load e stress |
+| [Monitoring (Datadog)](infrastructure/terraform/modules/observability/datadog-monitoring/README.md) | 5 alertas + dashboard Terraform |
+| [Datadog Integration](infrastructure/terraform/modules/observability/datadog-integration/README.md) | Lambda layers + env vars para APM tracing |
 | [Guia de Tecnologias](docs/tech-stack-guide.md) | 25 tecnologias com vantagens, desvantagens e comandos |
 | [Referência de Comandos](docs/commands-reference.md) | Todos os comandos AWS, Terraform, Docker, Git, Playwright |
 
