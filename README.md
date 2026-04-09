@@ -52,13 +52,14 @@ Plataforma fullstack de gerenciamento de delivery com **6 microserviços**, **5 
 13. [FinOps — Gestão de Custos](#-finops--gestão-de-custos)
 14. [Observabilidade — Datadog](#-observabilidade--datadog)
 15. [Qualidade de Código — SonarCloud](#-qualidade-de-código--sonarcloud)
-16. [CI/CD Pipeline](#-cicd-pipeline)
-17. [Testes](#-testes)
-18. [Estrutura do Projeto](#-estrutura-do-projeto)
-19. [Documentação](#-documentação)
-20. [Variáveis de Ambiente](#-variáveis-de-ambiente)
-21. [Docker](#-docker)
-22. [Autor](#-autor)
+16. [Segurança](#-segurança)
+17. [CI/CD Pipeline](#-cicd-pipeline)
+18. [Testes](#-testes)
+19. [Estrutura do Projeto](#-estrutura-do-projeto)
+20. [Documentação](#-documentação)
+21. [Variáveis de Ambiente](#-variáveis-de-ambiente)
+22. [Docker](#-docker)
+23. [Autor](#-autor)
 
 ---
 
@@ -255,9 +256,11 @@ cd backend/services/reports-service && npm test       # 73 testes
 | Terraform | IaC — 9 módulos gerenciando toda a infraestrutura AWS |
 | Ansible | Automação operacional — 7 playbooks (migrations, seeds, backups, health checks) |
 | Infracost | FinOps — estimativa de custos do Terraform com CI/CD em PRs |
-| GitHub Actions | CI/CD — 7 workflows (CI, deploy, quality, IaC, cost estimation) |
+| GitHub Actions | CI/CD — 8 workflows (CI, deploy, quality, security, IaC, cost estimation) |
 | SonarCloud | Qualidade de código, cobertura, Quality Gate |
+| Trivy | Security scanning — vulnerabilidades em filesystem, dependências e Docker images |
 | Datadog | Observabilidade — APM tracing, Flame Graph, Service Map, SQL traces, métricas Lambda |
+| Helmet.js | Security headers em todos os microserviços (CSP, HSTS, X-Frame-Options) |
 | AWS Amplify | Deploy frontend com CDN global e SSL automático |
 | AWS Lambda | 23 funções serverless (Node.js 20) |
 | AWS API Gateway | HTTP API com CORS e logging |
@@ -876,9 +879,56 @@ O Quality Gate avalia apenas o **New Code** (código adicionado desde a última 
 
 ---
 
+## 🔒 Segurança
+
+Segurança implementada em múltiplas camadas: aplicação, infraestrutura, CI/CD e operações.
+
+> Documentação completa em [SECURITY.md](SECURITY.md)
+
+&nbsp;
+
+### Application Security
+
+| Mecanismo | Implementação |
+|-----------|--------------|
+| **Helmet.js** | Security headers em todos os 6 microserviços (CSP, HSTS, X-Frame-Options) |
+| **JWT** | Access token 15min + Refresh token 7d com revogação via Redis |
+| **bcrypt** | Hash de senhas com 10 salt rounds |
+| **Rate Limiting** | Per-IP rate limiting configurável em todos os endpoints |
+| **CORS** | Origins whitelisted (fastmeals.com.br em produção) |
+| **Zod** | Validação de input em todos os endpoints |
+| **Role-Based Access** | Admin (full) / Viewer (read-only) via middleware |
+
+&nbsp;
+
+### Infrastructure Security
+
+| Camada | Proteção |
+|--------|----------|
+| **Network** | VPC com subnets privadas, Security Groups least-privilege |
+| **Encryption at rest** | RDS encryption (AES-256) |
+| **Encryption in transit** | TLS 1.2+ (HTTPS, AMQPS) via ACM |
+| **Secrets** | AWS Secrets Manager (9 secrets) + Ansible Vault |
+| **Bastion** | SSH restrito a IP de admin, sem acesso direto ao RDS |
+
+&nbsp;
+
+### CI/CD Security
+
+| Pipeline | Frequência | O que faz |
+|----------|-----------|-----------|
+| **Trivy** | push + semanal | Scan de vulnerabilidades em filesystem e Docker images |
+| **npm audit** | push | Auditoria de dependências em 11 packages |
+| **SonarCloud** | push + PR | SAST, security hotspots, Quality Gate |
+| **SARIF** | push | Upload de resultados para GitHub Security tab |
+
+&nbsp;
+
+---
+
 ## 🔄 CI/CD Pipeline
  
-7 workflows no GitHub Actions com deploy automático, quality gate e cost estimation.
+8 workflows no GitHub Actions com deploy automático, quality gate, security scan e cost estimation.
  
 ![CI/CD Pipeline](docs/diagrams/images/07-cicd-pipeline.drawio.png)
  
@@ -887,6 +937,7 @@ O Quality Gate avalia apenas o **New Code** (código adicionado desde a última 
 | CI Backend | push development/main/improvements | Testa 6 serviços em paralelo (608 testes, 93-98% coverage) |
 | CI Frontend | push development/main/improvements | Type check + build de todos os 5 microfrontends |
 | SonarCloud | push + PR | Qualidade de código, cobertura, Quality Gate |
+| **Security Scan** | push + weekly (Monday 6AM) | Trivy + npm audit + SARIF → GitHub Security |
 | Deploy Lambdas | merge to main | Build + zip + upload 23 Lambda functions |
 | Deploy Frontend | merge to main | Amplify auto-deploy via webhook |
 | Terraform | PR (plan) / merge (apply) | Infra as Code com review (9 módulos) |
@@ -1032,11 +1083,13 @@ PLAYWRIGHT_BASE_URL=https://fastmeals.com.br npx playwright test --ui
 ```
 fastmeals/
 ├── DECISIONS.md                       # 16 Architecture Decision Records
+├── SECURITY.md                        # 🔒 Security practices documentation
 ├── README.md                          # Este arquivo
 ├── sonar-project.properties           # Configuração SonarCloud
 ├── docker-compose.yml                 # Orquestração (19 containers)
-├── .github/workflows/                 # 7 CI/CD pipelines
-│   └── infracost.yml                  # 💰 Cost estimation em PRs do Terraform
+├── .github/workflows/                 # 8 CI/CD pipelines
+│   ├── infracost.yml                  # 💰 Cost estimation em PRs do Terraform
+│   └── security-scan.yml             # 🔒 Trivy + npm audit + SARIF
 ├── nginx/
 │   └── nginx.conf                     # API Gateway routing (local)
 ├── scripts/
@@ -1094,6 +1147,7 @@ fastmeals/
 | Documento | Descrição |
 |-----------|-----------|
 | [DECISIONS.md](DECISIONS.md) | 16 ADRs — decisões arquiteturais com trade-offs |
+| [SECURITY.md](SECURITY.md) | Práticas de segurança: app, infra, CI/CD, checklist |
 | [API Spec](docs/api-spec.md) | Especificação completa de todos os endpoints |
 | [Database Schema](docs/database-schema.md) | Esquema do banco de dados |
 | [Auth Service](backend/services/auth-service/README.md) | JWT, Redis, bcrypt |
