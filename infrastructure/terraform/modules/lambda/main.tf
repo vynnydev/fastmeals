@@ -1,6 +1,13 @@
 # ============================================
 # FastMeals — Lambda Module
-# 20 Lambda functions (sem API Gateway)
+# 23 Lambda functions (sem API Gateway)
+# ============================================
+# Datadog instrumentation is provided by the
+# observability/datadog module via variables:
+#   - datadog_layers (layer ARNs)
+#   - datadog_env (environment variables)
+#   - datadog_handler (handler wrapper path)
+#   - datadog_enabled (flag)
 # ============================================
 
 # --- IAM Role ---
@@ -53,27 +60,6 @@ resource "aws_iam_role_policy" "lambda_bedrock" {
       Resource = "arn:aws:bedrock:${var.aws_region}::foundation-model/*"
     }]
   })
-}
-
-# --- Datadog Lambda Layers ---
-locals {
-  datadog_layers = var.datadog_enabled ? [
-    "arn:aws:lambda:${var.aws_region}:464622532012:layer:Datadog-Node20-x:118",
-    "arn:aws:lambda:${var.aws_region}:464622532012:layer:Datadog-Extension:65",
-  ] : []
-
-  datadog_env = var.datadog_enabled ? {
-    DD_API_KEY                 = var.datadog_api_key
-    DD_SITE                    = var.datadog_site
-    DD_SERVERLESS_LOGS_ENABLED = "true"
-    DD_CAPTURE_LAMBDA_PAYLOAD  = "true"
-    DD_TRACE_ENABLED           = "true"
-    DD_MERGE_XRAY_TRACES       = "false"
-    DD_FLUSH_TO_LOG            = "true"
-    DD_ENV                     = "production"
-    DD_SERVICE                 = var.project_name
-    DD_TRACE_PROPAGATION_STYLE = "datadog"
-  } : {}
 }
 
 # --- Function Definitions ---
@@ -301,7 +287,7 @@ resource "aws_lambda_function" "handlers" {
 
   function_name = "${var.project_name}-${each.key}"
   role          = aws_iam_role.lambda_exec.arn
-  handler       = var.datadog_enabled ? "/opt/nodejs/node_modules/datadog-lambda-js/handler.handler" : each.value.handler
+  handler       = var.datadog_handler != null ? var.datadog_handler : each.value.handler
   runtime       = "nodejs20.x"
   timeout       = 30
   memory_size   = 256
@@ -314,13 +300,13 @@ resource "aws_lambda_function" "handlers" {
     security_group_ids = [var.lambda_security_group_id]
   }
 
-  layers = local.datadog_layers
+  layers = var.datadog_layers
 
   environment {
     variables = merge(
       each.value.env,
-      local.datadog_env,
-      var.datadog_enabled ? { DD_LAMBDA_HANDLER = each.value.handler } : {}
+      var.datadog_env,
+      var.datadog_handler != null ? { DD_LAMBDA_HANDLER = each.value.handler } : {}
     )
   }
 

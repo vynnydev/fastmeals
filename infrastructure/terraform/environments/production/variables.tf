@@ -139,3 +139,10 @@ variable "datadog_api_key" {
   default     = ""
   sensitive   = true
 }
+
+variable "datadog_app_key" {
+  description = "Datadog App Key"
+  type        = string
+  default     = ""
+  sensitive   = true
+}

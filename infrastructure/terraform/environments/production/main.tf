@@ -5,6 +5,10 @@ terraform {
       source  = "hashicorp/aws"
       version = "~> 5.0"
     }
+    datadog = {
+      source  = "DataDog/datadog"
+      version = "~> 3.0"
+    }
   }
 }
 
@@ -18,6 +22,13 @@ provider "aws" {
       ManagedBy   = "terraform"
     }
   }
+}
+
+# Provider Datadog (só necessário para o monitoring)
+provider "datadog" {
+  api_key = var.datadog_api_key
+  app_key = var.datadog_app_key
+  api_url = "https://api.us5.datadoghq.com/"
 }
 
 # --- Secrets ---
@@ -92,6 +103,25 @@ module "messaging" {
   mq_password = var.mq_password
 }
 
+module "datadog_integration" {
+  source = "../../modules/observability/datadog-integration"
+
+  enabled      = true
+  project_name = "fastmeals"
+  environment  = "production"
+  aws_region   = var.aws_region
+  dd_api_key   = var.datadog_api_key
+}
+
+# Monitoring — monitors e dashboard no Datadog
+module "datadog_monitoring" {
+  source = "../../modules/observability/datadog-monitoring"
+
+  project_name         = "fastmeals"
+  environment          = "production"
+  notification_targets = "@vynnydev"
+}
+
 # --- Lambda ---
 module "lambda" {
   source = "../../modules/lambda"
@@ -115,9 +145,9 @@ module "lambda" {
   api_gateway_url = var.api_gateway_url
   
   # Datadog Observability
-  datadog_enabled = true
-  datadog_api_key = var.datadog_api_key
-  datadog_site    = "us5.datadoghq.com"
+  datadog_layers  = module.datadog_integration.lambda_layers
+  datadog_env     = module.datadog_integration.lambda_env_vars
+  datadog_handler = module.datadog_integration.lambda_handler_wrapper
 }
 
 # --- API Gateway ---

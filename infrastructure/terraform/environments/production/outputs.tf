@@ -64,6 +64,17 @@ output "rds_tunnel_command" {
   value       = module.bastion.rds_tunnel_command
 }
 
+# Datadog Monitoring
+output "datadog_dashboard_url" {
+  description = "Datadog production monitoring dashboard URL"
+  value       = module.datadog_monitoring.dashboard_url
+}
+
+output "datadog_monitor_ids" {
+  description = "Datadog monitor IDs"
+  value       = module.datadog_monitoring.monitor_ids
+}
+
 # --- FinOps Dashboard ---
 # output "finops_dashboard_url" {
 #   description = "URL do FinOps Dashboard"

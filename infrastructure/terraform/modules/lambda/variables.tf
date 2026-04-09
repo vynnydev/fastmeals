@@ -64,22 +64,35 @@ variable "api_gateway_url" {
   type        = string
 }
 
-# Datadog
-variable "datadog_api_key" {
-  description = "Datadog API Key for Lambda instrumentation"
-  type        = string
-  default     = ""
+# ==========================================
+# Datadog variables (from observability module)
+# ==========================================
+# These replace the old variables:
+#   - datadog_enabled
+#   - datadog_api_key
+#   - datadog_site
+#
+# Now provided by module.observability outputs:
+#   datadog_layers  = module.observability.lambda_layers
+#   datadog_env     = module.observability.lambda_env_vars
+#   datadog_handler = module.observability.lambda_handler_wrapper
+# ==========================================
+
+variable "datadog_layers" {
+  description = "Datadog Lambda layer ARNs (from observability module)"
+  type        = list(string)
+  default     = []
+}
+
+variable "datadog_env" {
+  description = "Datadog environment variables (from observability module)"
+  type        = map(string)
+  default     = {}
   sensitive   = true
 }
 
-variable "datadog_site" {
-  description = "Datadog site"
+variable "datadog_handler" {
+  description = "Datadog handler wrapper path, null if disabled (from observability module)"
   type        = string
-  default     = "us5.datadoghq.com"
-}
-
-variable "datadog_enabled" {
-  description = "Enable Datadog Lambda instrumentation"
-  type        = bool
-  default     = false
+  default     = null
 }
