@@ -29,8 +29,9 @@
 ![Trivy](https://img.shields.io/badge/Trivy-Security_Scan-1904DA?logo=aqua&logoColor=white)
 ![Helmet](https://img.shields.io/badge/Helmet.js-Security_Headers-000000?logo=express&logoColor=white)
 ![k6](https://img.shields.io/badge/k6-Load_Testing-7D64FF?logo=k6&logoColor=white)
+![Redoc](https://img.shields.io/badge/Redoc-API_Docs-8B5CF6?logo=swagger&logoColor=white)
 
-> 🌐 **Live:** [https://fastmeals.com.br](https://fastmeals.com.br) | **API:** [https://t2fwiydcrc.execute-api.us-east-1.amazonaws.com](https://t2fwiydcrc.execute-api.us-east-1.amazonaws.com/api/products)
+> 🌐 **Live:** [https://fastmeals.com.br](https://fastmeals.com.br) | **API:** [https://t2fwiydcrc.execute-api.us-east-1.amazonaws.com](https://t2fwiydcrc.execute-api.us-east-1.amazonaws.com/api/products) | **API Docs:** [https://vynnydev.github.io/fastmeals/](https://vynnydev.github.io/fastmeals/)
 
 # 🍔 FastMeals — Sistema de Gerenciamento de Pedidos e Entregas
 
@@ -261,7 +262,7 @@ cd backend/services/reports-service && npm test       # 73 testes
 | Terraform | IaC — 11 módulos gerenciando toda a infraestrutura AWS |
 | Ansible | Automação operacional — 7 playbooks (migrations, seeds, backups, health checks) |
 | Infracost | FinOps — estimativa de custos do Terraform com CI/CD em PRs |
-| GitHub Actions | CI/CD — 9 workflows (CI, deploy, quality, security, load testing, IaC, cost estimation) |
+| GitHub Actions | CI/CD — 10 workflows (CI, deploy, quality, security, load testing, IaC, cost estimation) |
 | SonarCloud | Qualidade de código, cobertura, Quality Gate |
 | Trivy | Security scanning — vulnerabilidades em filesystem, dependências e Docker images |
 | k6 | Load testing — smoke, load e stress tests contra produção |
@@ -1067,7 +1068,7 @@ k6 run load-testing/k6-load-test.js
 
 ## 🔄 CI/CD Pipeline
  
-9 workflows no GitHub Actions com deploy automático, quality gate, security scan, load testing e cost estimation.
+10 workflows no GitHub Actions com deploy automático, quality gate, security scan, load testing e cost estimation.
  
 ![CI/CD Pipeline](docs/diagrams/images/07-cicd-pipeline.drawio.png)
  
@@ -1227,10 +1228,11 @@ fastmeals/
 ├── README.md                          # Este arquivo
 ├── sonar-project.properties           # Configuração SonarCloud
 ├── docker-compose.yml                 # Orquestração (19 containers)
-├── .github/workflows/                 # 9 CI/CD pipelines
+├── .github/workflows/                 # 10 CI/CD pipelines
 │   ├── infracost.yml                  # 💰 Cost estimation em PRs do Terraform
 │   ├── security-scan.yml             # 🔒 Trivy + npm audit + SARIF
-│   └── load-test.yml                 # ⚡ k6 load testing (manual trigger)
+│   ├── load-test.yml                 # ⚡ k6 load testing (manual trigger)
+│   └── deploy-api-docs.yml           # 📖 Unified API docs → GitHub Pages
 ├── nginx/
 │   └── nginx.conf                     # API Gateway routing (local)
 ├── scripts/
@@ -1314,12 +1316,34 @@ fastmeals/
 
 &nbsp;
 
-### Swagger (OpenAPI)
+### API Documentation — Unified (Redoc)
 
-Cada serviço possui documentação interativa acessível em `/docs`:
+Documentação unificada de todos os 6 microserviços em uma única página interativa usando **Redoc** — a ferramenta de API reference utilizada por Docker, Stripe, AWS e GitHub.
 
-| Serviço | URL |
-|---------|-----|
+🌐 **[https://vynnydev.github.io/fastmeals/](https://vynnydev.github.io/fastmeals/)**
+
+> Deploy automático via GitHub Pages a cada mudança nos `swagger.ts`. Script `scripts/generate-unified-api-docs.js` gera o OpenAPI 3.0 unificado a partir dos specs individuais.
+
+&nbsp;
+
+#### Overview — 6 Serviços em uma Única Página
+
+![Redoc Overview](docs/images/api-docs/redoc-overview.png)
+
+&nbsp;
+
+#### Detalhes de Endpoint — Schema + Samples
+
+![Redoc Endpoint Detail](docs/images/api-docs/redoc-endpoint.png)
+
+&nbsp;
+
+### Swagger (OpenAPI) por Serviço
+
+Cada serviço também possui documentação interativa local acessível em `/docs`:
+
+| Serviço | URL Local |
+|---------|-----------|
 | Auth | http://localhost:3001/docs |
 | Products | http://localhost:3002/docs |
 | Orders | http://localhost:3003/docs |
