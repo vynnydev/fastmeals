@@ -1,0 +1,64 @@
+name: Deploy API Docs
+
+on:
+  push:
+    branches: [main, improvements]
+    paths:
+      - 'backend/services/**/src/infrastructure/http/swagger.ts'
+      - 'docs/api/**'
+      - 'scripts/generate-unified-api-docs.js'
+      - '.github/workflows/deploy-api-docs.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build Unified API Docs
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install js-yaml
+        run: npm install --no-save js-yaml
+
+      - name: Generate unified OpenAPI spec
+        run: node scripts/generate-unified-api-docs.js
+
+      - name: Verify output
+        run: |
+          echo "=== Generated files ==="
+          ls -la docs/api/
+          echo ""
+          echo "=== Paths in openapi.json ==="
+          node -e "const s=require('./docs/api/openapi.json'); console.log(Object.keys(s.paths).sort().join('\n'))"
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs/api
+
+  deploy:
+    name: Deploy to GitHub Pages
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@v4

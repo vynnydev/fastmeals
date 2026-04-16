@@ -1,0 +1,983 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "FastMeals API",
+    "version": "1.0.0",
+    "description": "# FastMeals — Unified API Documentation\n\nDocumentação unificada de todos os **6 microserviços** da plataforma FastMeals.\n\n## Serviços\n\n- **🔐 auth-service** — JWT authentication (login, refresh token)\n- **📦 products-service** — Product catalog CRUD\n- **📋 orders-service** — Orders with state machine\n- **🚴 delivery-service** — Delivery persons CRUD\n- **🧠 optimization-service** — Hungarian algorithm assignment\n- **📊 reports-service** — Analytics + AI Insights (AWS Bedrock)\n\n## Autenticação\n\nTodos os endpoints (exceto `/api/auth/login` e `/api/auth/refresh-token`) requerem JWT Bearer token:\n\n```\nAuthorization: Bearer <access_token>\n```\n\n## Rate Limiting\n\nTodos os endpoints possuem rate limiting per-IP.\n\n## URLs\n\n- **Production:** https://t2fwiydcrc.execute-api.us-east-1.amazonaws.com\n- **Local:** http://localhost (via Nginx gateway)",
+    "contact": {
+      "name": "Vinicius Prudencio",
+      "url": "https://github.com/vynnydev/fastmeals"
+    },
+    "license": {
+      "name": "MIT"
+    }
+  },
+  "servers": [
+    {
+      "url": "https://t2fwiydcrc.execute-api.us-east-1.amazonaws.com",
+      "description": "Production (AWS API Gateway)"
+    },
+    {
+      "url": "http://localhost",
+      "description": "Local (Nginx gateway)"
+    }
+  ],
+  "tags": [
+    {
+      "name": "🔐 Authentication — Auth",
+      "description": "auth-service endpoints"
+    },
+    {
+      "name": "📦 Products — Products",
+      "description": "products-service endpoints"
+    },
+    {
+      "name": "📋 Orders — Orders",
+      "description": "orders-service endpoints"
+    },
+    {
+      "name": "🚴 Delivery — Delivery",
+      "description": "delivery-service endpoints"
+    },
+    {
+      "name": "🧠 Optimization — Optimization",
+      "description": "optimization-service endpoints"
+    },
+    {
+      "name": "📊 Reports — Reports",
+      "description": "reports-service endpoints"
+    }
+  ],
+  "paths": {
+    "/api/auth/login": {
+      "post": {
+        "summary": "Login",
+        "description": "Autentica um usuário e retorna access + refresh tokens.",
+        "tags": [
+          "🔐 Authentication — Auth"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "email",
+                  "password"
+                ],
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "format": "email",
+                    "example": "admin@fastmeals.com"
+                  },
+                  "password": {
+                    "type": "string",
+                    "example": "Admin@123"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Login realizado com sucesso"
+          },
+          "401": {
+            "description": "Credenciais inválidas"
+          },
+          "429": {
+            "description": "Rate limit excedido"
+          }
+        }
+      }
+    },
+    "/api/auth/refresh-token": {
+      "post": {
+        "summary": "Refresh Token",
+        "description": "Gera um novo access token a partir de um refresh token válido.",
+        "tags": [
+          "🔐 Authentication — Auth"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "refreshToken"
+                ],
+                "properties": {
+                  "refreshToken": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Token renovado"
+          },
+          "401": {
+            "description": "Refresh token inválido ou expirado"
+          }
+        }
+      }
+    },
+    "/api/products": {
+      "get": {
+        "summary": "Listar produtos",
+        "tags": [
+          "📦 Products — Products"
+        ],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 1
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 20
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "category",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "meal",
+                "drink",
+                "dessert",
+                "side"
+              ]
+            }
+          },
+          {
+            "name": "isAvailable",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "sortBy",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "name",
+                "price",
+                "createdAt"
+              ]
+            }
+          },
+          {
+            "name": "sortOrder",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "asc",
+                "desc"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lista paginada de produtos"
+          }
+        }
+      },
+      "post": {
+        "summary": "Criar produto",
+        "tags": [
+          "📦 Products — Products"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "name",
+                  "description",
+                  "price",
+                  "category",
+                  "preparationTime"
+                ],
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 3,
+                    "maxLength": 120
+                  },
+                  "description": {
+                    "type": "string",
+                    "minLength": 10,
+                    "maxLength": 500
+                  },
+                  "price": {
+                    "type": "number",
+                    "minimum": 0.01
+                  },
+                  "category": {
+                    "type": "string",
+                    "enum": [
+                      "meal",
+                      "drink",
+                      "dessert",
+                      "side"
+                    ]
+                  },
+                  "imageUrl": {
+                    "type": "string",
+                    "format": "uri"
+                  },
+                  "preparationTime": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 120
+                  },
+                  "isAvailable": {
+                    "type": "boolean",
+                    "default": true
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Produto criado"
+          },
+          "400": {
+            "description": "Validação falhou"
+          }
+        }
+      }
+    },
+    "/api/products/{id}": {
+      "get": {
+        "summary": "Buscar produto por ID",
+        "tags": [
+          "📦 Products — Products"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Produto encontrado"
+          },
+          "404": {
+            "description": "Produto não encontrado"
+          }
+        }
+      },
+      "put": {
+        "summary": "Atualizar produto",
+        "tags": [
+          "📦 Products — Products"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Produto atualizado"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Remover produto",
+        "tags": [
+          "📦 Products — Products"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Produto removido"
+          },
+          "409": {
+            "description": "Produto vinculado a pedidos ativos"
+          }
+        }
+      }
+    },
+    "/api/orders": {
+      "get": {
+        "summary": "Listar pedidos",
+        "tags": [
+          "📋 Orders — Orders"
+        ],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 1
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 20
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "pending",
+                "preparing",
+                "ready",
+                "delivering",
+                "delivered",
+                "cancelled"
+              ]
+            }
+          },
+          {
+            "name": "sortBy",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "createdAt",
+                "totalAmount"
+              ]
+            }
+          },
+          {
+            "name": "sortOrder",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "asc",
+                "desc"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lista paginada de pedidos"
+          }
+        }
+      },
+      "post": {
+        "summary": "Criar pedido",
+        "tags": [
+          "📋 Orders — Orders"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "customerName",
+                  "customerPhone",
+                  "deliveryAddress",
+                  "latitude",
+                  "longitude",
+                  "items"
+                ],
+                "properties": {
+                  "customerName": {
+                    "type": "string",
+                    "minLength": 3,
+                    "maxLength": 100
+                  },
+                  "customerPhone": {
+                    "type": "string",
+                    "pattern": "^\\(\\d{2}\\) \\d{5}-\\d{4}$"
+                  },
+                  "deliveryAddress": {
+                    "type": "string",
+                    "minLength": 10,
+                    "maxLength": 300
+                  },
+                  "latitude": {
+                    "type": "number"
+                  },
+                  "longitude": {
+                    "type": "number"
+                  },
+                  "items": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "productId": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "quantity": {
+                          "type": "integer",
+                          "minimum": 1
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Pedido criado"
+          },
+          "422": {
+            "description": "Produto indisponível"
+          }
+        }
+      }
+    },
+    "/api/orders/{id}": {
+      "get": {
+        "summary": "Buscar pedido por ID",
+        "tags": [
+          "📋 Orders — Orders"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Pedido encontrado"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/api/orders/{id}/status": {
+      "patch": {
+        "summary": "Atualizar status do pedido",
+        "tags": [
+          "📋 Orders — Orders"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "status"
+                ],
+                "properties": {
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "pending",
+                      "preparing",
+                      "ready",
+                      "delivering",
+                      "delivered",
+                      "cancelled"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Status atualizado"
+          },
+          "422": {
+            "description": "Transição inválida"
+          }
+        }
+      }
+    },
+    "/api/orders/{id}/assign": {
+      "patch": {
+        "summary": "Atribuir entregador ao pedido",
+        "tags": [
+          "📋 Orders — Orders"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "deliveryPersonId"
+                ],
+                "properties": {
+                  "deliveryPersonId": {
+                    "type": "string",
+                    "format": "uuid"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Entregador atribuído"
+          },
+          "422": {
+            "description": "Entregador indisponível"
+          }
+        }
+      }
+    },
+    "/api/delivery-persons": {
+      "get": {
+        "summary": "Listar entregadores",
+        "tags": [
+          "🚴 Delivery — Delivery"
+        ],
+        "parameters": [
+          {
+            "name": "isActive",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "available",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lista de entregadores"
+          }
+        }
+      },
+      "post": {
+        "summary": "Criar entregador",
+        "tags": [
+          "🚴 Delivery — Delivery"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "name",
+                  "phone",
+                  "vehicleType"
+                ],
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 3
+                  },
+                  "phone": {
+                    "type": "string",
+                    "pattern": "^\\(\\d{2}\\) \\d{5}-\\d{4}$"
+                  },
+                  "vehicleType": {
+                    "type": "string",
+                    "enum": [
+                      "motorcycle",
+                      "bicycle",
+                      "car"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Entregador criado"
+          }
+        }
+      }
+    },
+    "/api/delivery-persons/{id}": {
+      "get": {
+        "summary": "Buscar entregador por ID",
+        "tags": [
+          "🚴 Delivery — Delivery"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Entregador encontrado"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      },
+      "put": {
+        "summary": "Atualizar entregador",
+        "tags": [
+          "🚴 Delivery — Delivery"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Atualizado"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Remover entregador",
+        "tags": [
+          "🚴 Delivery — Delivery"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Removido"
+          },
+          "409": {
+            "description": "Entregador em entrega"
+          }
+        }
+      }
+    },
+    "/api/orders/optimize-assignment": {
+      "post": {
+        "summary": "Executar otimização de atribuição",
+        "description": "Busca pedidos ready e entregadores disponíveis, calcula distâncias via Haversine e atribui via Hungarian Algorithm.",
+        "tags": [
+          "🧠 Optimization — Optimization"
+        ],
+        "responses": {
+          "200": {
+            "description": "Resultado da otimização",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "assignments": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    },
+                    "unassigned": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    },
+                    "totalDistanceKm": {
+                      "type": "number"
+                    },
+                    "algorithm": {
+                      "type": "string",
+                      "example": "hungarian"
+                    },
+                    "executionTimeMs": {
+                      "type": "number"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Permissão insuficiente"
+          }
+        }
+      }
+    },
+    "/api/reports/revenue": {
+      "get": {
+        "summary": "Receita por período",
+        "tags": [
+          "📊 Reports — Reports"
+        ],
+        "parameters": [
+          {
+            "name": "startDate",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "endDate",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Receita total, por dia, ticket médio"
+          }
+        }
+      }
+    },
+    "/api/reports/orders-by-status": {
+      "get": {
+        "summary": "Pedidos agrupados por status",
+        "tags": [
+          "📊 Reports — Reports"
+        ],
+        "responses": {
+          "200": {
+            "description": "Contagem por status"
+          }
+        }
+      }
+    },
+    "/api/reports/top-products": {
+      "get": {
+        "summary": "Produtos mais vendidos",
+        "tags": [
+          "📊 Reports — Reports"
+        ],
+        "parameters": [
+          {
+            "name": "startDate",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "endDate",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 10
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Ranking de produtos"
+          }
+        }
+      }
+    },
+    "/api/reports/average-delivery-time": {
+      "get": {
+        "summary": "Tempo médio de entrega",
+        "tags": [
+          "📊 Reports — Reports"
+        ],
+        "parameters": [
+          {
+            "name": "startDate",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "endDate",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Tempo médio, mais rápido, mais lento, por veículo"
+          }
+        }
+      }
+    },
+    "/api/reports/ai-insights": {
+      "get": {
+        "summary": "Insights com IA (AWS Bedrock)",
+        "tags": [
+          "📊 Reports — Reports"
+        ],
+        "parameters": [
+          {
+            "name": "startDate",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "endDate",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Summary, recommendations, highlights"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    },
+    "schemas": {}
+  },
+  "security": [
+    {
+      "bearerAuth": []
+    }
+  ]
+}
