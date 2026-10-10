@@ -71,7 +71,7 @@ Plataforma fullstack de gerenciamento de delivery com **6 microserviços**, **5 
 
 <!-- GIF de apresentação da aplicação -->
 
-![FastMeals Demo](docs/fastmeals.gif)
+![FastMeals Demo](docs/images/frontend/fastmeals.gif)
 
 ---
 
