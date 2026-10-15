@@ -1410,11 +1410,7 @@ O `docker-compose.yml` orquestra **19 containers** (7 infra + 6 backend + 5 fron
 
 ## 👨‍💻 Autor
 
-**Vinicius Prudencio** — Full Stack & DevOps Engineer
+**Vinicius Prudencio** — Senior Full Stack & DevOps Engineer
 
 [![GitHub](https://img.shields.io/badge/GitHub-vynnydev-181717?logo=github&logoColor=white)](https://github.com/vynnydev)
 [![LinkedIn](https://img.shields.io/badge/LinkedIn-vynnydev-0A66C2?logo=linkedin&logoColor=white)](https://linkedin.com/in/vynnydev)
-
----
-
-*Desenvolvido como teste técnico para Eyecare Health — Março 2026*
